@@ -31,12 +31,6 @@ jobs:
       with:
         path: ${{ env.PROJECT_NAME }}
 
-    - name: Checkout raylib repo
-      uses: actions/checkout@v4
-      with:
-        repository: raysan5/raylib
-        path: raylib
-
     - name: Setup Release Paths
       run: |
         echo "PROJECT_RELEASE_PATH=${{ env.PROJECT_NAME }}_v${{ github.event.release.tag_name }}_linux_x64" >> $GITHUB_ENV
@@ -53,14 +47,14 @@ jobs:
 
     - name: Build raylib Library
       run: |
-        cd raylib/src
+        cd ${{ env.PROJECT_NAME }}/raylib/src
         gcc --version
         make PLATFORM=PLATFORM_DESKTOP BUILD_MODE=RELEASE RAYLIB_LIBTYPE=STATIC RAYLIB_RELEASE_PATH=. -B
 
     - name: Build Product
       run: |
         cd ${{ env.PROJECT_NAME }}/src
-        make PLATFORM=PLATFORM_DESKTOP BUILD_MODE=RELEASE PROJECT_CUSTOM_FLAGS=${{ env.PROJECT_CUSTOM_FLAGS }} PROJECT_BUILD_PATH=. RAYLIB_SRC_PATH=../../raylib/src
+        make PLATFORM=PLATFORM_DESKTOP BUILD_MODE=RELEASE PROJECT_CUSTOM_FLAGS=${{ env.PROJECT_CUSTOM_FLAGS }} PROJECT_BUILD_PATH=. RAYLIB_SRC_PATH=../raylib/src
 
     - name: Generate Artifacts
       run: |
