@@ -23,6 +23,22 @@ add_executable(${PROJECT_NAME})
 add_subdirectory(src)
 
 set_target_properties(${PROJECT_NAME} PROPERTIES
+    C_STANDARD 23
+    C_STANDARD_REQUIRED ON
+)
+
+target_compile_options(${PROJECT_NAME} PRIVATE
+    -Wall
+    -pedantic
+    -Werror
+    -Wno-overlength-strings
+    -Wno-missing-braces
+)
+set_source_files_properties(src/clay.c PROPERTIES
+    COMPILE_OPTIONS "-Wno-error;-Wno-pedantic"
+)
+
+set_target_properties(${PROJECT_NAME} PROPERTIES
     RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/${PROJECT_NAME})
 
 set_property(TARGET ${PROJECT_NAME} PROPERTY VS_DEBUGGER_WORKING_DIRECTORY $<TARGET_FILE_DIR:${PROJECT_NAME}>)
