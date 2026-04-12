@@ -8,20 +8,20 @@
 void frame(void) {
     ui_update();
 
-    BeginDrawing();
-    ClearBackground(WHITE);
+    RL_BeginDrawing();
+    RL_ClearBackground(RL_WHITE);
     ui_render();
-    EndDrawing();
+    RL_EndDrawing();
 }
 
 int main(void) {
 
-    SetConfigFlags(
+    RL_SetConfigFlags(
         FLAG_VSYNC_HINT |
         FLAG_WINDOW_RESIZABLE |
         FLAG_MSAA_4X_HINT
     );
-    InitWindow(
+    RL_InitWindow(
         9*50,
         16*50,
         "eugenics auto battler"
@@ -32,13 +32,13 @@ int main(void) {
 #if defined(PLATFORM_WEB)
     emscripten_set_main_loop(frame, 60, 1);
 #else
-    SetTargetFPS(60);
-    while (!WindowShouldClose())
+    RL_SetTargetFPS(60);
+    while (!RL_WindowShouldClose())
         frame();
 #endif
 
     ui_free();
-    CloseWindow();
+    RL_CloseWindow();
 
     return 0;
 }

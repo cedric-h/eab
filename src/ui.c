@@ -25,12 +25,12 @@ char *ui_icon_paths[ui_Icon_COUNT] = {
 
 static struct {
     Clay_Arena clay_memory;
-    Font fonts[ui_Font_COUNT];
-    Texture icons[ui_Icon_COUNT];
+    RL_Font fonts[ui_Font_COUNT];
+    RL_Texture icons[ui_Icon_COUNT];
     Clay_RenderCommandArray render_cmds;
 } ui = {0};
 
-void ui_big_button(Clay_String text, Texture *icon) {
+void ui_big_button(Clay_String text, RL_Texture *icon) {
     CLAY_AUTO_ID({
         .border = {
             .width = CLAY_BORDER_OUTSIDE(4),
@@ -142,7 +142,7 @@ Clay_RenderCommandArray ui_create_layout(void) {
             );
         }
     }
-    return Clay_EndLayout(GetFrameTime());
+    return Clay_EndLayout(RL_GetFrameTime());
 }
 
 void ui_handle_clay_errors(Clay_ErrorData errorData) {
@@ -177,8 +177,8 @@ void ui_init(void) {
     Clay_Initialize(
         ui.clay_memory,
         (Clay_Dimensions) {
-            (float)GetScreenWidth(),
-            (float)GetScreenHeight()
+            (float)RL_GetScreenWidth(),
+            (float)RL_GetScreenHeight()
         },
         (Clay_ErrorHandler) { ui_handle_clay_errors, 0 }
     );
@@ -186,14 +186,20 @@ void ui_init(void) {
     Clay_Raylib_Initialize();
 
     const char *font_path = "resources/WackClubSans-Regular.ttf";
-    ui.fonts[ui_Font_Button] = LoadFontEx(font_path, 45, 0, 400);
-	SetTextureFilter(ui.fonts[ui_Font_Button].texture, TEXTURE_FILTER_BILINEAR);
+    ui.fonts[ui_Font_Button] = RL_LoadFontEx(font_path, 45, 0, 400);
+	RL_SetTextureFilter(
+        ui.fonts[ui_Font_Button].texture,
+        TEXTURE_FILTER_BILINEAR
+    );
 
-    ui.fonts[ui_Font_Title] = LoadFontEx(font_path, 80, 0, 400);
-    SetTextureFilter(ui.fonts[ui_Font_Title].texture, TEXTURE_FILTER_BILINEAR);
+    ui.fonts[ui_Font_Title] = RL_LoadFontEx(font_path, 80, 0, 400);
+    RL_SetTextureFilter(
+        ui.fonts[ui_Font_Title].texture,
+        TEXTURE_FILTER_BILINEAR
+    );
 
     for (int i = 0; i < ui_Icon_COUNT; i++)
-        ui.icons[i] = LoadTexture(ui_icon_paths[i]);
+        ui.icons[i] = RL_LoadTexture(ui_icon_paths[i]);
 
     Clay_SetMeasureTextFunction(Raylib_MeasureText, ui.fonts);
 }
@@ -201,36 +207,36 @@ void ui_free(void) {
     free(ui.clay_memory.memory);
 
     for (int i = 0; i < ui_Font_COUNT; i++) {
-        UnloadFont(ui.fonts[i]);
+        RL_UnloadFont(ui.fonts[i]);
     }
 
     for (int i = 0; i < ui_Icon_COUNT; i++)
-        UnloadTexture(ui.icons[i]);
+        RL_UnloadTexture(ui.icons[i]);
 }
 
 void ui_update(void) {
-    Vector2 mouseWheelDelta = GetMouseWheelMoveV();
+    RL_Vector2 mouseWheelDelta = RL_GetMouseWheelMoveV();
     float mouseWheelX = mouseWheelDelta.x;
     float mouseWheelY = mouseWheelDelta.y;
 
     Clay_SetDebugModeEnabled(false);
 
     Clay_Vector2 mousePosition = {
-        GetMousePosition().x,
-        GetMousePosition().y,
+        RL_GetMousePosition().x,
+        RL_GetMousePosition().y,
     };
-    Clay_SetPointerState(mousePosition, IsMouseButtonDown(0));
+    Clay_SetPointerState(mousePosition, RL_IsMouseButtonDown(0));
     Clay_SetLayoutDimensions(
         (Clay_Dimensions) {
-            (float)GetScreenWidth(),
-            (float)GetScreenHeight()
+            (float)RL_GetScreenWidth(),
+            (float)RL_GetScreenHeight()
         }
     );
 
     Clay_UpdateScrollContainers(
         true,
         (Clay_Vector2) {mouseWheelX, mouseWheelY},
-        GetFrameTime()
+        RL_GetFrameTime()
     );
     ui.render_cmds = ui_create_layout();
 }
