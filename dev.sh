@@ -1,2 +1,4 @@
 cd build
-find src | entr -rs 'make && cd eugenics-auto-battler && ./eugenics-auto-battler && cd ..'
+find ../src | \
+    grep -E "[^.swp]$" | \
+    entr -rs 'make && cd eugenics-auto-battler && ./eugenics-auto-battler'

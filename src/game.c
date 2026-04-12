@@ -8,8 +8,10 @@
 #endif
 
 Font fonts[2];
-const uint32_t FONT_ID_BODY_24 = 0;
-const uint32_t FONT_ID_BODY_16 = 1;
+typedef enum {
+    Font_Body24,
+    Font_Body16,
+} FONT_ID;
 #define COLOR_ORANGE (Clay_Color) {225, 138, 50, 255}
 #define COLOR_BLUE (Clay_Color) {111, 173, 162, 255}
 
@@ -84,7 +86,7 @@ Clay_RenderCommandArray CreateLayout(void) {
                  }
 
                  CLAY_TEXT(CLAY_STRING("Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt."),
-                     CLAY_TEXT_CONFIG({ .fontId = FONT_ID_BODY_24, .fontSize = 24, .textColor = {0,0,0,255} }));
+                     CLAY_TEXT_CONFIG({ .fontId = Font_Body24, .fontSize = 24, .textColor = {0,0,0,255} }));
 
                  CLAY(CLAY_ID("Photos2"), { .layout = { .childGap = 16, .padding = { 16, 16, 16, 16 }}, .backgroundColor = {180, 180, 220, Clay_Hovered() ? 120 : 255} }) {
                      CLAY(CLAY_ID("Picture4"), { .layout = { .sizing = { .width = CLAY_SIZING_FIXED(120), .height = CLAY_SIZING_FIXED(120) }}, .image = { .imageData = &profilePicture }}) {}
@@ -155,8 +157,6 @@ typedef struct
     bool mouseDown;
 } ScrollbarData;
 
-ScrollbarData scrollbarData = {0};
-
 void frame(void) {
     Vector2 mouseWheelDelta = GetMouseWheelMoveV();
     float mouseWheelX = mouseWheelDelta.x;
@@ -164,50 +164,18 @@ void frame(void) {
 
     Clay_SetDebugModeEnabled(false);
 
-    //----------------------------------------------------------------------------------
-    // Handle scroll containers
     Clay_Vector2 mousePosition = RAYLIB_VECTOR2_TO_CLAY_VECTOR2(GetMousePosition());
-    Clay_SetPointerState(mousePosition, IsMouseButtonDown(0) && !scrollbarData.mouseDown);
+    Clay_SetPointerState(mousePosition, IsMouseButtonDown(0));
     Clay_SetLayoutDimensions((Clay_Dimensions) { (float)GetScreenWidth(), (float)GetScreenHeight() });
-    if (!IsMouseButtonDown(0)) {
-        scrollbarData.mouseDown = false;
-    }
-
-    if (IsMouseButtonDown(0) && !scrollbarData.mouseDown && Clay_PointerOver(Clay_GetElementId(CLAY_STRING("ScrollBar")))) {
-        Clay_ScrollContainerData scrollContainerData = Clay_GetScrollContainerData(Clay_GetElementId(CLAY_STRING("MainContent")));
-        scrollbarData.clickOrigin = mousePosition;
-        scrollbarData.positionOrigin = *scrollContainerData.scrollPosition;
-        scrollbarData.mouseDown = true;
-    } else if (scrollbarData.mouseDown) {
-        Clay_ScrollContainerData scrollContainerData = Clay_GetScrollContainerData(Clay_GetElementId(CLAY_STRING("MainContent")));
-        if (scrollContainerData.contentDimensions.height > 0) {
-            Clay_Vector2 ratio = (Clay_Vector2) {
-                scrollContainerData.contentDimensions.width / scrollContainerData.scrollContainerDimensions.width,
-                scrollContainerData.contentDimensions.height / scrollContainerData.scrollContainerDimensions.height,
-            };
-            if (scrollContainerData.config.vertical) {
-                scrollContainerData.scrollPosition->y = scrollbarData.positionOrigin.y + (scrollbarData.clickOrigin.y - mousePosition.y) * ratio.y;
-            }
-            if (scrollContainerData.config.horizontal) {
-                scrollContainerData.scrollPosition->x = scrollbarData.positionOrigin.x + (scrollbarData.clickOrigin.x - mousePosition.x) * ratio.x;
-            }
-        }
-    }
 
     Clay_UpdateScrollContainers(true, (Clay_Vector2) {mouseWheelX, mouseWheelY}, GetFrameTime());
-    // Generate the auto layout for rendering
-    double currentTime = GetTime();
     Clay_RenderCommandArray renderCommands = CreateLayout();
-    printf("layout time: %f microseconds\n", (GetTime() - currentTime) * 1000 * 1000);
-    // RENDERING ---------------------------------
-//    currentTime = GetTime();
+
     BeginDrawing();
     ClearBackground(BLACK);
     Clay_Raylib_Render(renderCommands, fonts);
     EndDrawing();
-//    printf("render time: %f ms\n", (GetTime() - currentTime) * 1000);
 
-    //----------------------------------------------------------------------------------
 }
 
 void HandleClayErrors(Clay_ErrorData errorData) {
@@ -221,10 +189,10 @@ int main(void) {
     Clay_Raylib_Initialize(1024, 768, "Clay - Raylib Renderer Example", FLAG_VSYNC_HINT | FLAG_WINDOW_RESIZABLE | FLAG_MSAA_4X_HINT);
     profilePicture = LoadTexture("resources/profile-picture.png");
 
-    fonts[FONT_ID_BODY_24] = LoadFontEx("resources/Roboto-Regular.ttf", 48, 0, 400);
-	SetTextureFilter(fonts[FONT_ID_BODY_24].texture, TEXTURE_FILTER_BILINEAR);
-    fonts[FONT_ID_BODY_16] = LoadFontEx("resources/Roboto-Regular.ttf", 32, 0, 400);
-    SetTextureFilter(fonts[FONT_ID_BODY_16].texture, TEXTURE_FILTER_BILINEAR);
+    fonts[Font_Body24] = LoadFontEx("resources/Roboto-Regular.ttf", 48, 0, 400);
+	SetTextureFilter(fonts[Font_Body24].texture, TEXTURE_FILTER_BILINEAR);
+    fonts[Font_Body16] = LoadFontEx("resources/Roboto-Regular.ttf", 32, 0, 400);
+    SetTextureFilter(fonts[Font_Body16].texture, TEXTURE_FILTER_BILINEAR);
     Clay_SetMeasureTextFunction(Raylib_MeasureText, fonts);
 
 #if defined(PLATFORM_WEB)
