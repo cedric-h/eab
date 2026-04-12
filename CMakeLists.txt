@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.24...3.30)
-project(raylib-game-template)
+project(eugenics-auto-battler)
 
 include(FetchContent)
 
