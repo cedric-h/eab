@@ -2,9 +2,3 @@ void ui_init(void);
 void ui_free(void);
 void ui_update(void);
 void ui_render(void);
-
-typedef enum {
-    ui_Font_Body24,
-    ui_Font_Body16,
-    ui_Font_COUNT,
-} ui_Font;

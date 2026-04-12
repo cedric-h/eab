@@ -1,7 +1,5 @@
 #include "raylib.h"
-
 #include "ui.h"
-#include "clay.h"
 
 #if defined(PLATFORM_WEB)
     #include <emscripten/emscripten.h>
