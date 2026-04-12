@@ -33,10 +33,12 @@ PROJECT_NAME          ?= eugenics_auto_battler
 PROJECT_VERSION       ?= 1.0
 PROJECT_BUILD_PATH    ?= .
 PROJECT_SOURCE_FILES  ?= \
-    game.c
+    game.c \
+    ui.c \
+    clay.c \
 
 # raylib library variables
-RAYLIB_SRC_PATH       ?= ../../raylib/src
+RAYLIB_SRC_PATH       ?= ../raylib/src
 RAYLIB_INCLUDE_PATH   ?= $(RAYLIB_SRC_PATH)
 RAYLIB_LIB_PATH       ?= $(RAYLIB_SRC_PATH)
 

@@ -80,3 +80,4 @@ android.*
 !src/shell.html
 
 *.swp
+src/eugenics_auto_battler
