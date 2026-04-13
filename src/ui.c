@@ -6,6 +6,13 @@
 
 #include "ui.h"
 
+size_t ui_font_sizes[] = {
+    [ui_Font_Button  ] = 35,
+    [ui_Font_Title   ] = 60,
+    [ui_Font_SubTitle] = 48,
+};
+_Static_assert(countof(ui_font_sizes) == ui_Font_COUNT, "missing font path");
+
 char *ui_icon_paths[] = {
     [ui_Icon_Swords ] = "resources/icon/swords.png",
     [ui_Icon_Diamond] = "resources/icon/diamond.png",
@@ -27,7 +34,17 @@ static struct {
     RL_Sound   sounds[ui_Sound_COUNT];
 } ui = {0};
 
-RL_Font ui_font(ui_Font f) { return ui.fonts[f]; }
+Clay_TextElementConfig ui_font(ui_Font f) {
+    return ui_font_ex(f, (Clay_TextElementConfig){
+        .textColor = { 0, 0, 0, 255 },
+    });
+}
+Clay_TextElementConfig ui_font_ex(ui_Font f, Clay_TextElementConfig tec) {
+    tec.fontId = f;
+    if (tec.fontSize == 0)
+        tec.fontSize = ui_font_sizes[f];
+    return tec;
+}
 RL_Texture *ui_icon(ui_Icon i) { return &ui.icons[i]; }
 RL_Sound ui_sound(ui_Sound s) { return ui.sounds[s]; }
 
@@ -72,23 +89,18 @@ void ui_init(void) {
     Clay_Raylib_Initialize();
 
     const char *font_path = "resources/WackClubSans-Regular.otf";
-    ui.fonts[ui_Font_Button] = RL_LoadFontEx(font_path, 45, 0, 400);
-	RL_SetTextureFilter(
-        ui.fonts[ui_Font_Button].texture,
-        TEXTURE_FILTER_BILINEAR
-    );
-
-    ui.fonts[ui_Font_SubTitle] = RL_LoadFontEx(font_path, 60, 0, 400);
-	RL_SetTextureFilter(
-        ui.fonts[ui_Font_SubTitle].texture,
-        TEXTURE_FILTER_BILINEAR
-    );
-
-    ui.fonts[ui_Font_Title] = RL_LoadFontEx(font_path, 80, 0, 400);
-    RL_SetTextureFilter(
-        ui.fonts[ui_Font_Title].texture,
-        TEXTURE_FILTER_BILINEAR
-    );
+    for (int i = 0; i < ui_Font_COUNT; i++) {
+        ui.fonts[i] = RL_LoadFontEx(
+            font_path,
+            ui_font_sizes[i],
+            0,
+            400
+        );
+        RL_SetTextureFilter(
+            ui.fonts[i].texture,
+            TEXTURE_FILTER_BILINEAR
+        );
+    }
 
     for (int i = 0; i < ui_Icon_COUNT; i++) {
         ui.icons[i] = RL_LoadTexture(ui_icon_paths[i]);
@@ -191,8 +203,7 @@ ui_Click ui_big_button(Clay_String text, RL_Texture *icon) {
                 },
             },
             .image = { .imageData = icon }
-        }) {
-        }
+        });
 
         /* spacer */
         CLAY_AUTO_ID({
@@ -202,17 +213,9 @@ ui_Click ui_big_button(Clay_String text, RL_Texture *icon) {
                     .height = CLAY_SIZING_FIXED(60),
                 },
             },
-        }) {
-        }
+        });
 
-        CLAY_TEXT(
-            text,
-            (Clay_TextElementConfig) {
-                .fontSize = 45,
-                .fontId = ui_Font_Button,
-                .textColor = { 0, 0, 0, 255 },
-            },
-        );
+        CLAY_TEXT(text, ui_font(ui_Font_Button));
     }
 
     return ret;

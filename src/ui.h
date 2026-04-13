@@ -22,7 +22,8 @@ typedef enum {
     ui_Sound_COUNT,
 } ui_Sound;
 
-RL_Font ui_font(ui_Font);
+Clay_TextElementConfig ui_font(ui_Font);
+Clay_TextElementConfig ui_font_ex(ui_Font, Clay_TextElementConfig);
 RL_Texture *ui_icon(ui_Icon);
 RL_Sound ui_sound(ui_Sound);
 void ui_init(void);

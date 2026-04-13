@@ -35,9 +35,8 @@ static Clay_RenderCommandArray ui_create_layout(void) {
                 .width = CLAY_SIZING_GROW(0),
                 .height = CLAY_SIZING_GROW(0)
             },
-            .padding = { 16, 16, 16, 16 },
+            .padding = { 32, 32, 32, 32 },
             .childGap = 16,
-            .childAlignment = { .y = CLAY_ALIGN_Y_CENTER },
         },
         .backgroundColor = {0}
     }) {
@@ -48,14 +47,30 @@ static Clay_RenderCommandArray ui_create_layout(void) {
             }
         }) {
             CLAY_TEXT(
-                CLAY_STRING("camptech"),
-                (Clay_TextElementConfig) {
-                    .fontSize = 60,
-                    .fontId = ui_Font_SubTitle,
-                    .textColor = {0, 0, 0, 255}
-                },
+                CLAY_STRING("camp tech"),
+                ui_font(ui_Font_SubTitle),
             );
         }
+
+        CLAY_AUTO_ID({
+            .layout = {
+                .sizing = {
+                    .width = CLAY_SIZING_FIXED(20),
+                    .height = CLAY_SIZING_GROW(),
+                },
+            },
+        }) {
+        }
+
+        switch (ui_big_button(
+            CLAY_STRING("BACK"),
+            ui_icon(ui_Icon_Back)
+        )) {
+            case ui_Click_Pressed: RL_PlaySound(ui_sound(ui_Sound_Click)); break;
+            case ui_Click_Released: view.next_view = View_Title; break;
+            default: break;
+        }
+
     }
     return Clay_EndLayout(RL_GetFrameTime());
 }

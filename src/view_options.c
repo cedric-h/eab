@@ -48,11 +48,7 @@ static Clay_RenderCommandArray ui_create_layout(void) {
         }) {
             CLAY_TEXT(
                 CLAY_STRING("options"),
-                (Clay_TextElementConfig) {
-                    .fontSize = 60,
-                    .fontId = ui_Font_SubTitle,
-                    .textColor = {0, 0, 0, 255}
-                },
+                ui_font(ui_Font_SubTitle),
             );
         }
 

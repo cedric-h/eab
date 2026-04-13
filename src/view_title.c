@@ -51,11 +51,13 @@ static Clay_RenderCommandArray ui_create_layout(void) {
         }) {
             CLAY_TEXT(
                 CLAY_STRING("Eugenics Auto Battler"),
-                (Clay_TextElementConfig) {
-                    .fontSize = 80,
-                    .fontId = ui_Font_Title,
-                    .textColor = {0, 0, 0, 255}
-                },
+                ui_font_ex(
+                    ui_Font_Title,
+                    (Clay_TextElementConfig) {
+                        .lineHeight = 80,
+                        .textColor = { 0, 0, 0, 255 },
+                    }
+                ),
             );
         }
 
