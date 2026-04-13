@@ -1,149 +1,33 @@
+#include "base.h"
 #include "raylib.h"
 #include "clay.h"
 #include "clay_renderer_raylib.h"
 
 #include "ui.h"
 
-typedef enum {
-    ui_Font_Button,
-    ui_Font_Title,
-    ui_Font_COUNT,
-} ui_Font;
-
-typedef enum {
-    ui_Icon_Swords,
-    ui_Icon_Diamond,
-    ui_Icon_Wrench,
-    ui_Icon_COUNT,
-} ui_Icon;
-
 char *ui_icon_paths[ui_Icon_COUNT] = {
-    [ui_Icon_Swords ] = "resources/icon_swords.png",
-    [ui_Icon_Diamond] = "resources/icon_diamond.png",
-    [ui_Icon_Wrench ] = "resources/icon_wrench.png",
+    [ui_Icon_Swords ] = "resources/icon/swords.png",
+    [ui_Icon_Diamond] = "resources/icon/diamond.png",
+    [ui_Icon_Wrench ] = "resources/icon/wrench.png",
 };
+_Static_assert(countof(ui_icon_paths) == ui_Icon_COUNT, "missing path");
+
+char *ui_sound_paths[ui_Icon_COUNT] = {
+    [ui_Sound_Click] = "resources/audio/click1.wav",
+    [ui_Sound_CinematicOpening] = "resources/audio/cinematic_opening.wav",
+};
+_Static_assert(countof(ui_icon_paths) == ui_Icon_COUNT, "missing path");
 
 static struct {
     Clay_Arena clay_memory;
-    RL_Font fonts[ui_Font_COUNT];
-    RL_Texture icons[ui_Icon_COUNT];
-    Clay_RenderCommandArray render_cmds;
+    RL_Font    fonts [ ui_Font_COUNT];
+    RL_Texture icons [ ui_Icon_COUNT];
+    RL_Sound   sounds[ui_Sound_COUNT];
 } ui = {0};
 
-void ui_big_button(Clay_String text, RL_Texture *icon) {
-    CLAY_AUTO_ID({
-        .border = {
-            .width = CLAY_BORDER_OUTSIDE(4),
-            .color = {0, 0, 0, 255}
-        },
-        .cornerRadius = CLAY_CORNER_RADIUS(6),
-        .layout = {
-            .padding = { 32, 32, 24, 16 },
-            .sizing = {
-                .width = CLAY_SIZING_GROW(0),
-                .height = CLAY_SIZING_FIT(0),
-            },
-            .childAlignment = {
-                .x = CLAY_ALIGN_X_CENTER,
-                .y = CLAY_ALIGN_Y_CENTER,
-            },
-        }
-    }) {
-
-        CLAY_AUTO_ID({
-            .layout = {
-                .sizing = {
-                    .width = CLAY_SIZING_FIXED(60),
-                    .height = CLAY_SIZING_FIXED(60),
-                },
-            },
-            .image = { .imageData = icon }
-        }) {
-        }
-
-        /* spacer */
-        CLAY_AUTO_ID({
-            .layout = {
-                .sizing = {
-                    .width = CLAY_SIZING_GROW(20),
-                    .height = CLAY_SIZING_FIXED(20),
-                },
-            },
-        }) {
-        }
-
-        CLAY_TEXT(
-            text,
-            (Clay_TextElementConfig) {
-                .fontSize = 45,
-                .fontId = ui_Font_Button,
-                .textColor = { 0, 0, 0, 255 },
-            },
-        );
-    }
-}
-
-Clay_RenderCommandArray ui_create_layout(void) {
-    Clay_BeginLayout();
-
-    CLAY(CLAY_ID("OuterContainer"), {
-        .layout = {
-            .layoutDirection = CLAY_TOP_TO_BOTTOM,
-            .sizing = {
-                .width = CLAY_SIZING_GROW(0),
-                .height = CLAY_SIZING_GROW(0)
-            },
-            .padding = { 16, 16, 16, 16 },
-            .childGap = 16,
-            .childAlignment = { .y = CLAY_ALIGN_Y_CENTER },
-        },
-        .backgroundColor = {0}
-    }) {
-
-        CLAY(CLAY_ID("title"), {
-            .layout = {
-                .padding = { 0, 0, 0, 24 },
-            }
-        }) {
-            CLAY_TEXT(
-                CLAY_STRING("Eugenics Auto Battler"),
-                (Clay_TextElementConfig) {
-                    .fontSize = 80,
-                    .fontId = ui_Font_Title,
-                    .textColor = {0, 0, 0, 255}
-                },
-            );
-        }
-
-        CLAY(CLAY_ID("buttons"), {
-            .layout = {
-                .layoutDirection = CLAY_TOP_TO_BOTTOM,
-                .sizing = {
-                    .width = CLAY_SIZING_GROW(0),
-                    .height = CLAY_SIZING_FIT(0),
-                },
-                .childGap = 16,
-            },
-        }) {
-
-            ui_big_button(
-                CLAY_STRING("to battle!"),
-                &ui.icons[ui_Icon_Swords]
-            );
-
-            ui_big_button(
-                CLAY_STRING("camp tech"),
-                &ui.icons[ui_Icon_Diamond]
-            );
-
-            ui_big_button(
-                CLAY_STRING("options"),
-                &ui.icons[ui_Icon_Wrench]
-            );
-        }
-    }
-    return Clay_EndLayout(RL_GetFrameTime());
-}
+RL_Font ui_font(ui_Font f) { return ui.fonts[f]; }
+RL_Texture *ui_icon(ui_Icon i) { return &ui.icons[i]; }
+RL_Sound ui_sound(ui_Sound s) { return ui.sounds[s]; }
 
 void ui_handle_clay_errors(Clay_ErrorData errorData) {
     printf("%s", errorData.errorText.chars);
@@ -201,17 +85,22 @@ void ui_init(void) {
     for (int i = 0; i < ui_Icon_COUNT; i++)
         ui.icons[i] = RL_LoadTexture(ui_icon_paths[i]);
 
+    for (int i = 0; i < ui_Sound_COUNT; i++)
+        ui.sounds[i] = RL_LoadSound(ui_sound_paths[i]);
+
     Clay_SetMeasureTextFunction(Raylib_MeasureText, ui.fonts);
 }
 void ui_free(void) {
     free(ui.clay_memory.memory);
 
-    for (int i = 0; i < ui_Font_COUNT; i++) {
+    for (int i = 0; i < ui_Font_COUNT; i++)
         RL_UnloadFont(ui.fonts[i]);
-    }
 
     for (int i = 0; i < ui_Icon_COUNT; i++)
         RL_UnloadTexture(ui.icons[i]);
+
+    for (int i = 0; i < ui_Sound_COUNT; i++)
+        RL_UnloadSound(ui.sounds[i]);
 }
 
 void ui_update(void) {
@@ -238,9 +127,8 @@ void ui_update(void) {
         (Clay_Vector2) {mouseWheelX, mouseWheelY},
         RL_GetFrameTime()
     );
-    ui.render_cmds = ui_create_layout();
 }
 
-void ui_render(void) {
-    Clay_Raylib_Render(ui.render_cmds, ui.fonts);
+void ui_render(Clay_RenderCommandArray render_cmds) {
+    Clay_Raylib_Render(render_cmds, ui.fonts);
 }

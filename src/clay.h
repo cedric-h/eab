@@ -3111,7 +3111,6 @@ void Clay__CalculateFinalLayout(float deltaTime, bool useStoredBoundingBoxes, bo
             dfsBuffer.length += currentElement->children.length;
             for (int32_t i = 0; i < currentElement->children.length; ++i) {
                 Clay_LayoutElement *childElement = Clay_LayoutElementArray_Get(&context->layoutElements, currentElement->children.elements[i]);
-                Clay_LayoutElementHashMapItem* childMapItem = Clay__GetHashMapItem(childElement->id);
                 // Alignment along non layout axis
                 if (layoutConfig->layoutDirection == CLAY_LEFT_TO_RIGHT) {
                     currentElementTreeNode->nextChildOffset.y = currentElement->config.layout.padding.top;
@@ -4339,7 +4338,6 @@ void Clay__CloneElementsWithExitTransition() {
 
     for (int i = 0; i < context->transitionDatas.length; ++i) {
         Clay__TransitionDataInternal *data = Clay__TransitionDataInternalArray_Get(&context->transitionDatas, i);
-        Clay_TransitionElementConfig* config = &data->elementThisFrame->config.transition;
         if (data->transitionOut) {
             Clay__int32_tArray bfsBuffer = context->openLayoutElementStack;
             bfsBuffer.length = 0;
@@ -4356,7 +4354,6 @@ void Clay__CloneElementsWithExitTransition() {
                 for (int j = layoutElement->children.length - 1; j >= 0; --j) {
                     Clay_LayoutElement* childElement = Clay_LayoutElementArray_GetCheckCapacity(&context->layoutElements, layoutElement->children.elements[j]);
                     Clay__int32_tArray_Add(&bfsBuffer, nextIndex);
-                    Clay_LayoutElement* newChildElement = Clay_LayoutElementArray_Set_DontTouchLength(&context->layoutElements, nextIndex, *childElement);
                     Clay__StringArray_Set_DontTouchLength(&context->layoutElementIdStrings, nextIndex, *Clay__StringArray_GetCheckCapacity(&context->layoutElementIdStrings, childElement - context->layoutElements.internalArray));
                     Clay__int32_tArray_Set_DontTouchLength(&context->layoutElementChildren, nextChildIndex, nextIndex);
                     nextIndex--;
@@ -4481,7 +4478,7 @@ Clay_RenderCommandArray Clay_EndLayout(float deltaTime) {
                             found = true;
                         }
                         for (int j = 0; j < parentElement->children.length; ++j) {
-                            if (config->exit.siblingOrdering == CLAY_EXIT_TRANSITION_ORDERING_NATURAL_ORDER && j == data->siblingIndex) {
+                            if (config->exit.siblingOrdering == CLAY_EXIT_TRANSITION_ORDERING_NATURAL_ORDER && (uint32_t)j == data->siblingIndex) {
                                 Clay__int32_tArray_Add(&context->layoutElementChildren, exitingElementIndex);
                                 found = true;
                             }
