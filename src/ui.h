@@ -4,6 +4,7 @@
 typedef enum {
     ui_Font_Button,
     ui_Font_Title,
+    ui_Font_SubTitle,
     ui_Font_COUNT,
 } ui_Font;
 
@@ -11,6 +12,7 @@ typedef enum {
     ui_Icon_Swords,
     ui_Icon_Diamond,
     ui_Icon_Wrench,
+    ui_Icon_Back,
     ui_Icon_COUNT,
 } ui_Icon;
 
@@ -27,3 +29,14 @@ void ui_init(void);
 void ui_free(void);
 void ui_update(void);
 void ui_render(Clay_RenderCommandArray render_cmds);
+
+typedef enum {
+    ui_Click_NONE,
+    ui_Click_Pressed,
+    ui_Click_Released,
+} ui_Click;
+
+ui_Click ui_big_button(
+    Clay_String text,
+    RL_Texture *icon
+);

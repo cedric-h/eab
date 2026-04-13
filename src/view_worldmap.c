@@ -8,17 +8,17 @@ static struct {
     View next_view;
 } view;
 
-void view_options_init(void) {
+void view_worldmap_init(void) {
     memset(&view, 0, sizeof(view));
 }
-void view_options_free(void) {}
+void view_worldmap_free(void) {}
 
-View view_options_update(void) {
+View view_worldmap_update(void) {
     ui_update();
     return view.next_view;
 }
 static Clay_RenderCommandArray ui_create_layout(void);
-void view_options_render(void) {
+void view_worldmap_render(void) {
     RL_BeginDrawing();
     RL_ClearBackground(RL_WHITE);
     ui_render(ui_create_layout());
@@ -35,8 +35,9 @@ static Clay_RenderCommandArray ui_create_layout(void) {
                 .width = CLAY_SIZING_GROW(0),
                 .height = CLAY_SIZING_GROW(0)
             },
-            .padding = { 32, 32, 32, 32 },
+            .padding = { 16, 16, 16, 16 },
             .childGap = 16,
+            .childAlignment = { .y = CLAY_ALIGN_Y_CENTER },
         },
         .backgroundColor = {0}
     }) {
@@ -47,7 +48,7 @@ static Clay_RenderCommandArray ui_create_layout(void) {
             }
         }) {
             CLAY_TEXT(
-                CLAY_STRING("options"),
+                CLAY_STRING("worldmap"),
                 (Clay_TextElementConfig) {
                     .fontSize = 60,
                     .fontId = ui_Font_SubTitle,
@@ -55,26 +56,6 @@ static Clay_RenderCommandArray ui_create_layout(void) {
                 },
             );
         }
-
-        CLAY_AUTO_ID({
-            .layout = {
-                .sizing = {
-                    .width = CLAY_SIZING_FIXED(20),
-                    .height = CLAY_SIZING_GROW(),
-                },
-            },
-        }) {
-        }
-
-        switch (ui_big_button(
-            CLAY_STRING("BACK"),
-            ui_icon(ui_Icon_Back)
-        )) {
-            case ui_Click_Pressed: RL_PlaySound(ui_sound(ui_Sound_Click)); break;
-            case ui_Click_Released: view.next_view = View_Title; break;
-            default: break;
-        }
-
     }
     return Clay_EndLayout(RL_GetFrameTime());
 }

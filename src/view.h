@@ -1,22 +1,53 @@
+
+#define views \
+    x(        title, View_Title        ) \
+    x(      options, View_Options      ) \
+    x(     camptech, View_CampTech     ) \
+    x(     worldmap, View_WorldMap     ) \
+    /*
+    x(         camp, View_Camp         ) \
+    x(       battle, View_Battle       ) \
+    x(battlevictory, View_BattleVictory) \
+    x( battledefeat, View_BattleDefeat ) \
+    x(    furniture, View_Furniture    ) \
+    */
+
+
 typedef enum {
     View_NONE,
-    View_Title,
-    // View_Options,
-    // View_CampTech,
-    // View_WorldMap,
-    // View_Camp,
-    // View_Battle,
-    // View_BattleVictory,
-    // View_BattleDefeat,
-    // View_Furniture,
+#define x(_, view_enum) view_enum,
+views
+#undef x
+    View_COUNT,
 } View;
 
-void view_title_init(void);
-void view_title_free(void);
-View view_title_update(void);
-void view_title_render(void);
+#define x(view_name, _) \
+    void view_##view_name##_init  (void); \
+    void view_##view_name##_free  (void); \
+    View view_##view_name##_update(void); \
+    void view_##view_name##_render(void);
+views
+#undef x
 
-// void view_options_init(void);
-// void view_options_free(void);
-// View view_options_update(void);
-// void view_options_render(void);
+#ifdef VIEW_HANDLERS
+typedef struct {
+    void (*init)(void);
+    void (*free)(void);
+    View (*update)(void);
+    void (*render)(void);
+} ViewHandler;
+
+static ViewHandler view_handlers[View_COUNT] = {
+#define x(view_name, view_enum) \
+    [view_enum] = { \
+        .init   = view_##view_name##_init  , \
+        .free   = view_##view_name##_free  , \
+        .update = view_##view_name##_update, \
+        .render = view_##view_name##_render, \
+    },
+views
+#undef x
+};
+#endif// VIEW_HANDLERS
+
+#undef views

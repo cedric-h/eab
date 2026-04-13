@@ -36,7 +36,7 @@ PROJECT_SOURCE_FILES  ?= \
     game.c \
     ui.c \
     clay.c \
-    view_title.c \
+    $(wildcard view_*.c) \
 
 # raylib library variables
 RAYLIB_SRC_PATH       ?= ../raylib/src
@@ -187,7 +187,16 @@ endif
 #  -Wno-missing-braces  ignore invalid warning (GCC bug 53119)
 #  -Wno-unused-value    ignore unused return values of some functions (i.e. fread())
 #  -D_DEFAULT_SOURCE    use with -std=c99 on Linux and PLATFORM_WEB, required for timespec
-CFLAGS = -Wall -Werror -Wextra -Wno-unused-parameter -D_DEFAULT_SOURCE -Wno-missing-braces -Wno-unused-value -Wno-pointer-sign $(PROJECT_CUSTOM_FLAGS) -g
+CFLAGS = -Wall \
+    -Werror \
+    -Wextra \
+    -Wno-unused-parameter \
+    -D_DEFAULT_SOURCE \
+    -Wno-missing-braces \
+    -Wno-unused-value \
+    -Wno-pointer-sign \
+    -MMD -MP \
+    $(PROJECT_CUSTOM_FLAGS) \
 #CFLAGS += -Wextra -Wmissing-prototypes -Wstrict-prototypes
 
 ifeq ($(PLATFORM),PLATFORM_WEB)
@@ -352,7 +361,9 @@ endif
 
 # Define all object files from source files
 #------------------------------------------------------------------------------------------------
-OBJS = $(patsubst %.c, %.o, $(PROJECT_SOURCE_FILES))
+OBJS := $(patsubst %.c, %.o, $(PROJECT_SOURCE_FILES))
+DEPS := $(OBJS:.o=.d)
+-include DEPS
 
 # Define processes to execute
 #------------------------------------------------------------------------------------------------
@@ -389,30 +400,30 @@ clean_shell_sh:
 ifeq ($(PLATFORM),PLATFORM_DESKTOP)
     ifeq ($(PLATFORM_OS),LINUX)
 		find . -type f -executable -delete
-		rm -fv *.o
+		rm -fv *.o *.d
     endif
     ifeq ($(PLATFORM_OS),OSX)
 		#find . -type f -perm +ugo+x -delete
-		rm -f *.o
+		rm -f *.o *.d
     endif
 endif
 ifeq ($(PLATFORM),PLATFORM_RPI)
 	find . -type f -executable -delete
-	rm -fv *.o
+	rm -fv *.o *.d
 endif
 ifeq ($(PLATFORM),PLATFORM_DRM)
 	find . -type f -executable -delete
-	rm -fv *.o
+	rm -fv *.o *.d
 endif
 ifeq ($(PLATFORM),PLATFORM_WEB)
     ifeq ($(PLATFORM_OS),LINUX)
-		rm -fv *.o $(PROJECT_NAME).data $(PROJECT_NAME).html $(PROJECT_NAME).js $(PROJECT_NAME).wasm
+		rm -fv *.o *.d $(PROJECT_NAME).data $(PROJECT_NAME).html $(PROJECT_NAME).js $(PROJECT_NAME).wasm
     endif
     ifeq ($(PLATFORM_OS),OSX)
-		rm -f *.o $(PROJECT_NAME).data $(PROJECT_NAME).html $(PROJECT_NAME).js $(PROJECT_NAME).wasm
+		rm -f *.o *.d $(PROJECT_NAME).data $(PROJECT_NAME).html $(PROJECT_NAME).js $(PROJECT_NAME).wasm
     endif
 endif
 
 clean_shell_cmd: SHELL=cmd
 clean_shell_cmd:
-	del *.o *.exe $(PROJECT_NAME).data $(PROJECT_NAME).html $(PROJECT_NAME).js $(PROJECT_NAME).wasm /s
+	del *.o *.d *.exe $(PROJECT_NAME).data $(PROJECT_NAME).html $(PROJECT_NAME).js $(PROJECT_NAME).wasm /s

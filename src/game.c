@@ -1,5 +1,6 @@
 #include "raylib.h"
 #include "ui.h"
+#define VIEW_HANDLERS
 #include "view.h"
 
 #if defined(PLATFORM_WEB)
@@ -15,25 +16,16 @@ static struct {
 void frame(void) {
     View next_view = View_NONE;
 
-#define VIEW_UPDATE(update) \
-    next_view = update; \
-    if (next_view) { \
-        game.view = next_view; \
-        next_view = View_NONE; \
-        goto start; \
-    }
-
 start:
-
-    switch (game.view) {
-        case View_NONE:
-        case View_Title: {
-            VIEW_UPDATE(view_title_update());
-            view_title_render();
-        }; break;
+    next_view = view_handlers[game.view].update();
+    if (next_view) {
+        view_handlers[game.view].free();
+        view_handlers[next_view].init();
+        game.view = next_view;
+        goto start;
     }
 
-#undef VIEW_UPDATE
+    view_handlers[game.view].render();
 }
 
 int main(void) {
