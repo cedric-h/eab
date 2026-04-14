@@ -36,7 +36,8 @@ PROJECT_SOURCE_FILES  ?= \
     game.c \
     ui.c \
     clay.c \
-    $(wildcard view_*.c) \
+    svg.c \
+    $(wildcard view_*.c)
 
 # raylib library variables
 RAYLIB_SRC_PATH       ?= ../raylib/src
@@ -193,6 +194,7 @@ CFLAGS = -Wall \
     -Wno-unused-parameter \
     -D_DEFAULT_SOURCE \
     -Wno-missing-braces \
+    -Wno-unused-function \
     -Wno-unused-value \
     -Wno-pointer-sign \
     -MMD -MP \
@@ -358,12 +360,9 @@ ifeq ($(PLATFORM),PLATFORM_DRM)
     LDLIBS = -lraylib -lGLESv2 -lEGL -lpthread -lrt -lm -lgbm -ldrm -ldl
 endif
 
-
 # Define all object files from source files
 #------------------------------------------------------------------------------------------------
-OBJS := $(patsubst %.c, %.o, $(PROJECT_SOURCE_FILES))
-DEPS := $(OBJS:.o=.d)
--include DEPS
+OBJS = $(patsubst %.c, %.o, $(PROJECT_SOURCE_FILES))
 
 # Define processes to execute
 #------------------------------------------------------------------------------------------------
@@ -390,6 +389,11 @@ $(PROJECT_NAME): $(OBJS)
 %.o: %.c
 	$(CC) -c $< -o $@ $(CFLAGS) $(INCLUDE_PATHS) -D$(PLATFORM)
 
+# Use the .d files generated to reload necessary dependencies
+# when e.g. a header changes
+DEPS := $(OBJS:.o=.d)
+-include $(DEPS)
+
 .PHONY: clean_shell_cmd clean_shell_sh
 
 # Clean everything
@@ -404,7 +408,7 @@ ifeq ($(PLATFORM),PLATFORM_DESKTOP)
     endif
     ifeq ($(PLATFORM_OS),OSX)
 		#find . -type f -perm +ugo+x -delete
-		rm -f *.o *.d
+		rm -f *.o *.d $(PROJECT_NAME)
     endif
 endif
 ifeq ($(PLATFORM),PLATFORM_RPI)

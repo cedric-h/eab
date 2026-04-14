@@ -13,12 +13,20 @@ typedef enum {
     ui_Icon_Diamond,
     ui_Icon_Wrench,
     ui_Icon_Back,
+    ui_Icon_Bed,
+    ui_Icon_Camp,
+    ui_Icon_Fire,
+    ui_Icon_Plant,
+    ui_Icon_Scroll,
+    ui_Icon_Shovel,
+    ui_Icon_Crown,
     ui_Icon_COUNT,
 } ui_Icon;
 
 typedef enum {
     ui_Sound_Click,
     ui_Sound_CinematicOpening,
+    ui_Sound_BattleEnter,
     ui_Sound_COUNT,
 } ui_Sound;
 

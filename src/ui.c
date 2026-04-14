@@ -18,12 +18,20 @@ char *ui_icon_paths[] = {
     [ui_Icon_Diamond] = "resources/icon/diamond.png",
     [ui_Icon_Wrench ] = "resources/icon/wrench.png",
     [ui_Icon_Back   ] = "resources/icon/back.png",
+    [ui_Icon_Bed    ] = "resources/icon/bed.png",
+    [ui_Icon_Camp   ] = "resources/icon/camp.png",
+    [ui_Icon_Fire   ] = "resources/icon/fire.png",
+    [ui_Icon_Plant  ] = "resources/icon/plant.png",
+    [ui_Icon_Scroll ] = "resources/icon/scroll.png",
+    [ui_Icon_Shovel ] = "resources/icon/shovel.png",
+    [ui_Icon_Crown  ] = "resources/icon/crown.png",
 };
 _Static_assert(countof(ui_icon_paths) == ui_Icon_COUNT, "missing icon path");
 
 char *ui_sound_paths[] = {
-    [ui_Sound_Click] = "resources/audio/click1.wav",
+    [ui_Sound_Click]            = "resources/audio/click1.wav",
     [ui_Sound_CinematicOpening] = "resources/audio/cinematic_opening.wav",
+    [ui_Sound_BattleEnter]      = "resources/audio/battle_enter.wav",
 };
 _Static_assert(countof(ui_sound_paths) == ui_Sound_COUNT, "missing sound path");
 

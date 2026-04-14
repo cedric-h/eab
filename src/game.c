@@ -10,7 +10,8 @@
 static struct {
     View view;
 } game = {
-    .view = View_Title,
+    // .view = View_Title,
+    .view = View_WorldMap,
 };
 
 void frame(void) {
@@ -44,6 +45,7 @@ int main(void) {
     RL_InitAudioDevice();
 
     ui_init();
+    view_handlers[game.view].init();
 
 #if defined(PLATFORM_WEB)
     emscripten_set_main_loop(frame, 60, 1);
@@ -53,6 +55,7 @@ int main(void) {
         frame();
 #endif
 
+    view_handlers[game.view].free();
     ui_free();
     RL_CloseAudioDevice();
     RL_CloseWindow();
