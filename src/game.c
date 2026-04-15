@@ -11,7 +11,7 @@ static struct {
     View view;
 } game = {
     // .view = View_Title,
-    .view = View_WorldMap,
+    .view = View_Furniture,
 };
 
 void frame(void) {

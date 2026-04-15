@@ -5,11 +5,11 @@
     x(     camptech, View_CampTech     ) \
     x(     worldmap, View_WorldMap     ) \
     x(       battle, View_Battle       ) \
+    x(battlevictory, View_BattleVictory) \
+    x(    furniture, View_Furniture    ) \
     /*
     x(         camp, View_Camp         ) \
-    x(battlevictory, View_BattleVictory) \
     x( battledefeat, View_BattleDefeat ) \
-    x(    furniture, View_Furniture    ) \
     */
 
 

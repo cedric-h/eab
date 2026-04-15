@@ -1,6 +1,7 @@
 #include "raylib.h"
 #include "view.h"
 #include "ui.h"
+#include "save.h"
 #include <string.h>
 #include <stdio.h>
 
@@ -29,5 +30,47 @@ void view_battle_render(void) {
 
 static Clay_RenderCommandArray ui_create_layout(void) {
     Clay_BeginLayout();
+
+    CLAY(CLAY_ID("OuterContainer"), {
+        .layout = {
+            .layoutDirection = CLAY_TOP_TO_BOTTOM,
+            .sizing = {
+                .width = CLAY_SIZING_GROW(0),
+                .height = CLAY_SIZING_GROW(0)
+            },
+            .padding = { 32, 32, 32, 32 },
+            .childGap = 16,
+        },
+        .backgroundColor = {0}
+    }) {
+
+        switch (ui_big_button(
+            CLAY_STRING("victory"),
+            ui_icon(ui_Icon_Crown)
+        )) {
+            case ui_Click_Pressed: {
+                RL_PlaySound(ui_sound(ui_Sound_BattleVictory));
+            } break;
+            case ui_Click_Released: {
+                view.next_view = View_BattleVictory;
+            } break;
+            default: break;
+        }
+
+        switch (ui_big_button(
+            CLAY_STRING("defeat"),
+            ui_icon(ui_Icon_Scroll)
+        )) {
+            case ui_Click_Pressed: {
+                RL_PlaySound(ui_sound(ui_Sound_BattleDefeat));
+            } break;
+            case ui_Click_Released: {
+                memset(&save, 0, sizeof(save));
+                view.next_view = View_Title;
+            } break;
+            default: break;
+        }
+    }
+
     return Clay_EndLayout(RL_GetFrameTime());
 }

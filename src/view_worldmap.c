@@ -1,6 +1,7 @@
 #include "raylib.h"
 #include "view.h"
 #include "ui.h"
+#include "save.h"
 #include <string.h>
 #include <stdio.h>
 #include <math.h>
@@ -11,7 +12,6 @@
 static struct {
     View next_view;
     RL_Camera2D camera;
-    size_t current_stop_idx;
 } view = {};
 
 typedef struct {
@@ -20,7 +20,7 @@ typedef struct {
 } Stop;
 
 Stop stops[] = {
-    { ui_Icon_Camp,   129.6, 178.2 },
+    { ui_Icon_Bed,    129.6, 178.2 },
     { ui_Icon_Swords, 237.6, 178.2 },
     { ui_Icon_Bed,    316.4, 221.4 },
     { ui_Icon_Swords, 208.4, 259.2 },
@@ -35,17 +35,15 @@ Stop stops[] = {
 };
 
 static bool stop_available(size_t index) {
-    return (index - view.current_stop_idx) == 1;
+    return (index - (size_t)save.map_progress_idx) == 1;
 }
 
 static bool stop_complete(size_t index) {
-    return index <= view.current_stop_idx;
+    return index <= (size_t)save.map_progress_idx;
 }
 
 void view_worldmap_init(void) {
-    size_t progress = view.current_stop_idx;
     memset(&view, 0, sizeof(view));
-    view.current_stop_idx = progress;
 }
 void view_worldmap_free(void) {
 }
@@ -101,7 +99,7 @@ void view_worldmap_render(void) {
         float size = 30;
 
         Color tint = (Color){ 255, 255, 255, 255 };
-        if (i == view.current_stop_idx)
+        if (i == save.map_progress_idx)
             icon = ui_Icon_Camp;
         else if (stop_available(i))
             size *= 1.0f + 0.1*(1 + 0.5*sinf(RL_GetTime()*10));
@@ -149,5 +147,6 @@ void view_worldmap_render(void) {
 
 static Clay_RenderCommandArray ui_create_layout(void) {
     Clay_BeginLayout();
+
     return Clay_EndLayout(RL_GetFrameTime());
 }

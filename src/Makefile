@@ -37,6 +37,7 @@ PROJECT_SOURCE_FILES  ?= \
     ui.c \
     clay.c \
     svg.c \
+    save.c \
     $(wildcard view_*.c)
 
 # raylib library variables
