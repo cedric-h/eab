@@ -8,11 +8,27 @@
 
 #include "svg.h"
 #include "svg/path.h"
+#include "draw.h"
 
 static struct {
-    View next_view;
+    double ts_view_entered, ts_enter_anim_done;
+    view_Transition next_view;
     RL_Camera2D camera;
 } view = {};
+
+void view_worldmap_init(view_Transition t) {
+    memset(&view, 0, sizeof(view));
+    view.ts_view_entered = RL_GetTime();
+    bool animate = (t.kind == view_TransitionKind_BackToWorldMap);
+    view.ts_enter_anim_done = RL_GetTime() + (float)animate;
+}
+void view_worldmap_free(void) {
+}
+
+view_Transition view_worldmap_update(void) {
+    ui_update();
+    return view.next_view;
+}
 
 typedef struct {
     ui_Icon icon;
@@ -42,37 +58,7 @@ static bool stop_complete(size_t index) {
     return index <= (size_t)save.run.map_progress_idx;
 }
 
-void view_worldmap_init(void) {
-    memset(&view, 0, sizeof(view));
-}
-void view_worldmap_free(void) {
-}
-
-View view_worldmap_update(void) {
-    ui_update();
-    return view.next_view;
-}
 static Clay_RenderCommandArray ui_create_layout(void);
-
-typedef struct { float min_x, min_y, max_x, max_y; } Rect;
-static void icon_draw(ui_Icon icon, Rect rect, Color tint) {
-    RL_Texture t = *ui_icon(icon);
-
-    RL_DrawTexturePro(
-        t,
-        (RL_Rectangle) { 0, 0, t.width, t.height },
-        (RL_Rectangle) {
-            rect.min_x,
-            rect.min_y,
-            rect.max_x - rect.min_x,
-            rect.max_y - rect.min_y
-        },
-        (RL_Vector2) { 0, 0 },
-        0,
-        (RL_Color) { tint.r, tint.g, tint.b, tint.a }
-    );
-}
-
 void view_worldmap_render(void) {
     RL_BeginDrawing();
     view.camera = (RL_Camera2D) {
@@ -92,19 +78,41 @@ void view_worldmap_render(void) {
         .max_y = RL_GetScreenHeight(),
     }, (Color) { 77, 63, 45, 255 } );
 
+    float prev_x = 0, prev_y = 0;
     for (size_t i = 0; i < countof(stops); i++) {
         Stop *stop = stops + i;
+        float x = stop->x;
+        float y = stop->y;
 
         ui_Icon icon = stop->icon;
         float size = 30;
 
         Color tint = (Color){ 255, 255, 255, 255 };
-        if (i == save.run.map_progress_idx)
+        if (i == save.run.map_progress_idx) {
             icon = ui_Icon_Camp;
-        else if (stop_available(i))
+            float t = min(1, inv_lerp(
+                    view.ts_view_entered,
+                    view.ts_enter_anim_done,
+                    RL_GetTime()
+            ));
+            x = lerp(prev_x, x, t);
+            y = lerp(prev_y, y, t);
+
+            draw_icon(
+                stop->icon,
+                (draw_Rect) {
+                    .min_x = stop->x - size/2,
+                    .max_x = stop->x + size/2,
+                    .min_y = stop->y - size/2,
+                    .max_y = stop->y + size/2
+                },
+                (Color) { 255, 255, 255, lerp(255, 0, t) }
+            );
+
+        } else if (stop_available(i))
             size *= 1.0f + 0.1*(1 + 0.5*sinf(RL_GetTime()*10));
         else if (stop_complete(i))
-            tint = (Color) { 80, 80, 80, 80 };
+            tint = (Color) { 80, 80, 80, 180 };
         else if (stop_available(i) == false)
             tint.a = 120;
 
@@ -113,30 +121,36 @@ void view_worldmap_render(void) {
                 RL_GetMousePosition(),
                 view.camera
             );
-            float dist = sqrtf((m.x - stop->x)*(m.x - stop->x) +
-                               (m.y - stop->y)*(m.y - stop->y));
+            float dist = sqrtf((m.x - x)*(m.x - x) + (m.y - y)*(m.y - y));
             if (dist < size*0.5) {
                 size *= 1.15;
+
+                eab_mouse_cursor = MOUSE_CURSOR_POINTING_HAND;
 
                 if (RL_IsMouseButtonPressed(0))
                     RL_PlaySound(ui_sound(ui_Sound_BattleEnter));
 
                 if (RL_IsMouseButtonReleased(0)) {
-                    view.next_view = View_Battle;
+                    if (stop->icon == ui_Icon_Bed)
+                        view.next_view.kind = view_TransitionKind_StartCamp;
+                    if (stop->icon == ui_Icon_Swords)
+                        view.next_view.kind = view_TransitionKind_StartBattle;
                 }
             }
         }
 
-        icon_draw(
+        draw_icon(
             icon,
-            (Rect) {
-                .min_x = stop->x - size/2,
-                .max_x = stop->x + size/2,
-                .min_y = stop->y - size/2,
-                .max_y = stop->y + size/2
+            (draw_Rect) {
+                .min_x = x - size/2,
+                .max_x = x + size/2,
+                .min_y = y - size/2,
+                .max_y = y + size/2
             },
             tint
         );
+        prev_x = x;
+        prev_y = y;
     }
 
     RL_EndMode2D();

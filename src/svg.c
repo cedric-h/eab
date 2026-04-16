@@ -32,16 +32,16 @@ void svg_draw(svg_Svg *svg, svg_Rect dst, Color color) {
         svg_Vertex c = svg->verts[svg->tris[i].c];
         RL_DrawTriangle(
             (RL_Vector2) {
-                lerp(dst_min_x, dst_max_x, b.pos.x),
-                lerp(dst_min_y, dst_max_y, b.pos.y)
+                lerpf(dst_min_x, dst_max_x, b.pos.x),
+                lerpf(dst_min_y, dst_max_y, b.pos.y)
             },
             (RL_Vector2) {
-                lerp(dst_min_x, dst_max_x, a.pos.x),
-                lerp(dst_min_y, dst_max_y, a.pos.y)
+                lerpf(dst_min_x, dst_max_x, a.pos.x),
+                lerpf(dst_min_y, dst_max_y, a.pos.y)
             },
             (RL_Vector2) {
-                lerp(dst_min_x, dst_max_x, c.pos.x),
-                lerp(dst_min_y, dst_max_y, c.pos.y)
+                lerpf(dst_min_x, dst_max_x, c.pos.x),
+                lerpf(dst_min_y, dst_max_y, c.pos.y)
             },
             (RL_Color) { color.r, color.g, color.b, color.a }
         );

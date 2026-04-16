@@ -5,15 +5,15 @@
 #include <stdio.h>
 
 static struct {
-    View next_view;
+    view_Transition next_view;
 } view;
 
-void view_options_init(void) {
+void view_options_init(view_Transition _) {
     memset(&view, 0, sizeof(view));
 }
 void view_options_free(void) {}
 
-View view_options_update(void) {
+view_Transition view_options_update(void) {
     ui_update();
     return view.next_view;
 }
@@ -67,7 +67,9 @@ static Clay_RenderCommandArray ui_create_layout(void) {
             ui_icon(ui_Icon_Back)
         )) {
             case ui_Click_Pressed: RL_PlaySound(ui_sound(ui_Sound_Click)); break;
-            case ui_Click_Released: view.next_view = View_Title; break;
+            case ui_Click_Released: {
+                view.next_view.kind = view_TransitionKind_Title;
+            } break;
             default: break;
         }
 

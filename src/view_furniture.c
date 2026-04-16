@@ -6,7 +6,7 @@
 #include <stdio.h>
 
 static struct {
-    View next_view;
+    view_Transition next_view;
 
     RL_Sound sound_furniture_buy, sound_reroll;
 
@@ -31,7 +31,7 @@ void roll_options(void) {
     }
 }
 
-void view_furniture_init(void) {
+void view_furniture_init(view_Transition _) {
     memset(&view, 0, sizeof(view));
 
     roll_options();
@@ -44,7 +44,7 @@ void view_furniture_free(void) {
     RL_UnloadSound(view.sound_reroll);
 }
 
-View view_furniture_update(void) {
+view_Transition view_furniture_update(void) {
     ui_update();
     return view.next_view;
 }
@@ -136,6 +136,8 @@ ui_Click ui_furniture_button(ui_Icon icon, uint32_t cost, Clay_String text) {
         }) {
 
             if (!disabled && Clay_Hovered()) {
+                eab_mouse_cursor = MOUSE_CURSOR_POINTING_HAND;
+
                 switch (Clay_GetPointerState().state) {
                     case CLAY_POINTER_DATA_PRESSED_THIS_FRAME:
                         ret = ui_Click_Pressed;
@@ -173,68 +175,6 @@ ui_Click ui_furniture_button(ui_Icon icon, uint32_t cost, Clay_String text) {
                 .lineHeight = 24,
             }));
         }
-    }
-
-    return ret;
-}
-
-ui_Click ui_small_button(RL_Texture *icon, bool disabled) {
-    ui_Click ret = ui_Click_NONE;
-
-    Clay_Color enabled_black = 
-        (disabled)
-            ? (Clay_Color) { 120, 120, 120, 255}
-            : (Clay_Color) {   0,   0,   0, 255}
-        ;
-
-    CLAY(CLAY_IDI("halp", icon->id), {
-        .border = {
-            .width = CLAY_BORDER_OUTSIDE(4),
-            .color = enabled_black,
-        },
-        .backgroundColor = (!disabled && Clay_Hovered())
-            ? (Clay_Color) { 128, 128, 128, 128 }
-            : (Clay_Color) { 255, 255, 255, 255 },
-        .cornerRadius = CLAY_CORNER_RADIUS(6),
-        .layout = {
-            .padding = { 16, 16, 16, 16 },
-            .sizing = {
-                .width = CLAY_SIZING_FIT(0),
-                .height = CLAY_SIZING_FIT(0),
-            },
-            .childAlignment = {
-                .x = CLAY_ALIGN_X_CENTER,
-                .y = CLAY_ALIGN_Y_CENTER,
-            },
-        }
-    }) {
-        if (!disabled && Clay_Hovered()) {
-            switch (Clay_GetPointerState().state) {
-                case CLAY_POINTER_DATA_PRESSED_THIS_FRAME:
-                    ret = ui_Click_Pressed;
-                    break;
-                case CLAY_POINTER_DATA_RELEASED_THIS_FRAME:
-                    ret = ui_Click_Released;
-                    break;
-                default:
-                    break;
-            }
-        }
-
-        CLAY_AUTO_ID({
-            .layout = {
-                .sizing = {
-                    .width = CLAY_SIZING_FIXED(60),
-                    .height = CLAY_SIZING_FIXED(60),
-                },
-            },
-            .image = {
-                .imageData = icon,
-            },
-            .backgroundColor = (disabled)
-                ? (Clay_Color) { 255, 255, 255, 200 }
-                : (Clay_Color) {   0,   0,   0,   0 },
-        });
     }
 
     return ret;
@@ -314,9 +254,16 @@ static Clay_RenderCommandArray ui_create_layout(void) {
                 )) {
                     case ui_Click_Released: {
                         save.run.coin -= fc->cost;
-                        for (size_t i = 0; i < sizeof(save.run.furniture); i++) {
-                            if (save.run.furniture[i] == save_Furniture_NONE) {
-                                save.run.furniture[i] = f;
+                        for (size_t i = 0; i < countof(save.run.furniture); i++) {
+                            if (save.run.furniture[i].kind == save_Furniture_NONE) {
+
+                                float w = RL_GetRandomValue(0, RL_GetScreenWidth());
+                                float h = RL_GetRandomValue(0, RL_GetScreenHeight());
+                                save.run.furniture[i] = (save_CampFurniture) {
+                                    .kind = f,
+                                    .pos.x = w,
+                                    .pos.y = h,
+                                };
                                 break;
                             }
 
@@ -389,13 +336,13 @@ static Clay_RenderCommandArray ui_create_layout(void) {
                     .layout = { .sizing = { .width = CLAY_SIZING_GROW() } }
                 });
 
-                switch (ui_small_button(ui_icon(ui_Icon_Forward), false)) {
+                switch (ui_small_button(ui_icon(ui_Icon_BackToMap), false)) {
                     case ui_Click_Pressed: {
                         RL_PlaySound(ui_sound(ui_Sound_Click));
                     } break;
                     case ui_Click_Released: {
                         save.run.map_progress_idx += 1;
-                        view.next_view = View_WorldMap;
+                        view.next_view.kind = view_TransitionKind_BackToWorldMap;
                     } break;
                     default: break;
                 }

@@ -7,30 +7,26 @@
 
 static struct {
     view_Transition next_view;
-
-    uint32_t food, coin;
 } view;
 
-void view_battlevictory_init(view_Transition t) {
+void view_battledefeat_init(view_Transition t) {
     memset(&view, 0, sizeof(view));
-    view.food = t.battle_victory.food;
-    view.coin = t.battle_victory.coin;
 }
-void view_battlevictory_free(void) {}
+void view_battledefeat_free(void) {}
 
-view_Transition view_battlevictory_update(void) {
+view_Transition view_battledefeat_update(void) {
     ui_update();
     return view.next_view;
 }
 static Clay_RenderCommandArray ui_create_layout(void);
-void view_battlevictory_render(void) {
+void view_battledefeat_render(void) {
     RL_BeginDrawing();
     RL_ClearBackground(RL_WHITE);
     ui_render(ui_create_layout());
     RL_EndDrawing();
 }
 
-static void ui_tally(ui_Icon icon, uint32_t added, uint32_t total) {
+static void ui_tally(char *prefix, ui_Icon icon, uint32_t count, char *desc) {
     CLAY_AUTO_ID({
         .layout = {
             .childAlignment = {
@@ -38,6 +34,16 @@ static void ui_tally(ui_Icon icon, uint32_t added, uint32_t total) {
             },
         }
     }) {
+
+        {
+            Clay_String tmp;
+            ui_sprintf(tmp, "%s", prefix);
+            CLAY_TEXT(tmp, ui_font(ui_Font_Button));
+        }
+
+        CLAY_AUTO_ID({
+            .layout = { .sizing = { .width = CLAY_SIZING_FIXED(15) } }
+        });
 
         CLAY_AUTO_ID({
             .layout = {
@@ -53,9 +59,11 @@ static void ui_tally(ui_Icon icon, uint32_t added, uint32_t total) {
             .layout = { .sizing = { .width = CLAY_SIZING_FIXED(15) } }
         });
 
-        Clay_String tmp;
-        ui_sprintf(tmp, "+ %d = %d", added, total);
-        CLAY_TEXT(tmp, ui_font(ui_Font_Button));
+        {
+            Clay_String tmp;
+            ui_sprintf(tmp, "x%d %s", count, desc);
+            CLAY_TEXT(tmp, ui_font(ui_Font_Button));
+        }
     }
 }
 
@@ -81,7 +89,7 @@ static Clay_RenderCommandArray ui_create_layout(void) {
             }
         }) {
             CLAY_TEXT(
-                CLAY_STRING("victory"),
+                CLAY_STRING("defeat"),
                 ui_font(ui_Font_SubTitle),
             );
         }
@@ -89,12 +97,16 @@ static Clay_RenderCommandArray ui_create_layout(void) {
         CLAY_AUTO_ID({
             .layout = {
                 .layoutDirection = CLAY_TOP_TO_BOTTOM,
-                .padding = { 32, 32, 32, 32 },
-                .childGap = 32,
+                .padding = { 0, 0, 32, 32 },
+                .childGap = 50,
             },
         }) {
-            ui_tally(ui_Icon_Food, view.food, save.run.food);
-            ui_tally(ui_Icon_Fleur, view.coin, save.run.coin);
+            ui_tally("+", ui_Icon_Shovel, save.run.kills, "kills");
+            ui_tally("+", ui_Icon_Fleur, save.run.coin, "unspent");
+            CLAY_AUTO_ID({
+                .layout = { .sizing = { .width = CLAY_SIZING_FIXED(0) } },
+            });
+            ui_tally("=", ui_Icon_Diamond, save.run.kills, "total");
         }
 
 
@@ -105,16 +117,15 @@ static Clay_RenderCommandArray ui_create_layout(void) {
                     .height = CLAY_SIZING_GROW(),
                 },
             },
-        }) {
-        }
+        });
 
         switch (ui_big_button(
             CLAY_STRING("DONE"),
-            ui_icon(ui_Icon_Fleur)
+            ui_icon(ui_Icon_Swords)
         )) {
             case ui_Click_Pressed: RL_PlaySound(ui_sound(ui_Sound_Click)); break;
             case ui_Click_Released: {
-                view.next_view.kind = view_TransitionKind_BuyFurniture;
+                view.next_view.kind = view_TransitionKind_Title;
             } break;
             default: break;
         }

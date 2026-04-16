@@ -16,21 +16,23 @@ size_t ui_font_sizes[] = {
 _Static_assert(countof(ui_font_sizes) == ui_Font_COUNT, "missing font path");
 
 char *ui_icon_paths[] = {
-    [ui_Icon_Swords ] = "resources/icon/swords.png",
-    [ui_Icon_Diamond] = "resources/icon/diamond.png",
-    [ui_Icon_Wrench ] = "resources/icon/wrench.png",
-    [ui_Icon_Back   ] = "resources/icon/back.png",
-    [ui_Icon_Forward] = "resources/icon/forward.png",
-    [ui_Icon_Bed    ] = "resources/icon/bed.png",
-    [ui_Icon_Camp   ] = "resources/icon/camp.png",
-    [ui_Icon_Fire   ] = "resources/icon/fire.png",
-    [ui_Icon_Plant  ] = "resources/icon/plant.png",
-    [ui_Icon_Scroll ] = "resources/icon/scroll.png",
-    [ui_Icon_Shovel ] = "resources/icon/shovel.png",
-    [ui_Icon_Crown  ] = "resources/icon/crown.png",
-    [ui_Icon_Fleur  ] = "resources/icon/fleur.png",
-    [ui_Icon_Dice   ] = "resources/icon/dice.png",
-    [ui_Icon_Food   ] = "resources/icon/food.png",
+    [ui_Icon_Swords   ] = "resources/icon/swords.png",
+    [ui_Icon_Diamond  ] = "resources/icon/diamond.png",
+    [ui_Icon_Wrench   ] = "resources/icon/wrench.png",
+    [ui_Icon_Back     ] = "resources/icon/back.png",
+    [ui_Icon_Forward  ] = "resources/icon/forward.png",
+    [ui_Icon_Bed      ] = "resources/icon/bed.png",
+    [ui_Icon_Camp     ] = "resources/icon/camp.png",
+    [ui_Icon_Fire     ] = "resources/icon/fire.png",
+    [ui_Icon_Plant    ] = "resources/icon/plant.png",
+    [ui_Icon_Scroll   ] = "resources/icon/scroll.png",
+    [ui_Icon_Shovel   ] = "resources/icon/shovel.png",
+    [ui_Icon_Crown    ] = "resources/icon/crown.png",
+    [ui_Icon_Fleur    ] = "resources/icon/fleur.png",
+    [ui_Icon_Food     ] = "resources/icon/food.png",
+    [ui_Icon_Dice     ] = "resources/icon/dice.png",
+    [ui_Icon_Soup     ] = "resources/icon/soup.png",
+    [ui_Icon_BackToMap] = "resources/icon/back_to_map.png",
 };
 _Static_assert(countof(ui_icon_paths) == ui_Icon_COUNT, "missing icon path");
 
@@ -53,6 +55,9 @@ static struct {
     RL_Texture icons [ ui_Icon_COUNT];
     RL_Sound   sounds[ui_Sound_COUNT];
 } ui = {0};
+
+size_t ui_font_size(ui_Font f) { return ui_font_sizes[f]; }
+RL_Font ui_font_rl(ui_Font f) { return ui.fonts[f]; }
 
 Clay_TextElementConfig ui_font(ui_Font f) {
     return ui_font_ex(f, (Clay_TextElementConfig){
@@ -221,6 +226,8 @@ ui_Click ui_big_button(Clay_String text, RL_Texture *icon) {
         }
     }) {
         if (Clay_Hovered()) {
+            eab_mouse_cursor = MOUSE_CURSOR_POINTING_HAND;
+
             switch (Clay_GetPointerState().state) {
                 case CLAY_POINTER_DATA_PRESSED_THIS_FRAME:
                     ret = ui_Click_Pressed;
@@ -258,3 +265,68 @@ ui_Click ui_big_button(Clay_String text, RL_Texture *icon) {
 
     return ret;
 }
+
+ui_Click ui_small_button(RL_Texture *icon, bool disabled) {
+    ui_Click ret = ui_Click_NONE;
+
+    Clay_Color enabled_black = 
+        (disabled)
+            ? (Clay_Color) { 120, 120, 120, 255}
+            : (Clay_Color) {   0,   0,   0, 255}
+        ;
+
+    CLAY(CLAY_IDI("ui_small_button", icon->id), {
+        .border = {
+            .width = CLAY_BORDER_OUTSIDE(4),
+            .color = enabled_black,
+        },
+        .backgroundColor = (!disabled && Clay_Hovered())
+            ? (Clay_Color) { 128, 128, 128, 128 }
+            : (Clay_Color) { 255, 255, 255, 255 },
+        .cornerRadius = CLAY_CORNER_RADIUS(6),
+        .layout = {
+            .padding = { 16, 16, 16, 16 },
+            .sizing = {
+                .width = CLAY_SIZING_FIT(0),
+                .height = CLAY_SIZING_FIT(0),
+            },
+            .childAlignment = {
+                .x = CLAY_ALIGN_X_CENTER,
+                .y = CLAY_ALIGN_Y_CENTER,
+            },
+        }
+    }) {
+        if (!disabled && Clay_Hovered()) {
+            eab_mouse_cursor = MOUSE_CURSOR_POINTING_HAND;
+
+            switch (Clay_GetPointerState().state) {
+                case CLAY_POINTER_DATA_PRESSED_THIS_FRAME:
+                    ret = ui_Click_Pressed;
+                    break;
+                case CLAY_POINTER_DATA_RELEASED_THIS_FRAME:
+                    ret = ui_Click_Released;
+                    break;
+                default:
+                    break;
+            }
+        }
+
+        CLAY_AUTO_ID({
+            .layout = {
+                .sizing = {
+                    .width = CLAY_SIZING_FIXED(60),
+                    .height = CLAY_SIZING_FIXED(60),
+                },
+            },
+            .image = {
+                .imageData = icon,
+            },
+            .backgroundColor = (disabled)
+                ? (Clay_Color) { 255, 255, 255, 200 }
+                : (Clay_Color) {   0,   0,   0,   0 },
+        });
+    }
+
+    return ret;
+}
+

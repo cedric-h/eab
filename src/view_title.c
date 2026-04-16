@@ -5,16 +5,16 @@
 #include <stdio.h>
 
 static struct {
-    View next_view;
+    view_Transition next_view;
 } view;
 
 
-void view_title_init(void) {
+void view_title_init(view_Transition _) {
     memset(&view, 0, sizeof(view));
 }
 void view_title_free(void) {}
 
-View view_title_update(void) {
+view_Transition view_title_update(void) {
     ui_update();
     return view.next_view;
 }
@@ -79,7 +79,9 @@ static Clay_RenderCommandArray ui_create_layout(void) {
                 case ui_Click_Pressed:
                     RL_PlaySound(ui_sound(ui_Sound_CinematicOpening));
                     break;
-                case ui_Click_Released: view.next_view = View_WorldMap; break;
+                case ui_Click_Released: {
+                    view.next_view.kind = view_TransitionKind_StartRun;
+                } break;
                 default: break;
             }
 
@@ -88,7 +90,9 @@ static Clay_RenderCommandArray ui_create_layout(void) {
                 ui_icon(ui_Icon_Diamond)
             )) {
                 case ui_Click_Pressed: RL_PlaySound(ui_sound(ui_Sound_Click)); break;
-                case ui_Click_Released: view.next_view = View_CampTech; break;
+                case ui_Click_Released: {
+                    view.next_view.kind = view_TransitionKind_CampTech;
+                } break;
                 default: break;
             }
 
@@ -97,7 +101,9 @@ static Clay_RenderCommandArray ui_create_layout(void) {
                 ui_icon(ui_Icon_Wrench)
             )) {
                 case ui_Click_Pressed: RL_PlaySound(ui_sound(ui_Sound_Click)); break;
-                case ui_Click_Released: view.next_view = View_Options; break;
+                case ui_Click_Released: {
+                    view.next_view.kind = view_TransitionKind_Options;
+                } break;
                 default: break;
             }
         }

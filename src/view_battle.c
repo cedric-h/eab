@@ -6,16 +6,16 @@
 #include <stdio.h>
 
 static struct {
-    View next_view;
+    view_Transition next_view;
 } view;
 
 
-void view_battle_init(void) {
+void view_battle_init(view_Transition _) {
     memset(&view, 0, sizeof(view));
 }
 void view_battle_free(void) {}
 
-View view_battle_update(void) {
+view_Transition view_battle_update(void) {
     ui_update();
     return view.next_view;
 }
@@ -52,7 +52,13 @@ static Clay_RenderCommandArray ui_create_layout(void) {
                 RL_PlaySound(ui_sound(ui_Sound_BattleVictory));
             } break;
             case ui_Click_Released: {
-                view.next_view = View_BattleVictory;
+                view.next_view = (view_Transition) {
+                    .kind = view_TransitionKind_BattleVictory,
+                    .battle_victory = {
+                        .coin = 23,
+                        .food = 13,
+                    }
+                };
             } break;
             default: break;
         }
@@ -66,7 +72,7 @@ static Clay_RenderCommandArray ui_create_layout(void) {
             } break;
             case ui_Click_Released: {
                 memset(&save, 0, sizeof(save));
-                view.next_view = View_Title;
+                view.next_view.kind = view_TransitionKind_BattleDefeat;
             } break;
             default: break;
         }

@@ -30,6 +30,8 @@ typedef enum {
     ui_Icon_Fleur,
     ui_Icon_Food,
     ui_Icon_Dice,
+    ui_Icon_Soup,
+    ui_Icon_BackToMap,
     ui_Icon_COUNT,
 } ui_Icon;
 
@@ -42,6 +44,8 @@ typedef enum {
     ui_Sound_COUNT,
 } ui_Sound;
 
+RL_Font ui_font_rl(ui_Font);
+size_t ui_font_size(ui_Font);
 Clay_TextElementConfig ui_font(ui_Font);
 Clay_TextElementConfig ui_font_ex(ui_Font, Clay_TextElementConfig);
 RL_Texture *ui_icon(ui_Icon);
@@ -65,9 +69,7 @@ typedef enum {
     ui_Click_Released,
 } ui_Click;
 
-ui_Click ui_big_button(
-    Clay_String text,
-    RL_Texture *icon
-);
+ui_Click ui_big_button(Clay_String text, RL_Texture *icon);
+ui_Click ui_small_button(RL_Texture *icon, bool disabled);
 
 #endif
