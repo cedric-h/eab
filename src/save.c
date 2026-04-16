@@ -1,6 +1,6 @@
 #include "save.h"
 
-save_Save save = {0};
+save_Save save = { .run = { .coin = 40 } };
 
 save_FurnitureConfig save_furniture_configs[] = {
     [save_Furniture_Tikitorch      ] = {

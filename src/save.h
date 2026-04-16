@@ -18,10 +18,14 @@ extern save_FurnitureConfig save_furniture_configs[];
 
 typedef struct {
     uint32_t gems;
-    uint32_t food;
-    uint32_t coin;
-    uint32_t map_progress_idx;
+    
+    /* state that gets reset at the end of a run */
+    struct {
+        uint32_t food;
+        uint32_t coin;
+        uint32_t map_progress_idx;
+        save_Furniture furniture[10];
+    } run;
 
-    save_Furniture furniture[10];
 } save_Save;
 extern save_Save save;

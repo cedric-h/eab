@@ -8,6 +8,8 @@
 static struct {
     View next_view;
 
+    RL_Sound sound_furniture_buy, sound_reroll;
+
     save_Furniture options[3];
 } view;
 
@@ -31,9 +33,16 @@ void roll_options(void) {
 
 void view_furniture_init(void) {
     memset(&view, 0, sizeof(view));
+
     roll_options();
+
+    view.sound_furniture_buy = RL_LoadSound("./resources/audio/furniture_buy.wav");
+    view.sound_reroll = RL_LoadSound("./resources/audio/reroll.wav");
 }
-void view_furniture_free(void) {}
+void view_furniture_free(void) {
+    RL_UnloadSound(view.sound_furniture_buy);
+    RL_UnloadSound(view.sound_reroll);
+}
 
 View view_furniture_update(void) {
     ui_update();
@@ -50,6 +59,8 @@ void view_furniture_render(void) {
 ui_Click ui_furniture_button(ui_Icon icon, uint32_t cost, Clay_String text) {
     ui_Click ret = ui_Click_NONE;
 
+    bool disabled = save.run.coin < cost;
+
     CLAY_AUTO_ID({
         .layout = {
             .sizing = {
@@ -58,18 +69,6 @@ ui_Click ui_furniture_button(ui_Icon icon, uint32_t cost, Clay_String text) {
             .layoutDirection = CLAY_TOP_TO_BOTTOM,
         },
     }) {
-        if (Clay_Hovered()) {
-            switch (Clay_GetPointerState().state) {
-                case CLAY_POINTER_DATA_PRESSED_THIS_FRAME:
-                    ret = ui_Click_Pressed;
-                    break;
-                case CLAY_POINTER_DATA_RELEASED_THIS_FRAME:
-                    ret = ui_Click_Released;
-                    break;
-                default:
-                    break;
-            }
-        }
 
         /* cost */
         CLAY_AUTO_ID({
@@ -110,6 +109,12 @@ ui_Click ui_furniture_button(ui_Icon icon, uint32_t cost, Clay_String text) {
 
         }
 
+        Clay_Color enabled_black = 
+            (disabled)
+                ? (Clay_Color) { 120, 120, 120, 255}
+                : (Clay_Color) {   0,   0,   0, 255}
+            ;
+
         /* button */
         CLAY_AUTO_ID({
             .layout = {
@@ -122,13 +127,27 @@ ui_Click ui_furniture_button(ui_Icon icon, uint32_t cost, Clay_String text) {
             },
             .border = {
                 .width = CLAY_BORDER_OUTSIDE(4),
-                .color = {0, 0, 0, 255}
+                .color = enabled_black,
             },
-            .backgroundColor = Clay_Hovered()
+            .backgroundColor = (Clay_Hovered() && !disabled)
                 ? (Clay_Color) { 128, 128, 128, 128 }
                 : (Clay_Color) { 255, 255, 255, 255 },
             .cornerRadius = CLAY_CORNER_RADIUS(6),
         }) {
+
+            if (!disabled && Clay_Hovered()) {
+                switch (Clay_GetPointerState().state) {
+                    case CLAY_POINTER_DATA_PRESSED_THIS_FRAME:
+                        ret = ui_Click_Pressed;
+                        break;
+                    case CLAY_POINTER_DATA_RELEASED_THIS_FRAME:
+                        ret = ui_Click_Released;
+                        break;
+                    default:
+                        break;
+                }
+            }
+
             CLAY_AUTO_ID({
                 .layout = {
                     .sizing = {
@@ -136,7 +155,12 @@ ui_Click ui_furniture_button(ui_Icon icon, uint32_t cost, Clay_String text) {
                         .width = CLAY_SIZING_FIXED(50),
                     },
                 },
-                .image = { .imageData = ui_icon(icon) }
+                .image = {
+                    .imageData = ui_icon(icon),
+                },
+                .backgroundColor = disabled
+                    ? (Clay_Color) { 255, 255, 255, 200 }
+                    : (Clay_Color) {   0,   0,   0,   0 },
             });
 
             CLAY_AUTO_ID({
@@ -145,7 +169,7 @@ ui_Click ui_furniture_button(ui_Icon icon, uint32_t cost, Clay_String text) {
 
             CLAY_TEXT(text, ui_font_ex(ui_Font_Desc, (Clay_TextElementConfig) {
                 .textAlignment = CLAY_TEXT_ALIGN_RIGHT,
-                .textColor = (Clay_Color) { 0, 0, 0, 255 },
+                .textColor = enabled_black,
                 .lineHeight = 24,
             }));
         }
@@ -154,15 +178,21 @@ ui_Click ui_furniture_button(ui_Icon icon, uint32_t cost, Clay_String text) {
     return ret;
 }
 
-ui_Click ui_small_button(RL_Texture *icon) {
+ui_Click ui_small_button(RL_Texture *icon, bool disabled) {
     ui_Click ret = ui_Click_NONE;
+
+    Clay_Color enabled_black = 
+        (disabled)
+            ? (Clay_Color) { 120, 120, 120, 255}
+            : (Clay_Color) {   0,   0,   0, 255}
+        ;
 
     CLAY(CLAY_IDI("halp", icon->id), {
         .border = {
             .width = CLAY_BORDER_OUTSIDE(4),
-            .color = {0, 0, 0, 255}
+            .color = enabled_black,
         },
-        .backgroundColor = Clay_Hovered()
+        .backgroundColor = (!disabled && Clay_Hovered())
             ? (Clay_Color) { 128, 128, 128, 128 }
             : (Clay_Color) { 255, 255, 255, 255 },
         .cornerRadius = CLAY_CORNER_RADIUS(6),
@@ -178,7 +208,7 @@ ui_Click ui_small_button(RL_Texture *icon) {
             },
         }
     }) {
-        if (Clay_Hovered()) {
+        if (!disabled && Clay_Hovered()) {
             switch (Clay_GetPointerState().state) {
                 case CLAY_POINTER_DATA_PRESSED_THIS_FRAME:
                     ret = ui_Click_Pressed;
@@ -198,7 +228,12 @@ ui_Click ui_small_button(RL_Texture *icon) {
                     .height = CLAY_SIZING_FIXED(60),
                 },
             },
-            .image = { .imageData = icon }
+            .image = {
+                .imageData = icon,
+            },
+            .backgroundColor = (disabled)
+                ? (Clay_Color) { 255, 255, 255, 200 }
+                : (Clay_Color) {   0,   0,   0,   0 },
         });
     }
 
@@ -248,7 +283,7 @@ static Clay_RenderCommandArray ui_create_layout(void) {
             });
 
             Clay_String tmp;
-            ui_sprintf(tmp, "x%d", save.coin);
+            ui_sprintf(tmp, "x%d", save.run.coin);
             CLAY_TEXT(tmp, ui_font(ui_Font_Cost));
         }
 
@@ -278,11 +313,19 @@ static Clay_RenderCommandArray ui_create_layout(void) {
                     }
                 )) {
                     case ui_Click_Released: {
+                        save.run.coin -= fc->cost;
+                        for (size_t i = 0; i < sizeof(save.run.furniture); i++) {
+                            if (save.run.furniture[i] == save_Furniture_NONE) {
+                                save.run.furniture[i] = f;
+                                break;
+                            }
+
+                        }
                         view.options[i] = save_Furniture_NONE;
                     } break;
 
                     case ui_Click_Pressed: {
-                        RL_PlaySound(ui_sound(ui_Sound_Click));
+                        RL_PlaySound(view.sound_furniture_buy);
                     } break;
 
                     default:
@@ -328,11 +371,15 @@ static Clay_RenderCommandArray ui_create_layout(void) {
                 .layout = { .sizing = { .width = CLAY_SIZING_GROW() } },
             }) {
 
-                switch (ui_small_button(ui_icon(ui_Icon_Dice))) {
+                switch (ui_small_button(
+                        ui_icon(ui_Icon_Dice),
+                        save.run.coin < 5
+                    )) {
                     case ui_Click_Pressed: {
-                        RL_PlaySound(ui_sound(ui_Sound_Click));
+                        RL_PlaySound(view.sound_reroll);
                     } break;
                     case ui_Click_Released: {
+                        save.run.coin -= 5;
                         roll_options();
                     } break;
                     default: break;
@@ -342,12 +389,12 @@ static Clay_RenderCommandArray ui_create_layout(void) {
                     .layout = { .sizing = { .width = CLAY_SIZING_GROW() } }
                 });
 
-                switch (ui_small_button(ui_icon(ui_Icon_Forward))) {
+                switch (ui_small_button(ui_icon(ui_Icon_Forward), false)) {
                     case ui_Click_Pressed: {
                         RL_PlaySound(ui_sound(ui_Sound_Click));
                     } break;
                     case ui_Click_Released: {
-                        save.map_progress_idx += 1;
+                        save.run.map_progress_idx += 1;
                         view.next_view = View_WorldMap;
                     } break;
                     default: break;

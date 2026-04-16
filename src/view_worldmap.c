@@ -35,11 +35,11 @@ Stop stops[] = {
 };
 
 static bool stop_available(size_t index) {
-    return (index - (size_t)save.map_progress_idx) == 1;
+    return (index - (size_t)save.run.map_progress_idx) == 1;
 }
 
 static bool stop_complete(size_t index) {
-    return index <= (size_t)save.map_progress_idx;
+    return index <= (size_t)save.run.map_progress_idx;
 }
 
 void view_worldmap_init(void) {
@@ -99,7 +99,7 @@ void view_worldmap_render(void) {
         float size = 30;
 
         Color tint = (Color){ 255, 255, 255, 255 };
-        if (i == save.map_progress_idx)
+        if (i == save.run.map_progress_idx)
             icon = ui_Icon_Camp;
         else if (stop_available(i))
             size *= 1.0f + 0.1*(1 + 0.5*sinf(RL_GetTime()*10));
@@ -121,8 +121,9 @@ void view_worldmap_render(void) {
                 if (RL_IsMouseButtonPressed(0))
                     RL_PlaySound(ui_sound(ui_Sound_BattleEnter));
 
-                if (RL_IsMouseButtonReleased(0))
+                if (RL_IsMouseButtonReleased(0)) {
                     view.next_view = View_Battle;
+                }
             }
         }
 
