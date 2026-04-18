@@ -19,6 +19,7 @@ static struct {
 void view_worldmap_init(view_Transition t) {
     memset(&view, 0, sizeof(view));
     view.ts_view_entered = RL_GetTime();
+
     bool animate = (t.kind == view_TransitionKind_BackToWorldMap);
     view.ts_enter_anim_done = RL_GetTime() + (float)animate;
 }

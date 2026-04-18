@@ -25,7 +25,6 @@ typedef enum {
 } camp_ItemKind;
 typedef struct {
     camp_ItemKind kind;
-    bool flip;
     union {
         save_Furniture furniture;
 
@@ -36,7 +35,8 @@ typedef struct {
 } camp_Item;
 
 static struct {
-    size_t guys_in_orgy_circle;
+    size_t guys_in_orgy_circle_male;
+    size_t guys_in_orgy_circle_female;
 
     view_Transition next_view;
     int held_item_idx;
@@ -89,7 +89,6 @@ static camp_Item camp_make_item(camp_ItemKind kind) {
 
     return (camp_Item) {
         .kind = kind,
-        .flip = RL_GetRandomValue(0, 1) < 0.5,
         .pos = { x, y }
     };
 }
@@ -143,7 +142,8 @@ void view_camp_free(void) {
 view_Transition view_camp_update(void) {
 
     /* push things in/out of the orgy circle */
-    view.guys_in_orgy_circle = 0;
+    view.guys_in_orgy_circle_male = 0;
+    view.guys_in_orgy_circle_female = 0;
     for (size_t i = 0; i < countof(keep.items); i++) {
         camp_Item *item = keep.items + i;
         if (item->kind == camp_ItemKind_NONE) continue;
@@ -152,7 +152,10 @@ view_Transition view_camp_update(void) {
                   (ORGY_CIRCLE_Y - item->pos.y)*(ORGY_CIRCLE_Y - item->pos.y));
 
         if (from_center < (ORGY_CIRCLE_SIZE/2)) {
-            view.guys_in_orgy_circle += (item->kind == camp_ItemKind_Guy);
+            if (item->kind == camp_ItemKind_Guy) {
+                view.guys_in_orgy_circle_male   += item->guy->sex == guy_Sex_Male;
+                view.guys_in_orgy_circle_female += item->guy->sex == guy_Sex_Female;
+            }
         }
         float from_edge = (ORGY_CIRCLE_SIZE/2 - 5) - from_center;
         float from_edge_min = 50;
@@ -466,7 +469,7 @@ static Clay_RenderCommandArray ui_create_layout(void) {
             },
         }) {
             uint32_t map_cost = 0;
-            uint32_t bed_cost = view.guys_in_orgy_circle*2;
+            uint32_t bed_cost = view.guys_in_orgy_circle_female*2 * (view.guys_in_orgy_circle_male > 0);
             for (size_t i = 0; i < countof(save.run.guys); i++) {
                 if (save.run.guys[i].state == guy_GuyState_NONE)
                     continue;
@@ -536,6 +539,9 @@ static Clay_RenderCommandArray ui_create_layout(void) {
                         RL_PlaySound(ui_sound(ui_Sound_Click));
                     } break;
                     case ui_Click_Released: {
+                        view.next_view = (view_Transition) {
+                            .kind = view_TransitionKind_CampDayEnd,
+                        };
                     } break;
                     default: break;
                 }

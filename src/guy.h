@@ -1,7 +1,8 @@
 /* guy.h draws guys */
-
 #ifndef __EAB_GUY_IMPL
 #define __EAB_GUY_IMPL
+
+#include "base.h"
 
 #define guy_assets \
     x(guy_Asset_HairHumanMale1, "./resources/guy/hair_human_male1.png") \
@@ -337,11 +338,13 @@ typedef enum {
 } guy_GuyState;
 typedef struct {
     guy_GuyState state;
+    guy_Sex sex;
     guy_GeneConfig *genes[guy_GeneLoc_COUNT];
     uint16_t hp;
 } guy_Guy;
 
 guy_Guy guy_guy_init(guy_Race race, guy_Sex sex);
+guy_Guy guy_breed(guy_Guy *mom, guy_Guy *Dad);
 
 uint16_t guy_maxhp(guy_Guy *guy);
 float guy_size(guy_Guy *guy);

@@ -50,7 +50,7 @@ static Clay_RenderCommandArray ui_create_layout(void) {
             }
         }) {
             CLAY_TEXT(
-                CLAY_STRING("Eugenics Auto Battler"),
+                CLAY_STRING("eugenics auto battler"),
                 ui_font_ex(
                     ui_Font_Title,
                     (Clay_TextElementConfig) {

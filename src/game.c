@@ -65,6 +65,14 @@ start:
                 game.view = View_Furniture;
             } break;
 
+            case view_TransitionKind_CampDayEnd: {
+                game.view = View_CampDayEnd;
+            }; break;
+
+            case view_TransitionKind_BackToCampFromDayEnd: {
+                game.view = View_Camp;
+            }; break;
+
             case view_TransitionKind_BackToWorldMap: {
                 save.run.map_progress_idx += 1;
                 game.view = View_WorldMap;

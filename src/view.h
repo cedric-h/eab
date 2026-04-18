@@ -12,6 +12,7 @@
     x(    furniture, View_Furniture    ) \
     x( battledefeat, View_BattleDefeat ) \
     x(         camp, View_Camp         ) \
+    x(   campdayend, View_CampDayEnd   ) \
 
 
 typedef enum {
@@ -25,6 +26,8 @@ typedef enum {
     view_TransitionKind_BattleVictory,
     view_TransitionKind_BattleDefeat,
     view_TransitionKind_BuyFurniture,
+    view_TransitionKind_CampDayEnd,
+    view_TransitionKind_BackToCampFromDayEnd,
     view_TransitionKind_BackToWorldMap,
 } view_TransitionKind;
 typedef struct {

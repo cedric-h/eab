@@ -1,6 +1,7 @@
 #include "raylib.h"
 #include "raymath.h"
 #include "stdint.h"
+#include "guy.h"
 #include "string.h"
 #include "stdio.h"
 #include "stdlib.h"
@@ -8,7 +9,9 @@
 #define CLAY_RECTANGLE_TO_RAYLIB_RECTANGLE(rectangle) (RL_Rectangle) { .x = rectangle.x, .y = rectangle.y, .width = rectangle.width, .height = rectangle.height }
 #define CLAY_COLOR_TO_RAYLIB_COLOR(color) (RL_Color) { .r = (unsigned char)roundf(color.r), .g = (unsigned char)roundf(color.g), .b = (unsigned char)roundf(color.b), .a = (unsigned char)roundf(color.a) }
 
-typedef struct { } CustomLayoutElement;
+/* TODO: generational indexing here so we can tell if guy was dealloced since
+ * rendering commands created */
+typedef guy_Guy CustomLayoutElement;
 
 const char *overlayShaderCode = "#version 330\n"
                                 "\n"
@@ -225,6 +228,12 @@ void Clay_Raylib_Render(Clay_RenderCommandArray renderCommands, RL_Font* fonts)
                 Clay_CustomRenderData *config = &renderCommand->renderData.custom;
                 CustomLayoutElement *customElement = (CustomLayoutElement *)config->customData;
                 if (!customElement) continue;
+
+                guy_draw(
+                    customElement,
+                    renderCommand->boundingBox.x + renderCommand->boundingBox.width/2,
+                    renderCommand->boundingBox.y + renderCommand->boundingBox.height/2
+                );
                 break;
             }
             default: {
