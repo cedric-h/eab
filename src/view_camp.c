@@ -3,6 +3,7 @@
 #include "ui.h"
 #include "save.h"
 #include "draw.h"
+#include "guy.h"
 #include <math.h>
 #include <stdio.h>
 
@@ -10,38 +11,198 @@
 #include "svg/orgy_circle.h"
 
 #define ORGY_CIRCLE_X    175
-#define ORGY_CIRCLE_Y    305
-#define ORGY_CIRCLE_SIZE 250
+#define ORGY_CIRCLE_Y    405
+#define ORGY_CIRCLE_SIZE 250 /* radius */
+
+#define RECYCLER_X 380
+#define RECYCLER_Y 250
+#define RECYCLER_SIZE 50
+
+typedef enum {
+    camp_ItemKind_NONE,
+    camp_ItemKind_Furniture,
+    camp_ItemKind_Guy,
+} camp_ItemKind;
+typedef struct {
+    camp_ItemKind kind;
+    union {
+        save_Furniture furniture;
+
+        /* TODO: generational indexing here so we can know when a guy is reused */
+        guy_Guy *guy;
+    };
+    struct { float x, y; } pos;
+} camp_Item;
 
 static struct {
+    size_t guys_in_orgy_circle;
+
     view_Transition next_view;
-    int held_furniture_idx;
+    int held_item_idx;
+    RL_Sound stew[2];
 } view = {};
+
+/* not in view because it's kept across view changes while view is reset */
+static struct {
+    camp_Item items[countof(save.run.furniture) + countof(save.run.guys)];
+} keep;
+
+static camp_Item *camp_get_item(camp_ItemKind kind, size_t idx) {
+    switch (kind) {
+        case camp_ItemKind_NONE:
+            return NULL;
+        case camp_ItemKind_Furniture:
+            return keep.items + idx;
+        case camp_ItemKind_Guy:
+            return keep.items + countof(save.run.furniture) + idx;
+    }
+}
+
+static float camp_get_item_size(camp_Item *item) {
+    switch (item->kind) {
+        case camp_ItemKind_NONE:
+            return 0;
+        case camp_ItemKind_Furniture:
+            return 25;
+        case camp_ItemKind_Guy:
+            return guy_size(item->guy);
+    }
+}
+
+static camp_Item camp_make_item(camp_ItemKind kind) {
+    float w = RL_GetScreenWidth();
+    float h = RL_GetScreenHeight();
+    float x = RL_GetRandomValue(w*0.2, w*0.8);
+    float y = RL_GetRandomValue(h*0.2, h*0.8);
+
+    /* push them out of the orgy circle */
+    {
+        float dist = sqrtf((x - ORGY_CIRCLE_X)*(x - ORGY_CIRCLE_X) +
+                           (y - ORGY_CIRCLE_Y)*(y - ORGY_CIRCLE_Y));
+        if (dist < ORGY_CIRCLE_SIZE/2) {
+            x = ORGY_CIRCLE_X + (x - ORGY_CIRCLE_X)/dist * ORGY_CIRCLE_SIZE;
+            y = ORGY_CIRCLE_Y + (y - ORGY_CIRCLE_Y)/dist * ORGY_CIRCLE_SIZE;
+        }
+    }
+
+    return (camp_Item) {
+        .kind = kind,
+        .pos = { x, y }
+    };
+}
 
 void view_camp_init(view_Transition t) {
     memset(&view, 0, sizeof(view));
+    view.held_item_idx = -1;
 
-    view.held_furniture_idx = -1;
+    view.stew[0] = RL_LoadSound("./resources/audio/stew1.wav");
+    view.stew[1] = RL_LoadSound("./resources/audio/stew2.wav");
+
+    /* find items added to the save since last camp and initialize them */
+    {
+        for (size_t furn_i = 0; furn_i < countof(save.run.furniture); furn_i++) {
+            save_Furniture f = save.run.furniture[furn_i];
+            if (f == save_Furniture_NONE) continue;
+
+            camp_Item *i = camp_get_item(camp_ItemKind_Furniture, furn_i);
+            if (i->kind == camp_ItemKind_NONE) {
+                *i = camp_make_item(camp_ItemKind_Furniture);
+                i->furniture = f;
+            }
+        }
+
+        for (size_t guy_i = 0; guy_i < countof(save.run.guys); guy_i++) {
+            guy_Guy *g = save.run.guys + guy_i;
+            if (g->state == guy_GuyState_NONE) continue;
+
+            camp_Item *i = camp_get_item(camp_ItemKind_Guy, guy_i);
+
+            /* TODO: check if generational index is different and reset if this
+             * guy's memory has been reused */
+
+            if (i->kind == camp_ItemKind_NONE) {
+                *i = camp_make_item(camp_ItemKind_Guy);
+                i->guy = g;
+            }
+        }
+    }
 }
 void view_camp_free(void) {
+    RL_UnloadSound(view.stew[0]);
+    RL_UnloadSound(view.stew[1]);
 }
 
 view_Transition view_camp_update(void) {
 
-    for (size_t i = 0; i < countof(save.run.furniture); i++) {
-        save_CampFurniture *fc = save.run.furniture + i;
+    /* push things in/out of the orgy circle */
+    view.guys_in_orgy_circle = 0;
+    for (size_t i = 0; i < countof(keep.items); i++) {
+        camp_Item *item = keep.items + i;
+        if (item->kind == camp_ItemKind_NONE) continue;
         float from_center =
-            sqrtf((ORGY_CIRCLE_X - fc->pos.x)*(ORGY_CIRCLE_X - fc->pos.x) +
-                  (ORGY_CIRCLE_Y - fc->pos.y)*(ORGY_CIRCLE_Y - fc->pos.y));
+            sqrtf((ORGY_CIRCLE_X - item->pos.x)*(ORGY_CIRCLE_X - item->pos.x) +
+                  (ORGY_CIRCLE_Y - item->pos.y)*(ORGY_CIRCLE_Y - item->pos.y));
 
+        if (from_center < (ORGY_CIRCLE_SIZE/2)) {
+            view.guys_in_orgy_circle += 1;
+        }
         float from_edge = (ORGY_CIRCLE_SIZE/2 - 5) - from_center;
         float from_edge_min = 50;
         if (fabsf(from_edge) < from_edge_min) {
-            float out_x = (fc->pos.x - ORGY_CIRCLE_X) / from_center;
-            float out_y = (fc->pos.y - ORGY_CIRCLE_Y) / from_center;
-            fc->pos.x += out_x * (from_edge - from_edge_min*sign(from_edge))*0.4;
-            fc->pos.y += out_y * (from_edge - from_edge_min*sign(from_edge))*0.4;
+            float out_x = (item->pos.x - ORGY_CIRCLE_X) / from_center;
+            float out_y = (item->pos.y - ORGY_CIRCLE_Y) / from_center;
+            item->pos.x += out_x * (from_edge - from_edge_min*sign(from_edge))*0.4;
+            item->pos.y += out_y * (from_edge - from_edge_min*sign(from_edge))*0.4;
         }
+    }
+
+    /* push things out of the human recycler */
+    for (size_t item_j = 0; item_j < countof(keep.items); item_j++) {
+        camp_Item *j = keep.items + item_j;
+        if (j->kind == camp_ItemKind_NONE) continue;
+
+        float dx = j->pos.x - RECYCLER_X;
+        float dy = j->pos.y - RECYCLER_Y;
+        float dist = sqrtf(dx*dx + dy*dy);
+        float overlap = (camp_get_item_size(j) + RECYCLER_SIZE) - dist;
+        if (overlap > 0) {
+            j->pos.x += (dx/dist) * overlap*0.5;
+            j->pos.y += (dy/dist) * overlap*0.5;
+        }
+    }
+
+    /* push items out of each other */
+    for (size_t item_i = 0; item_i < countof(keep.items); item_i++) {
+        camp_Item *i = keep.items + item_i;
+        if (i->kind == camp_ItemKind_NONE) continue;
+
+        for (size_t item_j = 0; item_j < countof(keep.items); item_j++) {
+            if (item_i == item_j) continue;
+            camp_Item *j = keep.items + item_j;
+            if (j->kind == camp_ItemKind_NONE) continue;
+
+            float dx = j->pos.x - i->pos.x;
+            float dy = j->pos.y - i->pos.y;
+            float dist = sqrtf(dx*dx + dy*dy);
+            float overlap = (camp_get_item_size(i) + camp_get_item_size(j)) - dist;
+            if (overlap > 0) {
+                j->pos.x += (dx/dist) * overlap/2;
+                j->pos.y += (dy/dist) * overlap/2;
+                i->pos.x -= (dx/dist) * overlap/2;
+                i->pos.y -= (dy/dist) * overlap/2;
+            }
+        }
+    }
+
+    /* keep them on the screen */
+    for (size_t item_j = 0; item_j < countof(keep.items); item_j++) {
+        camp_Item *j = keep.items + item_j;
+        if (j->kind == camp_ItemKind_NONE) continue;
+
+        float w = RL_GetScreenWidth();
+        float h = RL_GetScreenHeight();
+        j->pos.x = max(w*0.2, min(w*0.8, j->pos.x));
+        j->pos.y = max(h*0.2, min(h*0.8, j->pos.y));
     }
 
     ui_update();
@@ -54,27 +215,26 @@ void view_camp_render(void) {
 
     RL_ClearBackground(RL_WHITE);
 
-    if (view.held_furniture_idx != -1) {
-        save_CampFurniture *f = save.run.furniture + view.held_furniture_idx;
+    /* held things go to mouse */
+    if (view.held_item_idx != -1) {
+        camp_Item *item = keep.items + view.held_item_idx;
         RL_Vector2 m = RL_GetMousePosition();
-        f->pos.x = m.x;
-        f->pos.y = m.y;
+        item->pos.x = m.x;
+        item->pos.y = m.y;
     }
 
-    if (RL_IsMouseButtonReleased(0))
-        view.held_furniture_idx = -1;
-
-    /* draw human recycler */
+    /* draw guy recycler */
+    bool over_guy_recyler = false;
     {
-        float x = 380;
-        float y = 150;
-        float size = 60;
+        float x = RECYCLER_X;
+        float y = RECYCLER_Y;
+        float size = RECYCLER_SIZE + 10;
 
         ui_Font font = ui_Font_Desc;
         RL_DrawTextEx(
             ui_font_rl(font),
-            "human",
-            (RL_Vector2) { x - size*0.6, y - size*0.8 },
+            "guy",
+            (RL_Vector2) { x - size*0.4, y - size*0.8 },
             ui_font_size(font),
             1,
             (RL_Color) { 0, 0, 0, 255 }
@@ -88,14 +248,25 @@ void view_camp_render(void) {
             (RL_Color) { 0, 0, 0, 255 }
         );
 
+        bool holding_guy = (view.held_item_idx != 1) &&
+            (keep.items[view.held_item_idx].kind == camp_ItemKind_Guy);
+
         {
             float icon_size = size;
-            float t = (view.held_furniture_idx != -1)*fabsf(sinf(RL_GetTime()*7));
+            float t = 0;
+            if (holding_guy) {
+                t = fabsf(sinf(RL_GetTime()*7));
+            }
 
             RL_Vector2 m = RL_GetMousePosition();
             float dist = sqrtf((x - m.x)*(x - m.x) +
                                (y - m.y)*(y - m.y));
-            icon_size *= 1 + 0.2*fabsf(min(1, dist - size)) / size;
+            if (holding_guy) {
+                float t = inv_lerp(size, size/2, dist - size);
+                icon_size *= 1.0 + 0.3*min(1, max(0, t));
+            }
+
+            over_guy_recyler = dist < (size/2);
 
             float ix = x;
             float iy = y - 10*t;
@@ -114,37 +285,72 @@ void view_camp_render(void) {
         }
     }
 
-    /* draw furniture */
-    for (size_t i = 0; i < countof(save.run.furniture); i++) {
-        save_CampFurniture f = save.run.furniture[i];
-        save_FurnitureConfig *fc = save_furniture_configs + f.kind;
-        if (f.kind == save_Furniture_NONE) continue;
+    /* find thing closest to mouse */
+    camp_Item *item_closest_mouse = NULL;
+    float item_closest_mouse_dist = 30.0f;
+    for (size_t i = 0; i < countof(keep.items); i++) {
+        camp_Item *item = keep.items + i;
+        if (item->kind == camp_ItemKind_NONE) continue;
 
-        float size = 50;
+        RL_Vector2 m = RL_GetMousePosition();
+        float dist = sqrtf((item->pos.x - m.x)*(item->pos.x - m.x) +
+                           (item->pos.y - m.y)*(item->pos.y - m.y));
+        if (dist < item_closest_mouse_dist) {
+            item_closest_mouse_dist = dist;
+            item_closest_mouse = item;
+        }
+    }
 
-        if (view.held_furniture_idx == -1) {
-            RL_Vector2 m = RL_GetMousePosition();
-            float dist = sqrtf((f.pos.x - m.x)*(f.pos.x - m.x) +
-                               (f.pos.y - m.y)*(f.pos.y - m.y));
+    /* draw items */
+    for (size_t i = 0; i < countof(keep.items); i++) {
+        camp_Item *item = keep.items + i;
+        if (item->kind == camp_ItemKind_NONE) continue;
 
-            if (dist < size/2) {
-                eab_mouse_cursor = MOUSE_CURSOR_POINTING_HAND;
-                if (RL_IsMouseButtonPressed(0))
-                    view.held_furniture_idx = i;
-            }
+        float scale = 1;
+        float rotation = 0;
+
+        if (item_closest_mouse == item && view.held_item_idx == -1) {
+            scale *= 1.05;
+            rotation += sinf(RL_GetTime()*15)*5.0f;
+
+            eab_mouse_cursor = MOUSE_CURSOR_POINTING_HAND;
+            if (RL_IsMouseButtonPressed(0))
+                view.held_item_idx = i;
         }
 
-        draw_icon(
-            fc->icon,
-            (draw_Rect) {
-                .min_x = f.pos.x - size/2,
-                .min_y = f.pos.y - size/2,
-                .max_x = f.pos.x + size/2,
-                .max_y = f.pos.y + size/2,
-            },
-            (Color) { 255, 255, 255, 255 }
-        );
+
+        RL_BeginMode2D((RL_Camera2D) {
+            .offset = { item->pos.x, item->pos.y },
+            .target = { item->pos.x, item->pos.y },
+            .rotation = rotation,
+            .zoom = scale,
+        });
+        switch (item->kind) {
+            case camp_ItemKind_NONE: break;
+
+            case camp_ItemKind_Furniture: {
+                float size = 50.0f * scale;
+                save_FurnitureConfig *fc = save_furniture_configs + item->furniture;
+
+                draw_icon(
+                    fc->icon,
+                    (draw_Rect) {
+                        .min_x = item->pos.x - size/2,
+                        .min_y = item->pos.y - size/2,
+                        .max_x = item->pos.x + size/2,
+                        .max_y = item->pos.y + size/2,
+                    },
+                    (Color) { 255, 255, 255, 255 }
+                );
+            }; break;
+
+            case camp_ItemKind_Guy: {
+                guy_draw(item->guy, item->pos.x, item->pos.y);
+            }; break;
+        }
+        RL_EndMode2D();
     }
+
 
     /* draw orgy circle */
     {
@@ -153,7 +359,7 @@ void view_camp_render(void) {
         float size = ORGY_CIRCLE_SIZE;
         RL_Vector2 m = RL_GetMousePosition();
         bool hover = sqrtf((x - m.x)*(x - m.x) + (y - m.y)*(y - m.y)) < (size/2);
-        hover = hover && view.held_furniture_idx != -1;
+        hover = hover && (view.held_item_idx != -1);
         svg_draw(&svg_orgy_circle, (svg_Rect) {
             .min_x = x-size/2,
             .min_y = y-size/2,
@@ -175,6 +381,23 @@ void view_camp_render(void) {
     ui_render(ui_create_layout());
 
     RL_EndDrawing();
+
+    if (RL_IsMouseButtonReleased(0)) {
+        if (over_guy_recyler &&
+            (view.held_item_idx != -1) &&
+            (keep.items[view.held_item_idx].kind == camp_ItemKind_Guy)
+        ) {
+            camp_Item *i = keep.items + view.held_item_idx;
+            i->guy->state = guy_GuyState_NONE;
+            i->kind = camp_ItemKind_NONE;
+            save.run.food += 1;
+            RL_PlaySound(view.stew[
+                (size_t)floorf(RL_GetRandomValue(0, countof(view.stew) - 1))
+            ]);
+        }
+
+        view.held_item_idx = -1;
+    }
 }
 
 static Clay_RenderCommandArray ui_create_layout(void) {
@@ -234,6 +457,14 @@ static Clay_RenderCommandArray ui_create_layout(void) {
                 .layoutDirection = CLAY_TOP_TO_BOTTOM
             },
         }) {
+            uint32_t map_cost = 0;
+            uint32_t bed_cost = view.guys_in_orgy_circle*2;
+            for (size_t i = 0; i < countof(save.run.guys); i++) {
+                if (save.run.guys[i].state == guy_GuyState_NONE)
+                    continue;
+                map_cost += 1;
+            }
+
             CLAY_AUTO_ID({
                 .layout = {
                     .childAlignment = { .y = CLAY_ALIGN_Y_CENTER },
@@ -255,8 +486,11 @@ static Clay_RenderCommandArray ui_create_layout(void) {
                     .layout = { .sizing = { .width = CLAY_SIZING_FIXED(10) } }
                 });
 
-                /* bed cost */
-                CLAY_TEXT(CLAY_STRING("x5"), ui_font(ui_Font_Cost));
+                {
+                    Clay_String tmp;
+                    ui_sprintf(tmp, "x%u", bed_cost);
+                    CLAY_TEXT(tmp, ui_font(ui_Font_Cost));
+                }
 
                 CLAY_AUTO_ID({
                     .layout = { .sizing = { .width = CLAY_SIZING_GROW() } }
@@ -276,17 +510,19 @@ static Clay_RenderCommandArray ui_create_layout(void) {
                     .layout = { .sizing = { .width = CLAY_SIZING_FIXED(10) } }
                 });
 
-                /* leaving cost */
-                CLAY_TEXT(CLAY_STRING("x5"), ui_font(ui_Font_Cost));
+                {
+                    Clay_String tmp;
+                    ui_sprintf(tmp, "x%d", map_cost);
+                    CLAY_TEXT(tmp, ui_font(ui_Font_Cost));
+                }
             }
 
             CLAY_AUTO_ID({
                 .layout = { .sizing = { .width = CLAY_SIZING_GROW() } },
             }) {
-
                 switch (ui_small_button(
                         ui_icon(ui_Icon_Bed),
-                        save.run.food < 5
+                        save.run.food < bed_cost
                     )) {
                     case ui_Click_Pressed: {
                         RL_PlaySound(ui_sound(ui_Sound_Click));
@@ -302,7 +538,7 @@ static Clay_RenderCommandArray ui_create_layout(void) {
 
                 switch (ui_small_button(
                     ui_icon(ui_Icon_BackToMap),
-                    save.run.food < 5
+                    save.run.food < map_cost
                 )) {
                     case ui_Click_Pressed: {
                         RL_PlaySound(ui_sound(ui_Sound_Click));

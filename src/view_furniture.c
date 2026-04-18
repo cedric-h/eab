@@ -255,18 +255,10 @@ static Clay_RenderCommandArray ui_create_layout(void) {
                     case ui_Click_Released: {
                         save.run.coin -= fc->cost;
                         for (size_t i = 0; i < countof(save.run.furniture); i++) {
-                            if (save.run.furniture[i].kind == save_Furniture_NONE) {
-
-                                float w = RL_GetRandomValue(0, RL_GetScreenWidth());
-                                float h = RL_GetRandomValue(0, RL_GetScreenHeight());
-                                save.run.furniture[i] = (save_CampFurniture) {
-                                    .kind = f,
-                                    .pos.x = w,
-                                    .pos.y = h,
-                                };
+                            if (save.run.furniture[i] == save_Furniture_NONE) {
+                                save.run.furniture[i] = f;
                                 break;
                             }
-
                         }
                         view.options[i] = save_Furniture_NONE;
                     } break;

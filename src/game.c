@@ -1,6 +1,7 @@
 #include <assert.h>
 #include "raylib.h"
 #include "ui.h"
+#include "guy.h"
 #include "save.h"
 #define VIEW_HANDLERS
 #include "view.h"
@@ -82,12 +83,16 @@ int main(void) {
 
     RL_InitAudioDevice();
 
+    guy_init();
     ui_init();
     game.view = View_Camp;
     save.run.food = 5;
-    save.run.furniture[0].kind = save_Furniture_Bed;
-    save.run.furniture[0].pos.x = 150;
-    save.run.furniture[0].pos.y = 150;
+    save.run.furniture[0] = save_Furniture_Bed;
+    for (int i = 0; i < 62; i++)
+        save.run.guys[i] = (guy_Guy) {
+            .state = guy_GuyState_Inited,
+            .hp = 10,
+        };
     view_handlers[game.view].init((view_Transition) {0});
 
 #if defined(PLATFORM_WEB)
@@ -100,6 +105,7 @@ int main(void) {
 
     view_handlers[game.view].free();
     ui_free();
+    guy_free();
     RL_CloseAudioDevice();
     RL_CloseWindow();
 

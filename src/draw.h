@@ -1,3 +1,5 @@
+/* small, insignificant collection of drawing utils */
+
 #ifndef __EAB_DRAW_IMPL
 #define __EAB_DRAW_IMPL
 
