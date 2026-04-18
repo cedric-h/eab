@@ -44,6 +44,7 @@ static struct {
 
 /* not in view because it's kept across view changes while view is reset */
 static struct {
+    uint32_t run_id;
     camp_Item items[countof(save.run.furniture) + countof(save.run.guys)];
 } keep;
 
@@ -65,7 +66,7 @@ static float camp_get_item_size(camp_Item *item) {
         case camp_ItemKind_Furniture:
             return 25;
         case camp_ItemKind_Guy:
-            return guy_size(item->guy);
+            return 23*guy_size(item->guy);
     }
 }
 
@@ -94,6 +95,11 @@ static camp_Item camp_make_item(camp_ItemKind kind) {
 void view_camp_init(view_Transition t) {
     memset(&view, 0, sizeof(view));
     view.held_item_idx = -1;
+
+    if (save.run.id != keep.run_id) {
+        memset(&keep, 0, sizeof(keep));
+        keep.run_id = save.run.id;
+    }
 
     view.stew[0] = RL_LoadSound("./resources/audio/stew1.wav");
     view.stew[1] = RL_LoadSound("./resources/audio/stew2.wav");
@@ -144,7 +150,7 @@ view_Transition view_camp_update(void) {
                   (ORGY_CIRCLE_Y - item->pos.y)*(ORGY_CIRCLE_Y - item->pos.y));
 
         if (from_center < (ORGY_CIRCLE_SIZE/2)) {
-            view.guys_in_orgy_circle += 1;
+            view.guys_in_orgy_circle += (item->kind == camp_ItemKind_Guy);
         }
         float from_edge = (ORGY_CIRCLE_SIZE/2 - 5) - from_center;
         float from_edge_min = 50;
@@ -156,7 +162,7 @@ view_Transition view_camp_update(void) {
         }
     }
 
-    /* push things out of the human recycler */
+    /* push things out of the guy recycler */
     for (size_t item_j = 0; item_j < countof(keep.items); item_j++) {
         camp_Item *j = keep.items + item_j;
         if (j->kind == camp_ItemKind_NONE) continue;
@@ -248,7 +254,7 @@ void view_camp_render(void) {
             (RL_Color) { 0, 0, 0, 255 }
         );
 
-        bool holding_guy = (view.held_item_idx != 1) &&
+        bool holding_guy = (view.held_item_idx != -1) &&
             (keep.items[view.held_item_idx].kind == camp_ItemKind_Guy);
 
         {
@@ -522,7 +528,7 @@ static Clay_RenderCommandArray ui_create_layout(void) {
             }) {
                 switch (ui_small_button(
                         ui_icon(ui_Icon_Bed),
-                        save.run.food < bed_cost
+                        (bed_cost == 0) || (save.run.food < bed_cost)
                     )) {
                     case ui_Click_Pressed: {
                         RL_PlaySound(ui_sound(ui_Sound_Click));
@@ -541,9 +547,12 @@ static Clay_RenderCommandArray ui_create_layout(void) {
                     save.run.food < map_cost
                 )) {
                     case ui_Click_Pressed: {
-                        RL_PlaySound(ui_sound(ui_Sound_Click));
+                        RL_PlaySound(ui_sound(ui_Sound_CampLeave));
                     } break;
                     case ui_Click_Released: {
+                        view.next_view = (view_Transition) {
+                            .kind = view_TransitionKind_BackToWorldMap
+                        };
                     } break;
                     default: break;
                 }

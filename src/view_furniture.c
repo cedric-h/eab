@@ -330,10 +330,9 @@ static Clay_RenderCommandArray ui_create_layout(void) {
 
                 switch (ui_small_button(ui_icon(ui_Icon_BackToMap), false)) {
                     case ui_Click_Pressed: {
-                        RL_PlaySound(ui_sound(ui_Sound_Click));
+                        RL_PlaySound(ui_sound(ui_Sound_PageTurn));
                     } break;
                     case ui_Click_Released: {
-                        save.run.map_progress_idx += 1;
                         view.next_view.kind = view_TransitionKind_BackToWorldMap;
                     } break;
                     default: break;

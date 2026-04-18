@@ -12,6 +12,7 @@ size_t ui_font_sizes[] = {
     [ui_Font_SubTitle] = 48,
     [ui_Font_Cost    ] = 25,
     [ui_Font_Desc    ] = 18,
+    [ui_Font_Name    ] = 12,
 };
 _Static_assert(countof(ui_font_sizes) == ui_Font_COUNT, "missing font path");
 
@@ -42,6 +43,9 @@ char *ui_sound_paths[] = {
     [ui_Sound_BattleEnter     ] = "resources/audio/battle_enter.wav",
     [ui_Sound_BattleVictory   ] = "resources/audio/battle_victory.wav",
     [ui_Sound_BattleDefeat    ] = "resources/audio/battle_defeat.wav",
+    [ui_Sound_PageTurn        ] = "resources/audio/page_turn.wav",
+    [ui_Sound_CampEnter       ] = "resources/audio/camp_enter.wav",
+    [ui_Sound_CampLeave       ] = "resources/audio/camp_leave.wav",
 };
 _Static_assert(countof(ui_sound_paths) == ui_Sound_COUNT, "missing sound path");
 

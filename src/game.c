@@ -1,4 +1,5 @@
 #include <assert.h>
+#include <stdio.h>
 #include "raylib.h"
 #include "ui.h"
 #include "guy.h"
@@ -34,7 +35,9 @@ start:
             case view_TransitionKind_CampTech: game.view = View_CampTech; break;
 
             case view_TransitionKind_StartRun: {
+                uint32_t run_id = save.run.id;
                 memset(&save.run, 0, sizeof(save.run));
+                save.run.id = run_id + 1;
                 save.run.coin = 30;
                 save.run.food = 30;
                 game.view = View_WorldMap;
@@ -56,6 +59,7 @@ start:
             } break;
 
             case view_TransitionKind_BackToWorldMap: {
+                save.run.map_progress_idx += 1;
                 game.view = View_WorldMap;
             } break;
 
@@ -88,11 +92,54 @@ int main(void) {
     game.view = View_Camp;
     save.run.food = 5;
     save.run.furniture[0] = save_Furniture_Bed;
-    for (int i = 0; i < 62; i++)
-        save.run.guys[i] = (guy_Guy) {
+    for (int i = 0; i < 12; i++) {
+        guy_Guy guy = {
             .state = guy_GuyState_Inited,
             .hp = 10,
         };
+
+        guy_Race race = guy_Race_Human;
+        guy_Sex sex = i%2 ? guy_Sex_Male : guy_Sex_Female;
+
+        for (int loc = 0; loc < guy_GeneLoc_COUNT; loc++) {
+
+            /* find applicable gene for this loc and sex/race */
+            float applicable_count = 0;
+            for (size_t cfg_i = 0; cfg_i < countof(guy_gene_configs); cfg_i++) {
+                guy_GeneConfig *cfg = guy_gene_configs + cfg_i;
+
+                if ((cfg->sex & sex) &&
+                    (cfg->race == race) &&
+                    (cfg->category == guy_gene_loc_categories[loc])
+                ) {
+                    applicable_count += 1;
+                }
+            }
+
+            size_t applicable_idx = floorf(RL_GetRandomValue(0, applicable_count - 1));
+            guy_GeneConfig *applicable = NULL;
+            for (size_t cfg_i = 0; cfg_i < countof(guy_gene_configs); cfg_i++) {
+                guy_GeneConfig *cfg = guy_gene_configs + cfg_i;
+
+                if ((cfg->sex & sex) &&
+                    (cfg->race == race) &&
+                    (cfg->category == guy_gene_loc_categories[loc])
+                ) {
+                    if (applicable_idx == 0) {
+                        applicable = cfg;
+                        break;
+                    }
+                    applicable_idx -= 1;
+                }
+            }
+
+            if (applicable) {
+                guy.genes[loc] = applicable;
+            }
+        }
+
+        save.run.guys[i] = guy;
+    }
     view_handlers[game.view].init((view_Transition) {0});
 
 #if defined(PLATFORM_WEB)

@@ -22,6 +22,8 @@ typedef struct {
     
     /* state that gets reset at the end of a run */
     struct {
+        uint32_t id;
+
         guy_Guy guys[100];
 
         uint32_t kills;

@@ -127,14 +127,18 @@ void view_worldmap_render(void) {
 
                 eab_mouse_cursor = MOUSE_CURSOR_POINTING_HAND;
 
-                if (RL_IsMouseButtonPressed(0))
-                    RL_PlaySound(ui_sound(ui_Sound_BattleEnter));
-
-                if (RL_IsMouseButtonReleased(0)) {
-                    if (stop->icon == ui_Icon_Bed)
-                        view.next_view.kind = view_TransitionKind_StartCamp;
-                    if (stop->icon == ui_Icon_Swords)
+                if (stop->icon == ui_Icon_Swords) {
+                    if (RL_IsMouseButtonPressed(0))
+                        RL_PlaySound(ui_sound(ui_Sound_BattleEnter));
+                    if (RL_IsMouseButtonReleased(0))
                         view.next_view.kind = view_TransitionKind_StartBattle;
+                }
+
+                if (stop->icon == ui_Icon_Bed) {
+                    if (RL_IsMouseButtonPressed(0))
+                        RL_PlaySound(ui_sound(ui_Sound_CampEnter));
+                    if (RL_IsMouseButtonReleased(0))
+                        view.next_view.kind = view_TransitionKind_StartCamp;
                 }
             }
         }

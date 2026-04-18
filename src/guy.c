@@ -3,14 +3,34 @@
 #include "save.h"
 #include "guy.h"
 #include <math.h>
+#include <stdio.h>
 
 uint16_t guy_maxhp(guy_Guy *guy) {
     return 10;
 }
 float guy_size(guy_Guy *guy) {
-    return 23;
-}
+    float x = 0;
 
+    size_t i = guy_GeneLoc_Size1;
+    for (; i <= guy_GeneLoc_SizeLast; i++)
+        x += guy->genes[i]->size;
+    return x/(i - guy_GeneLoc_Size1);
+}
+Color guy_color(guy_Guy *guy) {
+    return color_lerp(
+        color_lerp(
+            guy->genes[guy_GeneLoc_Color1]->color,
+            guy->genes[guy_GeneLoc_Color2]->color,
+            0.5
+        ),
+        color_lerp(
+            guy->genes[guy_GeneLoc_Color2]->color,
+            guy->genes[guy_GeneLoc_Color3]->color,
+            0.5
+        ),
+        0.5
+    );
+}
 
 static struct {
     RL_Texture body, sword;
@@ -28,8 +48,8 @@ void guy_free() {
 }
 
 void guy_draw(guy_Guy *guy_guy, float x, float y) {
-    float size = 40;
-    Color skin = { 63, 192, 87, 255 };
+    float size = 40*guy_size(guy_guy);
+    Color skin = guy_color(guy_guy);
 
     RL_DrawTexturePro(
         guy.body,
@@ -70,6 +90,20 @@ void guy_draw(guy_Guy *guy_guy, float x, float y) {
             },
             sinf(i+RL_GetTime()*2)*5,
             RL_BLACK
+        );
+    }
+
+    {
+        ui_Font font = ui_Font_Name;
+        char *name = "sharqueesha";
+        float w = RL_MeasureTextEx(ui_font_rl(font), name, ui_font_size(font), 1).x;
+        RL_DrawTextEx(
+            ui_font_rl(font),
+            name,
+            (RL_Vector2) { x - w/2, y + size*0.8 },
+            ui_font_size(font),
+            1,
+            (RL_Color) { 0, 0, 0, 255 }
         );
     }
 }

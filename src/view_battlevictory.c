@@ -112,7 +112,7 @@ static Clay_RenderCommandArray ui_create_layout(void) {
             CLAY_STRING("DONE"),
             ui_icon(ui_Icon_Fleur)
         )) {
-            case ui_Click_Pressed: RL_PlaySound(ui_sound(ui_Sound_Click)); break;
+            case ui_Click_Pressed: RL_PlaySound(ui_sound(ui_Sound_PageTurn)); break;
             case ui_Click_Released: {
                 view.next_view.kind = view_TransitionKind_BuyFurniture;
             } break;

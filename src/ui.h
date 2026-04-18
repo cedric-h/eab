@@ -11,6 +11,7 @@ typedef enum {
     ui_Font_SubTitle,
     ui_Font_Cost,
     ui_Font_Desc,
+    ui_Font_Name,
     ui_Font_COUNT,
 } ui_Font;
 
@@ -41,6 +42,9 @@ typedef enum {
     ui_Sound_BattleEnter,
     ui_Sound_BattleVictory,
     ui_Sound_BattleDefeat,
+    ui_Sound_PageTurn,
+    ui_Sound_CampEnter,
+    ui_Sound_CampLeave,
     ui_Sound_COUNT,
 } ui_Sound;
 
