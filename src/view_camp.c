@@ -25,6 +25,7 @@ typedef enum {
 } camp_ItemKind;
 typedef struct {
     camp_ItemKind kind;
+    bool flip;
     union {
         save_Furniture furniture;
 
@@ -88,6 +89,7 @@ static camp_Item camp_make_item(camp_ItemKind kind) {
 
     return (camp_Item) {
         .kind = kind,
+        .flip = RL_GetRandomValue(0, 1) < 0.5,
         .pos = { x, y }
     };
 }

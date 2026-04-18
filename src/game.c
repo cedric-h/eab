@@ -40,6 +40,13 @@ start:
                 save.run.id = run_id + 1;
                 save.run.coin = 30;
                 save.run.food = 30;
+
+                for (int i = 0; i < 12; i++) {
+                    guy_Race race = guy_Race_Human;
+                    guy_Sex sex = i%2 ? guy_Sex_Male : guy_Sex_Female;
+                    save.run.guys[i] = guy_guy_init(race, sex);
+                }
+
                 game.view = View_WorldMap;
             } break;
 
@@ -89,56 +96,13 @@ int main(void) {
 
     guy_init();
     ui_init();
-    game.view = View_Camp;
+    game.view = View_Title;
     save.run.food = 5;
     save.run.furniture[0] = save_Furniture_Bed;
     for (int i = 0; i < 12; i++) {
-        guy_Guy guy = {
-            .state = guy_GuyState_Inited,
-            .hp = 10,
-        };
-
         guy_Race race = guy_Race_Human;
         guy_Sex sex = i%2 ? guy_Sex_Male : guy_Sex_Female;
-
-        for (int loc = 0; loc < guy_GeneLoc_COUNT; loc++) {
-
-            /* find applicable gene for this loc and sex/race */
-            float applicable_count = 0;
-            for (size_t cfg_i = 0; cfg_i < countof(guy_gene_configs); cfg_i++) {
-                guy_GeneConfig *cfg = guy_gene_configs + cfg_i;
-
-                if ((cfg->sex & sex) &&
-                    (cfg->race == race) &&
-                    (cfg->category == guy_gene_loc_categories[loc])
-                ) {
-                    applicable_count += 1;
-                }
-            }
-
-            size_t applicable_idx = floorf(RL_GetRandomValue(0, applicable_count - 1));
-            guy_GeneConfig *applicable = NULL;
-            for (size_t cfg_i = 0; cfg_i < countof(guy_gene_configs); cfg_i++) {
-                guy_GeneConfig *cfg = guy_gene_configs + cfg_i;
-
-                if ((cfg->sex & sex) &&
-                    (cfg->race == race) &&
-                    (cfg->category == guy_gene_loc_categories[loc])
-                ) {
-                    if (applicable_idx == 0) {
-                        applicable = cfg;
-                        break;
-                    }
-                    applicable_idx -= 1;
-                }
-            }
-
-            if (applicable) {
-                guy.genes[loc] = applicable;
-            }
-        }
-
-        save.run.guys[i] = guy;
+        save.run.guys[i] = guy_guy_init(race, sex);
     }
     view_handlers[game.view].init((view_Transition) {0});
 

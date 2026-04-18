@@ -12,7 +12,7 @@ size_t ui_font_sizes[] = {
     [ui_Font_SubTitle] = 48,
     [ui_Font_Cost    ] = 25,
     [ui_Font_Desc    ] = 18,
-    [ui_Font_Name    ] = 12,
+    [ui_Font_Name    ] = 10,
 };
 _Static_assert(countof(ui_font_sizes) == ui_Font_COUNT, "missing font path");
 
