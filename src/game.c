@@ -44,7 +44,7 @@ start:
                 for (int i = 0; i < 12; i++) {
                     guy_Race race = guy_Race_Human;
                     guy_Sex sex = i%2 ? guy_Sex_Male : guy_Sex_Female;
-                    save.run.guys[i] = guy_guy_init(race, sex);
+                    save.run.guys[i] = guy_from_race(race, sex);
                 }
 
                 game.view = View_WorldMap;
@@ -104,13 +104,14 @@ int main(void) {
 
     guy_init();
     ui_init();
-    game.view = View_Title;
+    game.view = View_Battle;
     save.run.food = 5;
     save.run.furniture[0] = save_Furniture_Bed;
-    for (int i = 0; i < 12; i++) {
-        guy_Race race = guy_Race_Human;
-        guy_Sex sex = i%2 ? guy_Sex_Male : guy_Sex_Female;
-        save.run.guys[i] = guy_guy_init(race, sex);
+    {
+        guy_Guy mom = guy_from_race(guy_Race_Human, guy_Sex_Female);
+        guy_Guy dad = guy_from_race(guy_Race_Human, guy_Sex_Male);
+        for (int i = 0; i < 6; i++)
+            save.run.guys[i] = guy_from_parents(&mom, &dad);
     }
     view_handlers[game.view].init((view_Transition) {0});
 

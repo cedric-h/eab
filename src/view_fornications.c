@@ -41,7 +41,7 @@ void view_fornications_init(view_Transition t) {
                     break;
                 }
 
-                *kid = guy_breed(mom, dad);
+                *kid = guy_from_parents(mom, dad);
                 view.families[kid_i].mom = mom;
                 view.families[kid_i].dad = dad;
                 view.families[kid_i].kid = kid;

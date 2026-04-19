@@ -216,8 +216,7 @@ view_Transition view_camp_update(void) {
         camp_Item *i = keep.items + item_i;
         if (i->kind == camp_ItemKind_NONE) continue;
 
-        for (size_t item_j = 0; item_j < countof(keep.items); item_j++) {
-            if (item_i == item_j) continue;
+        for (size_t item_j = item_i + 1; item_j < countof(keep.items); item_j++) {
             camp_Item *j = keep.items + item_j;
             if (j->kind == camp_ItemKind_NONE) continue;
 

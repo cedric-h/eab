@@ -12,6 +12,8 @@
 
 extern int eab_mouse_cursor;
 
+typedef struct { float x, y; } f2;
+
 typedef struct { char *str; size_t len; } String;
 #define STRING(x) ((String) { x, sizeof(x)-1 })
 
@@ -22,6 +24,11 @@ static float lerpf(float start, float end, float amount) {
 }
 static float inv_lerpf(float min, float max, float p) {
     return (p - min) / (max - min);
+}
+static float lerp_rads(float a, float b, float t) {
+    float difference = fmodf(b - a, M_PI*2.0),
+            distance = fmodf(2.0 * difference, M_PI*2.0) - difference;
+    return a + distance * t;
 }
 
 static double lerp(double start, double end, double amount) {

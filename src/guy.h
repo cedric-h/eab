@@ -367,8 +367,8 @@ typedef struct {
     uint16_t hp;
 } guy_Guy;
 
-guy_Guy guy_guy_init(guy_Race race, guy_Sex sex);
-guy_Guy guy_breed(guy_Guy *mom, guy_Guy *dad);
+guy_Guy guy_from_race(guy_Race race, guy_Sex sex);
+guy_Guy guy_from_parents(guy_Guy *mom, guy_Guy *dad);
 guy_Guy *guy_alloc(void);
 
 uint16_t guy_maxhp(guy_Guy *guy);
@@ -382,4 +382,12 @@ typedef enum {
     guy_DrawFlags_Name = (1 << 0),
 } guy_DrawFlags;
 void guy_draw(guy_Guy *guy, float x, float y, guy_DrawFlags flags);
+
+void guy_draw_ex(
+    guy_Guy *guy,
+    f2 pos,
+    f2 target,
+    double swing_t,
+    guy_DrawFlags flags
+);
 #endif

@@ -2,6 +2,7 @@
 #include "base.h"
 #include "save.h"
 #include "guy.h"
+#include "ease.h"
 #include <math.h>
 #include <stdio.h>
 #include <assert.h>
@@ -56,7 +57,7 @@ guy_Guy *guy_alloc(void) {
     return NULL;
 }
 
-guy_Guy guy_guy_init(guy_Race race, guy_Sex sex) {
+guy_Guy guy_from_race(guy_Race race, guy_Sex sex) {
     guy_Guy guy = {
         .sex = sex,
         .state = guy_GuyState_Inited,
@@ -135,6 +136,21 @@ void guy_free() {
 }
 
 void guy_draw(guy_Guy *guy_guy, float x, float y, guy_DrawFlags flags) {
+    guy_draw_ex(
+        guy_guy,
+        (f2) { x, y },
+        (f2) { x, y },
+        0,
+        flags
+    );
+}
+void guy_draw_ex(
+    guy_Guy *guy_guy,
+    f2 pos,
+    f2 target,
+    double swing_t,
+    guy_DrawFlags flags
+) {
     float size = 40*guy_size(guy_guy);
     Color skin = color_lerp(
         guy_color_skin(guy_guy),
@@ -148,14 +164,13 @@ void guy_draw(guy_Guy *guy_guy, float x, float y, guy_DrawFlags flags) {
     );
     Color hair = guy_color_hair(guy_guy);
 
-
     RL_BeginBlendMode(BLEND_ALPHA_PREMULTIPLY);
     RL_DrawTexturePro(
         guy.body_bg,
         (RL_Rectangle) { 0, 0, guy.body_bg.width, guy.body_bg.height },
         (RL_Rectangle) {
-            x - size/2,
-            y - size/2,
+            pos.x - size/2,
+            pos.y - size/2,
             size,
             size
         },
@@ -168,8 +183,8 @@ void guy_draw(guy_Guy *guy_guy, float x, float y, guy_DrawFlags flags) {
         guy.body,
         (RL_Rectangle) { 0, 0, guy.body.width, guy.body.height },
         (RL_Rectangle) {
-            x - size/2,
-            y - size/2,
+            pos.x - size/2,
+            pos.y - size/2,
             size,
             size
         },
@@ -185,8 +200,8 @@ void guy_draw(guy_Guy *guy_guy, float x, float y, guy_DrawFlags flags) {
             t,
             (RL_Rectangle) { 0, 0, t.width, t.height },
             (RL_Rectangle) {
-                x - hair_size*0.65,
-                y - hair_size/2,
+                pos.x - hair_size*0.65,
+                pos.y - hair_size/2,
                 hair_size,
                 hair_size
             },
@@ -203,9 +218,106 @@ void guy_draw(guy_Guy *guy_guy, float x, float y, guy_DrawFlags flags) {
         float pommel_x = sword_size*0.2;
         float pommel_y = sword_size*0.6;
 
-        float sword_x = x + 10 + pommel_x;
-        float sword_y = y + pommel_y;
+        float sword_x = pos.x + 10 + pommel_x;
+        float sword_y = pos.y + pommel_y;
         size_t i = guy_guy - save.run.guys;
+
+        float rot = sinf(i+RL_GetTime()*2)*5;
+        do {
+            float anim_speed = 1.6f;
+            float dx = pos.x - target.x;
+            float dy = pos.y - target.y;
+            if (!(fabsf(dx) > 0 || fabsf(dy) > 0))
+                continue;
+
+            rot = atan2f(dy, dx);
+            rot -= M_PI*0.75;
+            if (swing_t != 0) {
+                double t = (RL_GetTime() - swing_t) * anim_speed * 2;
+
+                float rot_start = rot;
+                float rad_overshoot     = rot - M_PI*0.50;
+                float rad_from          = rot - M_PI*0.40;
+                float rad_to            = rot + M_PI*0.40;
+                float rad_followthrough = rot + M_PI*0.55;
+
+                double prepare_t = t / 0.1;
+                if (prepare_t > 0 && prepare_t < 1) {
+                    rot = lerp_rads(rot_start, rad_from, ease_in_back(prepare_t));
+                }
+                t -= 0.1;
+
+                double hold_t = t / 0.3;
+                if (hold_t > 0 && hold_t < 1) {
+                    rot = lerp_rads(
+                        rad_from,
+                        rad_overshoot,
+                        hold_t
+                    );
+                }
+                t -= 0.3;
+
+                double attack_t = t / 0.35;
+                if (attack_t > 0 && attack_t < 1) {
+                    rot = lerp_rads(rad_overshoot, rad_to, ease_in_back(attack_t));
+                }
+                t -= 0.35;
+
+                double followthrough_t = t / 0.15;
+                if (followthrough_t > 0 && followthrough_t < 1) {
+                    rot = lerp_rads(
+                        rad_to,
+                        rad_followthrough,
+                        followthrough_t
+                    );
+                }
+                t -= 0.15;
+
+                double return_t = t / 0.3;
+                if (return_t > 0 && return_t < 1) {
+                    rot = lerp_rads(
+                        rad_followthrough,
+                        rot_start,
+                        ease_in_back(return_t)
+                    );
+                }
+                t -= 0.3;
+            }
+            rot = (rot / M_PI) * 180;
+
+            if (swing_t != 0) {
+                float dl = sqrtf(dx*dx + dy*dy);
+
+                /* push sword_x towards rot */
+                double t = (RL_GetTime() - swing_t)*anim_speed*0.8;
+                float fwd_travel = 35;
+                float back_travel = -8;
+
+                double back_t = t / 0.1;
+                if (back_t < 1) {
+                    float a = lerpf(0, back_travel, ease_in_back(back_t));
+                    sword_x -= dx/dl * a;
+                    sword_y -= dy/dl * a;
+                }
+                t -= 0.1;
+
+                double stab_t = t / 0.1;
+                if (stab_t > 0 && stab_t < 1) {
+                    float a = lerpf(back_travel, fwd_travel, ease_in_back(stab_t));
+                    sword_x -= dx/dl * a;
+                    sword_y -= dy/dl * a;
+                }
+                t -= 0.1;
+
+                double return_t = t / 0.3;
+                if (return_t > 0 && return_t < 1) {
+                    sword_x -= dx/dl * lerpf(fwd_travel, 0, return_t);
+                    sword_y -= dy/dl * lerpf(fwd_travel, 0, return_t);
+                }
+                t -= 0.3;
+            }
+        } while (false);
+
         RL_DrawTexturePro(
             guy.sword,
             (RL_Rectangle) { 0, 0, guy.sword.width, guy.sword.height },
@@ -219,7 +331,7 @@ void guy_draw(guy_Guy *guy_guy, float x, float y, guy_DrawFlags flags) {
                 pommel_x,
                 pommel_y,
             },
-            sinf(i+RL_GetTime()*2)*5,
+            rot,
             RL_BLACK
         );
     }
@@ -241,7 +353,7 @@ void guy_draw(guy_Guy *guy_guy, float x, float y, guy_DrawFlags flags) {
         RL_DrawTextEx(
             ui_font_rl(font),
             name,
-            (RL_Vector2) { x - w/2, y + size*0.6 },
+            (RL_Vector2) { pos.x - w/2, pos.y + size*0.6 },
             ui_font_size(font),
             1,
             (RL_Color) { 0, 0, 0, 255 }
@@ -249,7 +361,7 @@ void guy_draw(guy_Guy *guy_guy, float x, float y, guy_DrawFlags flags) {
     }
 }
 
-guy_Guy guy_breed(guy_Guy *mom, guy_Guy *dad) {
+guy_Guy guy_from_parents(guy_Guy *mom, guy_Guy *dad) {
     assert(mom->sex == guy_Sex_Female);
     assert(dad->sex == guy_Sex_Male);
 
