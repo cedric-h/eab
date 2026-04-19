@@ -104,7 +104,7 @@ int main(void) {
 
     guy_init();
     ui_init();
-    game.view = View_Camp;
+    game.view = View_Title;
     save.run.food = 5;
     save.run.furniture[0] = save_Furniture_Bed;
     for (int i = 0; i < 12; i++) {

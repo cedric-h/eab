@@ -232,7 +232,8 @@ void Clay_Raylib_Render(Clay_RenderCommandArray renderCommands, RL_Font* fonts)
                 guy_draw(
                     customElement,
                     renderCommand->boundingBox.x + renderCommand->boundingBox.width/2,
-                    renderCommand->boundingBox.y + renderCommand->boundingBox.height/2
+                    renderCommand->boundingBox.y + renderCommand->boundingBox.height/2,
+                    guy_DrawFlags_Name
                 );
                 break;
             }

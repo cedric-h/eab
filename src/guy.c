@@ -134,7 +134,7 @@ void guy_free() {
         RL_UnloadTexture(guy.assets[i]);
 }
 
-void guy_draw(guy_Guy *guy_guy, float x, float y) {
+void guy_draw(guy_Guy *guy_guy, float x, float y, guy_DrawFlags flags) {
     float size = 40*guy_size(guy_guy);
     Color skin = color_lerp(
         guy_color_skin(guy_guy),
@@ -226,7 +226,7 @@ void guy_draw(guy_Guy *guy_guy, float x, float y) {
 
     RL_EndBlendMode();
 
-    {
+    if (flags & guy_DrawFlags_Name) {
         ui_Font font = ui_Font_Name;
         char name[20] = {0};
         snprintf(

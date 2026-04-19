@@ -7,11 +7,28 @@
 
 static struct {
     view_Transition next_view;
+    struct {
+        guy_Guy *guy;
+        struct { float x, y; } pos;
+    } guys[countof(save.run.guys)];
 } view;
-
 
 void view_battle_init(view_Transition _) {
     memset(&view, 0, sizeof(view));
+
+    for (size_t i = 0; i < countof(save.run.guys); i++) {
+        guy_Guy *guy = save.run.guys + i;
+        if (guy->state == guy_GuyState_NONE) continue;
+
+        float w = RL_GetScreenWidth();
+        float h = RL_GetScreenHeight();
+        float x = RL_GetRandomValue(w*0.1, w*0.9);
+        float y = RL_GetRandomValue(h*0.1, h*0.9);
+
+        view.guys[i].guy = guy;
+        view.guys[i].pos.x = x;
+        view.guys[i].pos.y = y;
+    }
 }
 void view_battle_free(void) {}
 
@@ -24,6 +41,7 @@ static Clay_RenderCommandArray ui_create_layout(void);
 void view_battle_render(void) {
     RL_BeginDrawing();
     RL_ClearBackground(RL_WHITE);
+
     ui_render(ui_create_layout());
     RL_EndDrawing();
 }

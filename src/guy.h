@@ -378,5 +378,8 @@ Color guy_color_hair(guy_Guy *guy);
 
 void guy_init();
 void guy_free();
-void guy_draw(guy_Guy *guy, float x, float y);
+typedef enum {
+    guy_DrawFlags_Name = (1 << 0),
+} guy_DrawFlags;
+void guy_draw(guy_Guy *guy, float x, float y, guy_DrawFlags flags);
 #endif

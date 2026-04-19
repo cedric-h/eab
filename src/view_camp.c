@@ -67,7 +67,7 @@ static float camp_get_item_size(camp_Item *item) {
         case camp_ItemKind_Furniture:
             return 25;
         case camp_ItemKind_Guy:
-            return 23*guy_size(item->guy);
+            return 26*guy_size(item->guy);
     }
 }
 
@@ -385,7 +385,9 @@ void view_camp_render(void) {
             }; break;
 
             case camp_ItemKind_Guy: {
-                guy_draw(item->guy, item->pos.x, item->pos.y);
+                guy_DrawFlags flags = 0;
+                if (item_closest_mouse == item) flags |= guy_DrawFlags_Name;
+                guy_draw(item->guy, item->pos.x, item->pos.y, flags);
             }; break;
         }
         RL_EndMode2D();
