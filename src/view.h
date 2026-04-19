@@ -1,6 +1,8 @@
 #ifndef __EAB_VIEW_IMPL
 #define __EAB_VIEW_IMPL
 #include <stdint.h>
+#include "guy.h"
+#include "save.h"
 
 #define views \
     x(        title, View_Title        ) \
@@ -12,7 +14,7 @@
     x(    furniture, View_Furniture    ) \
     x( battledefeat, View_BattleDefeat ) \
     x(         camp, View_Camp         ) \
-    x(   campdayend, View_CampDayEnd   ) \
+    x( fornications, View_Fornications ) \
 
 
 typedef enum {
@@ -26,8 +28,8 @@ typedef enum {
     view_TransitionKind_BattleVictory,
     view_TransitionKind_BattleDefeat,
     view_TransitionKind_BuyFurniture,
-    view_TransitionKind_CampDayEnd,
-    view_TransitionKind_BackToCampFromDayEnd,
+    view_TransitionKind_CampFornications,
+    view_TransitionKind_BackToCampFromFornications,
     view_TransitionKind_BackToWorldMap,
 } view_TransitionKind;
 typedef struct {
@@ -35,6 +37,9 @@ typedef struct {
     struct {
         uint32_t food, coin;
     } battle_victory;
+    struct {
+        guy_Guy *in_orgy[countof(save.run.guys)];
+    } fornications;
 } view_Transition;
 
 typedef enum {

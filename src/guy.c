@@ -48,9 +48,13 @@ Color guy_color_hair(guy_Guy *guy) {
     );
 }
 
-// guy_Guy *guy_alloc(void) {
-//     for (size_t i = 0; i < countof(
-// }
+guy_Guy *guy_alloc(void) {
+    for (size_t i = 0; i < countof(save.run.guys); i++) {
+        if (save.run.guys[i].state == guy_GuyState_NONE)
+            return save.run.guys + i;
+    }
+    return NULL;
+}
 
 guy_Guy guy_guy_init(guy_Race race, guy_Sex sex) {
     guy_Guy guy = {
@@ -245,30 +249,30 @@ void guy_draw(guy_Guy *guy_guy, float x, float y) {
     }
 }
 
-// guy_Guy guy_breed(guy_Guy *mom, guy_Guy *Dad) {
-//     assert(mom->sex == guy_Sex_Female);
-//     assert(dad->sex == guy_Sex_Male);
-// 
-//     guy_Sex sex = (RL_GetRandomValue() < 0.5f) ? guy_Sex_Male : guy_Sex_Female;
-//     guy_Guy kid = {
-//         .sex = sex,
-//         .state = guy_GuyState_Inited,
-//         .hp = 10,
-//     };
-// 
-//     for (size_t i = 0; i < guy_GeneLoc_COUNT; i++) {
-//         guy_GeneConfig *mom_gene = mom.genes[i];
-//         guy_GeneConfig *dad_gene = dad.genes[i];
-// 
-//         if ((mom_gene & kid.sex) && (dad_gene & kid.sex))
-//             kid.genes[i] = (RL_GetRandomValue() < 0.5f) ? mom_gene : dad_gene;
-//         else {
-//             if (sex == guy_Sex_Male)
-//                 kid.genes[i] = dad_gene;
-//             else
-//                 kid.genes[i] = mom_gene;
-//         }
-//     }
-// 
-//     return kid;
-// }
+guy_Guy guy_breed(guy_Guy *mom, guy_Guy *dad) {
+    assert(mom->sex == guy_Sex_Female);
+    assert(dad->sex == guy_Sex_Male);
+
+    guy_Sex sex = (RL_GetRandomValue(0, 1) < 0.5f) ? guy_Sex_Male : guy_Sex_Female;
+    guy_Guy kid = {
+        .sex = sex,
+        .state = guy_GuyState_Inited,
+        .hp = 10,
+    };
+
+    for (size_t i = 1; i < guy_GeneLoc_COUNT; i++) {
+        guy_GeneConfig *mom_gene = mom->genes[i];
+        guy_GeneConfig *dad_gene = dad->genes[i];
+
+        if ((mom_gene->sex & kid.sex) && (dad_gene->sex & kid.sex))
+            kid.genes[i] = (RL_GetRandomValue(0, 1) < 0.5f) ? mom_gene : dad_gene;
+        else {
+            if (sex == guy_Sex_Male)
+                kid.genes[i] = dad_gene;
+            else
+                kid.genes[i] = mom_gene;
+        }
+    }
+
+    return kid;
+}

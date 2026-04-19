@@ -65,11 +65,11 @@ start:
                 game.view = View_Furniture;
             } break;
 
-            case view_TransitionKind_CampDayEnd: {
-                game.view = View_CampDayEnd;
+            case view_TransitionKind_CampFornications: {
+                game.view = View_Fornications;
             }; break;
 
-            case view_TransitionKind_BackToCampFromDayEnd: {
+            case view_TransitionKind_BackToCampFromFornications: {
                 game.view = View_Camp;
             }; break;
 
@@ -104,7 +104,7 @@ int main(void) {
 
     guy_init();
     ui_init();
-    game.view = View_Title;
+    game.view = View_Camp;
     save.run.food = 5;
     save.run.furniture[0] = save_Furniture_Bed;
     for (int i = 0; i < 12; i++) {

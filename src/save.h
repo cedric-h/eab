@@ -1,3 +1,5 @@
+#ifndef __EAB_SAVE_IMPL
+#define __EAB_SAVE_IMPL
 #include "base.h"
 #include "guy.h"
 #include "ui.h"
@@ -35,3 +37,4 @@ typedef struct {
 
 } save_Save;
 extern save_Save save;
+#endif

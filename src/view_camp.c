@@ -139,6 +139,35 @@ void view_camp_free(void) {
     RL_UnloadSound(view.stew[1]);
 }
 
+/* construct the "to_fornications" view transition */
+static view_Transition to_fornications(void) {
+    view_Transition ret = {
+        .kind = view_TransitionKind_CampFornications,
+    };
+
+    for (size_t i = 0; i < countof(keep.items); i++) {
+        camp_Item *item = keep.items + i;
+        if (item->kind == camp_ItemKind_NONE) continue;
+        float from_center =
+            sqrtf((ORGY_CIRCLE_X - item->pos.x)*(ORGY_CIRCLE_X - item->pos.x) +
+                  (ORGY_CIRCLE_Y - item->pos.y)*(ORGY_CIRCLE_Y - item->pos.y));
+
+        if (from_center > (ORGY_CIRCLE_SIZE/2))
+            continue;
+
+        if (item->kind == camp_ItemKind_Guy) {
+            for (size_t j = 0; j < countof(ret.fornications.in_orgy); j++) {
+                if (ret.fornications.in_orgy[j] != NULL)
+                    continue;
+                ret.fornications.in_orgy[j] = item->guy;
+                break;
+            }
+        }
+    }
+    
+    return ret;
+}
+
 view_Transition view_camp_update(void) {
 
     /* push things in/out of the orgy circle */
@@ -539,9 +568,8 @@ static Clay_RenderCommandArray ui_create_layout(void) {
                         RL_PlaySound(ui_sound(ui_Sound_Click));
                     } break;
                     case ui_Click_Released: {
-                        view.next_view = (view_Transition) {
-                            .kind = view_TransitionKind_CampDayEnd,
-                        };
+                        view.next_view = to_fornications();
+
                     } break;
                     default: break;
                 }
