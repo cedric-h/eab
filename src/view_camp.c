@@ -384,7 +384,7 @@ void view_camp_render(void) {
             }; break;
 
             case camp_ItemKind_Guy: {
-                guy_DrawFlags flags = 0;
+                guy_DrawFlags flags = guy_DrawFlags_Target;
                 if (item_closest_mouse == item) flags |= guy_DrawFlags_Name;
                 guy_draw(item->guy, item->pos.x, item->pos.y, flags);
             }; break;

@@ -16,6 +16,7 @@ typedef enum {
     battle_GuyPhase_Approaching,
     battle_GuyPhase_Attacking,
     battle_GuyPhase_Hurting,
+    battle_GuyPhase_Fleeing,
 } battle_GuyPhase;
 
 typedef struct battle_Guy battle_Guy;
@@ -54,25 +55,35 @@ struct battle_Guy {
 
 #define BADDIE_MAX_COUNT 6
 #define COMBATANT_MAX_COUNT (countof(save.run.guys) + BADDIE_MAX_COUNT)
+typedef enum {
+    battle_Outcome_Unknown,
+    battle_Outcome_Victory,
+    battle_Outcome_Defeat,
+} battle_Outcome;
 static struct {
+    battle_Outcome outcome;
+    double outcome_t;
+    bool outcome_can_leave;
+
     view_Transition next_view;
     guy_Guy baddies[BADDIE_MAX_COUNT];
 
     battle_Guy guys[COMBATANT_MAX_COUNT];
     struct { bool active; f2 pos; } graves[COMBATANT_MAX_COUNT];
+
+    RL_Sound sound_hit, sound_dead;
 } view;
 
-static uint32_t battle_guy_initiative(battle_Guy *_) {
-    return 10;
-}
-
 static battle_Guy battle_guy_init(battle_Guy g) {
-    g.initiative = battle_guy_initiative(&g);
+    g.initiative = guy_initiative(g.guy);
     return g;
 }
 
 void view_battle_init(view_Transition _) {
     memset(&view, 0, sizeof(view));
+
+    view.sound_hit  = RL_LoadSound("./resources/audio/hit.wav");
+    view.sound_dead = RL_LoadSound("./resources/audio/dead.wav");
 
     float w = RL_GetScreenWidth();
     float h = RL_GetScreenHeight();
@@ -114,7 +125,11 @@ void view_battle_init(view_Transition _) {
         });
     }
 }
-void view_battle_free(void) {}
+void view_battle_free(void) {
+
+    RL_UnloadSound(view.sound_hit);
+    RL_UnloadSound(view.sound_dead);
+}
 
 static float battle_guy_size(battle_Guy *bg) {
     return 30.0f * guy_size(bg->guy);
@@ -131,6 +146,42 @@ view_Transition view_battle_update(uint64_t update) {
         }
     }
 
+    /* win conditions, initiate fleeing */
+    if (view.outcome == battle_Outcome_Unknown) {
+        uint16_t baddie_count = 0;
+        uint16_t player_count = 0;
+
+        for (size_t guy_i = 0; guy_i < countof(view.guys); guy_i++) {
+            battle_Guy *bguy = view.guys + guy_i;
+            if (!bguy->phase) continue;
+
+            switch (bguy->team) {
+                case battle_Team_Baddie: baddie_count += 1; break;
+                case battle_Team_Player: player_count += 1; break;
+                case battle_Team_COUNT: break;
+            }
+        }
+
+        if (baddie_count <= 2 && baddie_count < player_count) {
+            view.outcome = battle_Outcome_Victory;
+            view.outcome_t = RL_GetTime();
+
+            for (size_t guy_i = 0; guy_i < countof(view.guys); guy_i++) {
+                battle_Guy *bguy = view.guys + guy_i;
+                if (!bguy->phase) continue;
+                if (bguy->team != battle_Team_Baddie) continue;
+
+                bguy->phase = battle_GuyPhase_Fleeing;
+                bguy->target = NULL;
+            }
+        }
+
+        if (player_count == 0) {
+            view.outcome = battle_Outcome_Defeat;
+            view.outcome_t = RL_GetTime();
+        }
+    }
+
     /* targeting */
     {
         uint16_t guy_target_counts[countof(view.guys)] = {0};
@@ -139,10 +190,16 @@ view_Transition view_battle_update(uint64_t update) {
             battle_Guy *bguy = view.guys + guy_i;
             if (!bguy->phase) continue;
 
-            /* clear outdated targets */
-            if (bguy->target != NULL && !bguy->target->phase) {
+            /* actively drop targets who are fleeing
+             * (not enough to just give them a really low target score) */
+            if (bguy->target != NULL && (
+                bguy->target->phase == battle_GuyPhase_Fleeing
+            ))
                 bguy->target = NULL;
-            }
+
+            /* clear outdated targets */
+            if (bguy->target != NULL && !bguy->target->phase)
+                bguy->target = NULL;
 
             if (bguy->target != NULL) {
                 size_t target_i = bguy->target - view.guys;
@@ -153,12 +210,14 @@ view_Transition view_battle_update(uint64_t update) {
         for (size_t guy_i = 0; guy_i < countof(view.guys); guy_i++) {
             battle_Guy *bguy = view.guys + guy_i;
             if (!bguy->phase) continue;
+            if (bguy->phase == battle_GuyPhase_Fleeing) continue;
 
             battle_Guy *current_target = NULL;
             float current_target_score = -999e9;
             for (size_t guy_j = 0; guy_j < countof(view.guys); guy_j++) {
                 battle_Guy *target = view.guys + guy_j;
                 if (!target->phase) continue;
+                if (target->phase == battle_GuyPhase_Fleeing) continue;
 
                 /* can't target team members */
                 if (target->team == bguy->team) continue;
@@ -238,7 +297,9 @@ view_Transition view_battle_update(uint64_t update) {
 
                     float from_best_dist = dlen - best_dist;
                     {
-                        float speed = min(2.0f, fabsf(from_best_dist));
+                        float speed = min(
+                            guy_speed(bguy->guy), fabsf(from_best_dist)
+                        );
                         bguy->pos.x += dx/dlen * speed * sign(from_best_dist);
                         bguy->pos.y += dy/dlen * speed * sign(from_best_dist);
                     }
@@ -268,7 +329,9 @@ view_Transition view_battle_update(uint64_t update) {
                     /* "best dist" is a bit closer in attacking phase */
                     float from_best_dist = dlen - best_dist*0.5;
                     {
-                        float speed = min(2.0f, fabsf(from_best_dist));
+                        float speed = min(
+                            guy_speed(bguy->guy), fabsf(from_best_dist)
+                        );
                         bguy->pos.x += dx/dlen * speed * sign(from_best_dist);
                         bguy->pos.y += dy/dlen * speed * sign(from_best_dist);
                     }
@@ -280,10 +343,16 @@ view_Transition view_battle_update(uint64_t update) {
                             bguy->target->phase = battle_GuyPhase_Hurting;
                             bguy->target->last_hurt.knockback.x += dx/dlen * 15;
                             bguy->target->last_hurt.knockback.y += dy/dlen * 15;
+
+                            RL_SetSoundPitch(
+                                view.sound_hit,
+                                lerp(0.35f, 1.1f, (float)(guy_i % 12)/12)
+                            );
+                            RL_PlaySound(view.sound_hit);
                         }
 
                         /* initiative isn't spent until the attack is launched */
-                        bguy->initiative = battle_guy_initiative(bguy);
+                        bguy->initiative = guy_initiative(bguy->guy);
                     }
 
                     /**
@@ -310,6 +379,7 @@ view_Transition view_battle_update(uint64_t update) {
                     if (dlen < 5) {
                         bguy->guy->hp--;
                         if (bguy->guy->hp == 0) {
+                            bguy->guy->state = guy_GuyState_NONE;
                             bguy->guy = NULL;
                             bguy->phase = battle_GuyPhase_NONE;
 
@@ -320,11 +390,33 @@ view_Transition view_battle_update(uint64_t update) {
                                 view.graves[i].pos = bguy->pos;
                                 break;
                             }
+
+                            RL_SetSoundPitch(
+                                view.sound_dead,
+                                0.5f + (float)(guy_i % 12)/12
+                            );
+                            RL_PlaySound(view.sound_dead);
                         }
                     }
                     if (dlen < 0.1) {
                         bguy->phase = battle_GuyPhase_Approaching;
                     }
+                }; break;
+
+                case battle_GuyPhase_Fleeing: {
+                    float dx = RL_GetScreenWidth()*0.5 - bguy->pos.x;
+                    float dy = RL_GetScreenHeight()*0.1 - bguy->pos.y;
+                    float dlen = sqrtf(dx*dx + dy*dy);
+
+                    float from_best_dist = dlen - best_dist;
+                    {
+                        float speed = min(
+                            guy_speed(bguy->guy), fabsf(from_best_dist)
+                        );
+                        bguy->pos.x += dx/dlen * speed * sign(from_best_dist);
+                        bguy->pos.y += dy/dlen * speed * sign(from_best_dist);
+                    }
+
                 }; break;
             }
 
@@ -380,7 +472,6 @@ void view_battle_render(void) {
 
     for (size_t i = 0; i < countof(view.graves); i++) {
         if (!view.graves[i].active) continue;
-        puts("bruh");
         draw_icon(
             ui_Icon_Grave,
             (draw_Rect) {
@@ -403,12 +494,15 @@ void view_battle_render(void) {
         y += sinf(RL_GetTime()*20 + GOLDEN_RATIO*i) *
             2 * bguy->distance_traveled_last_update;
 
-        f2 target = bguy->pos;
+        guy_DrawFlags flags = guy_DrawFlags_Hp;
+
+        f2 target = {0};
         if (bguy->target != NULL) {
+            flags |= guy_DrawFlags_Target;
             target.x = bguy->target->pos.x;
             target.y = bguy->target->pos.y;
         }
-        guy_DrawFlags flags = guy_DrawFlags_Hp;
+
         guy_draw_ex(
             bguy->guy,
             (f2) { x, y },
@@ -419,11 +513,119 @@ void view_battle_render(void) {
         );
     }
 
-    // ui_render(ui_create_layout());
+    ui_render(ui_create_layout());
+    // ui_render(test_layout()); /* instantly choose win/lose, good for testing */
+
     RL_EndDrawing();
 }
 
 static Clay_RenderCommandArray ui_create_layout(void) {
+    Clay_BeginLayout();
+
+    CLAY(CLAY_ID("OuterContainer"), {
+        .layout = {
+            .layoutDirection = CLAY_TOP_TO_BOTTOM,
+            .sizing = {
+                .width = CLAY_SIZING_GROW(0),
+                .height = CLAY_SIZING_GROW(0)
+            },
+            .padding = { 32, 32, 32, 32 },
+            .childGap = 16,
+        },
+        .backgroundColor = {0}
+    }) {
+
+        switch (view.outcome) {
+
+            case battle_Outcome_Unknown: {
+            } break;
+
+            case battle_Outcome_Victory: {
+                size_t chars_since_outcome = floorf(
+                    ((RL_GetTime() - view.outcome_t) / 0.2)
+                );
+
+                char *button_text = "victory!!";
+                size_t button_text_len = sizeof("victory!!") - 1;
+                Clay_String tmp;
+                ui_sprintf(
+                    tmp,
+                    "%*.*s",
+                    (int)button_text_len,
+                    (int)chars_since_outcome,
+                    button_text
+                );
+                if (!view.outcome_can_leave && (
+                    chars_since_outcome >= button_text_len
+                )) {
+                    view.outcome_can_leave = true;
+                    RL_PlaySound(ui_sound(ui_Sound_BattleVictory));
+                }
+
+                switch (ui_big_button(
+                    tmp,
+                    ui_icon(ui_Icon_Crown)
+                )) {
+                    case ui_Click_Pressed: {
+                        RL_PlaySound(ui_sound(ui_Sound_PageTurn));
+                    } break;
+                    case ui_Click_Released: {
+                        view.next_view = (view_Transition) {
+                            .kind = view_TransitionKind_BattleVictory,
+                            .battle_victory = {
+                                .coin = 23,
+                                .food = 13,
+                            }
+                        };
+                    } break;
+                    default: break;
+                }
+            }; break;
+
+            case battle_Outcome_Defeat: {
+                size_t chars_since_outcome = floorf(
+                    ((RL_GetTime() - view.outcome_t) / 0.2)
+                );
+
+                char *button_text = "defeat";
+                size_t button_text_len = sizeof("defeat") - 1;
+                Clay_String tmp;
+                ui_sprintf(
+                    tmp,
+                    "%*.*s",
+                    (int)button_text_len,
+                    (int)chars_since_outcome,
+                    button_text
+                );
+                if (!view.outcome_can_leave && (
+                    chars_since_outcome >= button_text_len
+                )) {
+                    view.outcome_can_leave = true;
+                    RL_PlaySound(ui_sound(ui_Sound_BattleDefeat));
+                }
+
+                switch (ui_big_button(
+                    tmp,
+                    ui_icon(ui_Icon_Scroll)
+                )) {
+                    case ui_Click_Pressed: {
+                        RL_PlaySound(ui_sound(ui_Sound_PageTurn));
+                    } break;
+                    case ui_Click_Released: {
+                        memset(&save, 0, sizeof(save));
+                        view.next_view.kind = view_TransitionKind_BattleDefeat;
+                    } break;
+                    default: break;
+                }
+            }
+
+        }
+    }
+
+    return Clay_EndLayout(RL_GetFrameTime());
+}
+
+static Clay_RenderCommandArray test_layout(void) {
     Clay_BeginLayout();
 
     CLAY(CLAY_ID("OuterContainer"), {

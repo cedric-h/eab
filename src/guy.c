@@ -10,6 +10,12 @@
 uint16_t guy_maxhp(guy_Guy *guy) {
     return 100;
 }
+float guy_speed(guy_Guy *guy) {
+    return 2;
+}
+uint32_t guy_initiative(guy_Guy *guy) {
+    return 10;
+}
 float guy_size(guy_Guy *guy) {
     float x = 0;
 
@@ -119,7 +125,7 @@ static RL_Texture load_and_premultiply(char *path) {
     return t;
 }
 
-void guy_init() {
+void guy_system_init() {
     guy.body = load_and_premultiply("./resources/guy/body.png");
     guy.body_bg = load_and_premultiply("./resources/guy/body_bg.png");
     guy.sword = load_and_premultiply("./resources/guy/sword.png");
@@ -127,7 +133,7 @@ void guy_init() {
     for (int i = guy_Asset_NONE+1; i < guy_Asset_COUNT; i++)
         guy.assets[i] = load_and_premultiply(guy_asset_paths[i]);
 }
-void guy_free() {
+void guy_system_free() {
     RL_UnloadTexture(guy.body);
     RL_UnloadTexture(guy.body_bg);
     RL_UnloadTexture(guy.sword);
@@ -244,6 +250,9 @@ void guy_draw_ex(
 
         float rot = sinf(GOLDEN_RATIO*i + RL_GetTime()*2) * 5;
         do {
+            if (!(flags & guy_DrawFlags_Target))
+                continue;
+
             float anim_speed = 1.2f;
             float dx = pos.x - target.x;
             float dy = pos.y - target.y;

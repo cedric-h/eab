@@ -373,18 +373,21 @@ guy_Guy *guy_alloc(void);
 
 uint16_t guy_maxhp(guy_Guy *guy);
 float guy_size(guy_Guy *guy);
+float guy_speed(guy_Guy *guy);
+uint32_t guy_initiative(guy_Guy *guy);
 Color guy_color_skin(guy_Guy *guy);
 Color guy_color_hair(guy_Guy *guy);
 
-void guy_init();
-void guy_free();
+void guy_system_init();
+void guy_system_free();
 
 #define GUY_NAME_LEN_MAX 30
 void guy_name(guy_Guy *guy_guy, char name[GUY_NAME_LEN_MAX]);
 
 typedef enum {
-    guy_DrawFlags_Name = (1 << 0),
-    guy_DrawFlags_Hp   = (1 << 1),
+    guy_DrawFlags_Name   = (1 << 0),
+    guy_DrawFlags_Hp     = (1 << 1),
+    guy_DrawFlags_Target = (1 << 2),
 } guy_DrawFlags;
 void guy_draw(guy_Guy *guy, float x, float y, guy_DrawFlags flags);
 

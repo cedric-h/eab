@@ -105,7 +105,7 @@ int main(void) {
 
     RL_InitAudioDevice();
 
-    guy_init();
+    guy_system_init();
     ui_init();
     game.view = View_Battle;
     save.run.food = 5;
@@ -128,7 +128,7 @@ int main(void) {
 
     view_handlers[game.view].free();
     ui_free();
-    guy_free();
+    guy_system_free();
     RL_CloseAudioDevice();
     RL_CloseWindow();
 
