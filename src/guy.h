@@ -378,6 +378,10 @@ Color guy_color_hair(guy_Guy *guy);
 
 void guy_init();
 void guy_free();
+
+#define GUY_NAME_LEN_MAX 30
+void guy_name(guy_Guy *guy_guy, char name[GUY_NAME_LEN_MAX]);
+
 typedef enum {
     guy_DrawFlags_Name = (1 << 0),
 } guy_DrawFlags;

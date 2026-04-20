@@ -9,6 +9,7 @@
 #define max(a, b) (((a) > (b)) ? (a) : (b))
 #define min(a, b) (((a) < (b)) ? (a) : (b))
 #define sign(a) (((a) < 0) ? -1 : 1)
+#define GOLDEN_RATIO 1.61803
 
 extern int eab_mouse_cursor;
 

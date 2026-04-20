@@ -135,6 +135,17 @@ void guy_free() {
         RL_UnloadTexture(guy.assets[i]);
 }
 
+void guy_name(guy_Guy *guy_guy, char name[GUY_NAME_LEN_MAX]) {
+    snprintf(
+        name,
+        GUY_NAME_LEN_MAX,
+        "%s%s%s",
+        guy_guy->genes[guy_GeneLoc_NamePrefix]->str,
+        guy_guy->genes[guy_GeneLoc_NameBase]->str,
+        guy_guy->genes[guy_GeneLoc_NameSuffix]->str
+    );
+}
+
 void guy_draw(guy_Guy *guy_guy, float x, float y, guy_DrawFlags flags) {
     guy_draw_ex(
         guy_guy,
@@ -222,7 +233,7 @@ void guy_draw_ex(
         float sword_y = pos.y + pommel_y;
         size_t i = guy_guy - save.run.guys;
 
-        float rot = sinf(i+RL_GetTime()*2)*5;
+        float rot = (sinf(GOLDEN_RATIO*i+RL_GetTime()*2)*5) / 180.0f * M_PI;
         do {
             float anim_speed = 1.6f;
             float dx = pos.x - target.x;
@@ -230,7 +241,7 @@ void guy_draw_ex(
             if (!(fabsf(dx) > 0 || fabsf(dy) > 0))
                 continue;
 
-            rot = atan2f(dy, dx);
+            rot += atan2f(dy, dx);
             rot -= M_PI*0.75;
             if (swing_t != 0) {
                 double t = (RL_GetTime() - swing_t) * anim_speed * 2;
@@ -340,15 +351,8 @@ void guy_draw_ex(
 
     if (flags & guy_DrawFlags_Name) {
         ui_Font font = ui_Font_Name;
-        char name[20] = {0};
-        snprintf(
-            name,
-            20,
-            "%s%s%s",
-            guy_guy->genes[guy_GeneLoc_NamePrefix]->str,
-            guy_guy->genes[guy_GeneLoc_NameBase]->str,
-            guy_guy->genes[guy_GeneLoc_NameSuffix]->str
-        );
+        char name[GUY_NAME_LEN_MAX] = {0};
+        guy_name(guy_guy, name);
         float w = RL_MeasureTextEx(ui_font_rl(font), name, ui_font_size(font), 1).x;
         RL_DrawTextEx(
             ui_font_rl(font),
