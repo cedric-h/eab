@@ -8,7 +8,7 @@
 #include <assert.h>
 
 uint16_t guy_maxhp(guy_Guy *guy) {
-    return 10;
+    return 100;
 }
 float guy_size(guy_Guy *guy) {
     float x = 0;
@@ -61,7 +61,6 @@ guy_Guy guy_from_race(guy_Race race, guy_Sex sex) {
     guy_Guy guy = {
         .sex = sex,
         .state = guy_GuyState_Inited,
-        .hp = 10,
     };
 
     for (int loc = 0; loc < guy_GeneLoc_COUNT; loc++) {
@@ -101,6 +100,7 @@ guy_Guy guy_from_race(guy_Race race, guy_Sex sex) {
         }
     }
 
+    guy.hp = guy_maxhp(&guy);
     return guy;
 }
 
@@ -152,6 +152,7 @@ void guy_draw(guy_Guy *guy_guy, float x, float y, guy_DrawFlags flags) {
         (f2) { x, y },
         (f2) { x, y },
         0,
+        0,
         flags
     );
 }
@@ -160,6 +161,7 @@ void guy_draw_ex(
     f2 pos,
     f2 target,
     double swing_t,
+    double hurt_t,
     guy_DrawFlags flags
 ) {
     float size = 40*guy_size(guy_guy);
@@ -174,6 +176,13 @@ void guy_draw_ex(
         0.02
     );
     Color hair = guy_color_hair(guy_guy);
+
+    if (hurt_t > 0 && (RL_GetTime() - hurt_t) < 0.4) {
+        double t = ease_out_circ((RL_GetTime() - hurt_t) / 0.4);
+        skin        .r = lerp(min(255,         skin.r + 32),         skin.r, t);
+        skin_outline.r = lerp(min(255, skin_outline.r + 32), skin_outline.r, t);
+        hair        .r = lerp(min(255, hair        .r + 32), hair        .r, t);
+    }
 
     RL_BeginBlendMode(BLEND_ALPHA_PREMULTIPLY);
     RL_DrawTexturePro(
@@ -231,16 +240,17 @@ void guy_draw_ex(
 
         float sword_x = pos.x + 10 + pommel_x;
         float sword_y = pos.y + pommel_y;
-        size_t i = guy_guy - save.run.guys;
+        size_t i = (size_t)(void *)guy_guy%69;
 
-        float rot = (sinf(GOLDEN_RATIO*i+RL_GetTime()*2)*5) / 180.0f * M_PI;
+        float rot = sinf(GOLDEN_RATIO*i + RL_GetTime()*2) * 5;
         do {
-            float anim_speed = 1.6f;
+            float anim_speed = 1.2f;
             float dx = pos.x - target.x;
             float dy = pos.y - target.y;
-            if (!(fabsf(dx) > 0 || fabsf(dy) > 0))
+            if ((fabsf(dx) + fabsf(dy)) == 0)
                 continue;
 
+            rot = rot / 180.0f * M_PI;
             rot += atan2f(dy, dx);
             rot -= M_PI*0.75;
             if (swing_t != 0) {
@@ -294,7 +304,6 @@ void guy_draw_ex(
                 }
                 t -= 0.3;
             }
-            rot = (rot / M_PI) * 180;
 
             if (swing_t != 0) {
                 float dl = sqrtf(dx*dx + dy*dy);
@@ -327,6 +336,8 @@ void guy_draw_ex(
                 }
                 t -= 0.3;
             }
+
+            rot = (rot / M_PI) * 180;
         } while (false);
 
         RL_DrawTexturePro(
@@ -348,6 +359,28 @@ void guy_draw_ex(
     }
 
     RL_EndBlendMode();
+
+    if (flags & guy_DrawFlags_Hp && guy_guy->hp != guy_maxhp(guy_guy)) {
+        float w = 40;
+
+        float t = (float)guy_guy->hp / (float)guy_maxhp(guy_guy);
+        w *= t;
+
+        RL_Color good = { 100, 255, 100, 255 };
+        RL_Color mid  = { 255, 255, 100, 255 };
+        RL_Color bad  = { 255, 100, 100, 255 };
+        RL_Color clr = (t > 0.5) ?
+            ColorLerp(good, mid, inv_lerpf(1.0f, 0.5f, t)) :
+            ColorLerp( mid, bad, inv_lerpf(0.5f, 0.0f, t));
+
+        RL_DrawRectangle(
+            pos.x - w/2,
+            pos.y + size*0.6,
+            w,
+            5,
+            (RL_Color) { clr.r, clr.g, clr.b, 155 }
+        );
+    }
 
     if (flags & guy_DrawFlags_Name) {
         ui_Font font = ui_Font_Name;
@@ -390,5 +423,6 @@ guy_Guy guy_from_parents(guy_Guy *mom, guy_Guy *dad) {
         }
     }
 
+    kid.hp = guy_maxhp(&kid);
     return kid;
 }

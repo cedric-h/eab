@@ -33,6 +33,7 @@ typedef enum {
     ui_Icon_Dice,
     ui_Icon_Soup,
     ui_Icon_BackToMap,
+    ui_Icon_Grave,
     ui_Icon_COUNT,
 } ui_Icon;
 

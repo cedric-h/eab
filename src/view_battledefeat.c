@@ -14,7 +14,7 @@ void view_battledefeat_init(view_Transition t) {
 }
 void view_battledefeat_free(void) {}
 
-view_Transition view_battledefeat_update(void) {
+view_Transition view_battledefeat_update(uint64_t _) {
     ui_update();
     return view.next_view;
 }

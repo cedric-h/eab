@@ -2,10 +2,10 @@
 #include "view.h"
 #include "ui.h"
 #include "save.h"
+#include "draw.h"
 #include <string.h>
 #include <stdio.h>
 
-typedef struct battle_Guy battle_Guy;
 typedef enum {
     battle_Team_Player,
     battle_Team_Baddie,
@@ -17,6 +17,8 @@ typedef enum {
     battle_GuyPhase_Attacking,
     battle_GuyPhase_Hurting,
 } battle_GuyPhase;
+
+typedef struct battle_Guy battle_Guy;
 struct battle_Guy {
     /* if this is 0, you are said to be "out of phase," a euphemism for "dead" */
     battle_GuyPhase phase;
@@ -26,18 +28,48 @@ struct battle_Guy {
     battle_Guy *target;
 
     /* used for hop animation */
+    uint64_t last_attack_update;
     float distance_traveled_last_update;
     double swing_t;
+
+    /* initiative exists to solve the problem of
+     * "this guy hit me first, and he just kept hitting me until I died."
+     * (this is a problem because you never get a swing in edgewise)
+     *
+     * at initialization and after an attack is launched, initiative is reset to
+     * an integer like 10. 
+     * whenever the enemy is in range, one is subtracted from the initiative.
+     *
+     * when it reaches 0, an attack is launched and initiative is reset.
+     **/
+    uint32_t initiative;
+
     f2 pos;
+
+    struct {
+        double t;
+        f2 knockback;
+    } last_hurt;
 };
 
 #define BADDIE_MAX_COUNT 6
+#define COMBATANT_MAX_COUNT (countof(save.run.guys) + BADDIE_MAX_COUNT)
 static struct {
     view_Transition next_view;
     guy_Guy baddies[BADDIE_MAX_COUNT];
 
-    battle_Guy guys[countof(save.run.guys) + BADDIE_MAX_COUNT];
+    battle_Guy guys[COMBATANT_MAX_COUNT];
+    struct { bool active; f2 pos; } graves[COMBATANT_MAX_COUNT];
 } view;
+
+static uint32_t battle_guy_initiative(battle_Guy *_) {
+    return 10;
+}
+
+static battle_Guy battle_guy_init(battle_Guy g) {
+    g.initiative = battle_guy_initiative(&g);
+    return g;
+}
 
 void view_battle_init(view_Transition _) {
     memset(&view, 0, sizeof(view));
@@ -55,13 +87,12 @@ void view_battle_init(view_Transition _) {
 
             float x = lerp(w*0.1, w*0.9, (float)i / (float)(BADDIE_MAX_COUNT - 1));
             float y = RL_GetRandomValue(h*0.1, h*0.3);
-            view.guys[guy_i++] = (battle_Guy) {
+            view.guys[guy_i++] = battle_guy_init((battle_Guy) {
                 .phase = battle_GuyPhase_Approaching,
                 .team = battle_Team_Baddie,
                 .guy = view.baddies + i,
                 .pos = { x, y },
-            };
-
+            });
         }
     }
 
@@ -75,12 +106,12 @@ void view_battle_init(view_Transition _) {
 
         float x = lerp(w*0.1, w*0.9, (float)i / (float)(guy_count - 1));
         float y = RL_GetRandomValue(h*0.7, h*0.9);
-        view.guys[guy_i++] = (battle_Guy) {
+        view.guys[guy_i++] = battle_guy_init((battle_Guy) {
             .phase = battle_GuyPhase_Approaching,
             .team = battle_Team_Player,
             .guy = guy,
             .pos = { x, y },
-        };
+        });
     }
 }
 void view_battle_free(void) {}
@@ -89,7 +120,7 @@ static float battle_guy_size(battle_Guy *bg) {
     return 30.0f * guy_size(bg->guy);
 }
 
-view_Transition view_battle_update(void) {
+view_Transition view_battle_update(uint64_t update) {
     ui_update();
 
     if (RL_IsMouseButtonPressed(0)) {
@@ -136,10 +167,13 @@ view_Transition view_battle_update(void) {
 
                 /* distance negatively impacts score */
                 /* (probably not worth chasing that really far away guy) */
-                target_score -= 0.005*sqrtf(
+                float dist = sqrtf(
                     (target->pos.x - bguy->pos.x)*(target->pos.x - bguy->pos.x) +
                     (target->pos.y - bguy->pos.y)*(target->pos.y - bguy->pos.y)
                 );
+                target_score -= 0.005*dist;
+                /* if they're super close - okay maybe just do it */
+                if (dist < 40.0f) target_score += 4;
 
                 /* many targets already = lower score */
                 /* (anti dog-piling measure) */
@@ -174,7 +208,9 @@ view_Transition view_battle_update(void) {
             }
 
             bguy->target = current_target;
-            guy_target_counts[current_target - view.guys] += 1;
+            if (current_target) {
+                guy_target_counts[current_target - view.guys] += 1;
+            }
         }
     }
 
@@ -184,6 +220,11 @@ view_Transition view_battle_update(void) {
             battle_Guy *bguy = view.guys + guy_i;
             float bguy_start_x = bguy->pos.x;
             float bguy_start_y = bguy->pos.y;
+
+            /* distance towards which the guy moves in the approaching phase */
+            float best_dist = 60.0f;
+            /* distance within which an blow will land */
+            float attack_dist = 70.0f;
 
             switch (bguy->phase) {
                 case battle_GuyPhase_NONE: continue;
@@ -195,19 +236,95 @@ view_Transition view_battle_update(void) {
                     float dy = bguy->target->pos.y - bguy->pos.y;
                     float dlen = sqrtf(dx*dx + dy*dy);
 
-                    float best_dist = dlen - 120.0f;
-
+                    float from_best_dist = dlen - best_dist;
                     {
-                        float speed = min(2.0f, fabsf(best_dist));
-                        bguy->pos.x += dx/dlen * speed * sign(best_dist);
-                        bguy->pos.y += dy/dlen * speed * sign(best_dist);
+                        float speed = min(2.0f, fabsf(from_best_dist));
+                        bguy->pos.x += dx/dlen * speed * sign(from_best_dist);
+                        bguy->pos.y += dy/dlen * speed * sign(from_best_dist);
+                    }
+
+                    if (from_best_dist < 5) {
+
+                        if (bguy->initiative == 0) {
+                            bguy->phase = battle_GuyPhase_Attacking;
+                            bguy->swing_t = RL_GetTime();
+                            bguy->last_attack_update = update;
+                        } else {
+                            bguy->initiative -= 1;
+                        }
                     }
                 }; break;
 
                 case battle_GuyPhase_Attacking: {
+                    if (bguy->target == NULL) {
+                        bguy->phase = battle_GuyPhase_Approaching;
+                        break;
+                    }
+
+                    float dx = bguy->target->pos.x - bguy->pos.x;
+                    float dy = bguy->target->pos.y - bguy->pos.y;
+                    float dlen = sqrtf(dx*dx + dy*dy);
+
+                    /* "best dist" is a bit closer in attacking phase */
+                    float from_best_dist = dlen - best_dist*0.5;
+                    {
+                        float speed = min(2.0f, fabsf(from_best_dist));
+                        bguy->pos.x += dx/dlen * speed * sign(from_best_dist);
+                        bguy->pos.y += dy/dlen * speed * sign(from_best_dist);
+                    }
+
+                    uint64_t updates_since = update - bguy->last_attack_update;
+
+                    if (updates_since == 20) {
+                        if (dlen < attack_dist) {
+                            bguy->target->phase = battle_GuyPhase_Hurting;
+                            bguy->target->last_hurt.knockback.x += dx/dlen * 15;
+                            bguy->target->last_hurt.knockback.y += dy/dlen * 15;
+                        }
+
+                        /* initiative isn't spent until the attack is launched */
+                        bguy->initiative = battle_guy_initiative(bguy);
+                    }
+
+                    /**
+                     * you could just have a higher initiative instead of this
+                     * pause, but it's probably beneficial to have the guy not
+                     * move for a big before launching the next bout */
+                    if (updates_since > 30) {
+                        bguy->phase = battle_GuyPhase_Approaching;
+                    }
                 }; break;
 
                 case battle_GuyPhase_Hurting: {
+                    bguy->pos.x += bguy->last_hurt.knockback.x;
+                    bguy->pos.y += bguy->last_hurt.knockback.y;
+
+                    bguy->last_hurt.knockback.x *= 0.9;
+                    bguy->last_hurt.knockback.y *= 0.9;
+                    bguy->last_hurt.t = RL_GetTime();
+
+                    float dlen = sqrtf(
+                        bguy->last_hurt.knockback.x*bguy->last_hurt.knockback.x +
+                        bguy->last_hurt.knockback.y*bguy->last_hurt.knockback.y
+                    );
+                    if (dlen < 5) {
+                        bguy->guy->hp--;
+                        if (bguy->guy->hp == 0) {
+                            bguy->guy = NULL;
+                            bguy->phase = battle_GuyPhase_NONE;
+
+                            for (size_t i = 0; i < countof(view.graves); i++) {
+                                if (view.graves[i].active)
+                                    continue;
+                                view.graves[i].active = true;
+                                view.graves[i].pos = bguy->pos;
+                                break;
+                            }
+                        }
+                    }
+                    if (dlen < 0.1) {
+                        bguy->phase = battle_GuyPhase_Approaching;
+                    }
                 }; break;
             }
 
@@ -241,6 +358,18 @@ view_Transition view_battle_update(void) {
         }
     }
 
+    /* keep them on the screen */
+    for (size_t guy_j = 0; guy_j < countof(view.guys); guy_j++) {
+        battle_Guy *j = view.guys + guy_j;
+        if (!j->phase) continue;
+
+        float w = RL_GetScreenWidth();
+        float h = RL_GetScreenHeight();
+        j->pos.x = max(w*0.1, min(w*0.9, j->pos.x));
+        j->pos.y = max(h*0.1, min(h*0.9, j->pos.y));
+    }
+
+
     return view.next_view;
 }
 
@@ -248,6 +377,21 @@ static Clay_RenderCommandArray ui_create_layout(void);
 void view_battle_render(void) {
     RL_BeginDrawing();
     RL_ClearBackground(RL_WHITE);
+
+    for (size_t i = 0; i < countof(view.graves); i++) {
+        if (!view.graves[i].active) continue;
+        puts("bruh");
+        draw_icon(
+            ui_Icon_Grave,
+            (draw_Rect) {
+                .min_x = view.graves[i].pos.x - 20,
+                .min_y = view.graves[i].pos.y - 20,
+                .max_x = view.graves[i].pos.x + 20,
+                .max_y = view.graves[i].pos.y + 20,
+            },
+            (Color) { 255, 255, 255, 255 }
+        );
+    }
 
     for (size_t i = 0; i < countof(view.guys); i++) {
         battle_Guy *bguy = view.guys + i;
@@ -264,7 +408,15 @@ void view_battle_render(void) {
             target.x = bguy->target->pos.x;
             target.y = bguy->target->pos.y;
         }
-        guy_draw_ex(bguy->guy, (f2) { x, y }, target, bguy->swing_t, 0);
+        guy_DrawFlags flags = guy_DrawFlags_Hp;
+        guy_draw_ex(
+            bguy->guy,
+            (f2) { x, y },
+            target,
+            bguy->swing_t,
+            bguy->last_hurt.t,
+            flags
+        );
     }
 
     // ui_render(ui_create_layout());

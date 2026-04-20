@@ -13,7 +13,7 @@ void view_camptech_init(view_Transition _) {
 }
 void view_camptech_free(void) {}
 
-view_Transition view_camptech_update(void) {
+view_Transition view_camptech_update(uint64_t _) {
     ui_update();
     return view.next_view;
 }

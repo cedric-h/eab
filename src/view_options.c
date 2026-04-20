@@ -13,7 +13,7 @@ void view_options_init(view_Transition _) {
 }
 void view_options_free(void) {}
 
-view_Transition view_options_update(void) {
+view_Transition view_options_update(uint64_t _) {
     ui_update();
     return view.next_view;
 }

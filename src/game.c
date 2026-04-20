@@ -14,16 +14,19 @@
 int eab_mouse_cursor;
 static struct {
     View view;
+    uint64_t update_count;
 } game = {0};
 
 void frame(void) {
+    game.update_count += 1;
+
     RL_SetMouseCursor(eab_mouse_cursor);
     eab_mouse_cursor = 0;
 
     view_Transition transition = { 0 };
 
 start:
-    transition = view_handlers[game.view].update();
+    transition = view_handlers[game.view].update(game.update_count);
     if (transition.kind != view_TransitionKind_NONE) {
         view_handlers[game.view].free();
 

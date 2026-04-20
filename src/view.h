@@ -53,7 +53,7 @@ views
 #define x(view_name, _) \
     void view_##view_name##_init  (view_Transition); \
     void view_##view_name##_free  (void); \
-    view_Transition view_##view_name##_update(void); \
+    view_Transition view_##view_name##_update(uint64_t t); \
     void view_##view_name##_render(void);
 views
 #undef x
@@ -62,7 +62,7 @@ views
 typedef struct {
     void (*init)(view_Transition);
     void (*free)(void);
-    view_Transition (*update)(void);
+    view_Transition (*update)(uint64_t t);
     void (*render)(void);
 } ViewHandler;
 

@@ -14,7 +14,7 @@ void view_title_init(view_Transition _) {
 }
 void view_title_free(void) {}
 
-view_Transition view_title_update(void) {
+view_Transition view_title_update(uint64_t _) {
     ui_update();
     return view.next_view;
 }

@@ -7,4 +7,8 @@ float ease_in_back(float x) {
     return c3 * x * x * x - c1 * x * x;
 }
 
+float ease_out_circ(float x) {
+    return sqrtf(1 - powf(x - 1, 2));
+}
+
 #endif

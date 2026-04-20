@@ -168,7 +168,7 @@ static view_Transition to_fornications(void) {
     return ret;
 }
 
-view_Transition view_camp_update(void) {
+view_Transition view_camp_update(uint64_t _) {
 
     /* push things in/out of the orgy circle */
     view.guys_in_orgy_circle_male = 0;

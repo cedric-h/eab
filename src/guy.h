@@ -384,6 +384,7 @@ void guy_name(guy_Guy *guy_guy, char name[GUY_NAME_LEN_MAX]);
 
 typedef enum {
     guy_DrawFlags_Name = (1 << 0),
+    guy_DrawFlags_Hp   = (1 << 1),
 } guy_DrawFlags;
 void guy_draw(guy_Guy *guy, float x, float y, guy_DrawFlags flags);
 
@@ -392,6 +393,7 @@ void guy_draw_ex(
     f2 pos,
     f2 target,
     double swing_t,
+    double hurt_t,
     guy_DrawFlags flags
 );
 #endif

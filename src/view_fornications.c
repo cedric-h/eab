@@ -56,7 +56,7 @@ void view_fornications_init(view_Transition t) {
 }
 void view_fornications_free(void) {}
 
-view_Transition view_fornications_update(void) {
+view_Transition view_fornications_update(uint64_t _) {
     ui_update();
     return view.next_view;
 }

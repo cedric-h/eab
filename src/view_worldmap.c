@@ -26,7 +26,7 @@ void view_worldmap_init(view_Transition t) {
 void view_worldmap_free(void) {
 }
 
-view_Transition view_worldmap_update(void) {
+view_Transition view_worldmap_update(uint64_t _) {
     ui_update();
     return view.next_view;
 }

@@ -44,7 +44,7 @@ void view_furniture_free(void) {
     RL_UnloadSound(view.sound_reroll);
 }
 
-view_Transition view_furniture_update(void) {
+view_Transition view_furniture_update(uint64_t _) {
     ui_update();
     return view.next_view;
 }
