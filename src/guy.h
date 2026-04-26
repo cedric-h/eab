@@ -42,7 +42,11 @@ typedef enum {
 
     guy_GeneLoc_HairAsset,
 
-    guy_GeneLoc_Strength,
+    guy_GeneLoc_Strength1,
+    guy_GeneLoc_Strength2,
+    guy_GeneLoc_Strength3,
+    guy_GeneLoc_StrengthLast = guy_GeneLoc_Strength3,
+
     guy_GeneLoc_Metabolism,
     guy_GeneLoc_Fecundity,
 
@@ -88,7 +92,10 @@ static guy_GeneCategory guy_gene_loc_categories[] = {
 
     [guy_GeneLoc_HairAsset] = guy_GeneCategory_HairAsset,
 
-    [guy_GeneLoc_Strength] = guy_GeneCategory_Strength,
+    [guy_GeneLoc_Strength1] = guy_GeneCategory_Strength,
+    [guy_GeneLoc_Strength2] = guy_GeneCategory_Strength,
+    [guy_GeneLoc_Strength3] = guy_GeneCategory_Strength,
+
     [guy_GeneLoc_Metabolism] = guy_GeneCategory_Metabolism,
     [guy_GeneLoc_Fecundity] = guy_GeneCategory_Fecundity,
 
@@ -139,8 +146,6 @@ static guy_GeneConfig guy_gene_configs[] = {
 
     { .category = guy_GeneCategory_Fecundity, .race = guy_Race_Bunny, .sex = guy_Sex_Any, .amount = 3.0 },
     { .category = guy_GeneCategory_Fecundity, .race = guy_Race_Bunny, .sex = guy_Sex_Any, .amount = 2.5 },
-    { .category = guy_GeneCategory_Fecundity, .race = guy_Race_Bunny, .sex = guy_Sex_Any, .amount = 2.1 },
-    { .category = guy_GeneCategory_Fecundity, .race = guy_Race_Bunny, .sex = guy_Sex_Any, .amount = 2.0 },
 
     { .category = guy_GeneCategory_Metabolism, .race = guy_Race_Human, .sex = guy_Sex_Male  , .amount = 1.1 },
     { .category = guy_GeneCategory_Metabolism, .race = guy_Race_Human, .sex = guy_Sex_Any   , .amount = 1.0 },
@@ -157,10 +162,9 @@ static guy_GeneConfig guy_gene_configs[] = {
     { .category = guy_GeneCategory_Strength, .race = guy_Race_Human, .sex = guy_Sex_Any   , .amount = 1.0 },
     { .category = guy_GeneCategory_Strength, .race = guy_Race_Human, .sex = guy_Sex_Female, .amount = 0.9 },
     
-    { .category = guy_GeneCategory_Strength, .race = guy_Race_Bunny, .sex = guy_Sex_Male  , .amount = 0.55 },
-    { .category = guy_GeneCategory_Strength, .race = guy_Race_Bunny, .sex = guy_Sex_Any   , .amount = 0.50 },
-    { .category = guy_GeneCategory_Strength, .race = guy_Race_Bunny, .sex = guy_Sex_Any   , .amount = 0.40 },
-    { .category = guy_GeneCategory_Strength, .race = guy_Race_Bunny, .sex = guy_Sex_Female, .amount = 0.35 },
+    { .category = guy_GeneCategory_Strength, .race = guy_Race_Bunny, .sex = guy_Sex_Male  , .amount = 0.35 },
+    { .category = guy_GeneCategory_Strength, .race = guy_Race_Bunny, .sex = guy_Sex_Any   , .amount = 0.20 },
+    { .category = guy_GeneCategory_Strength, .race = guy_Race_Bunny, .sex = guy_Sex_Female, .amount = 0.15 },
 
     { .category = guy_GeneCategory_Girth, .race = guy_Race_Human, .sex = guy_Sex_Male  , .amount = 1+0.150 },
     { .category = guy_GeneCategory_Girth, .race = guy_Race_Human, .sex = guy_Sex_Male  , .amount = 1+0.075 },
@@ -592,6 +596,10 @@ guy_Guy guy_from_race(guy_Race race, guy_Sex sex);
 guy_Guy guy_from_parents(guy_Guy *mom, guy_Guy *dad);
 guy_Guy *guy_alloc(void);
 
+/* base stats */
+float guy_fecundity(guy_Guy *guy);
+
+/* derived stats */
 uint16_t guy_maxhp(guy_Guy *guy);
 float guy_size(guy_Guy *guy);
 float guy_speed(guy_Guy *guy);

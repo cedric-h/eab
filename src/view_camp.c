@@ -37,6 +37,7 @@ typedef struct {
 static struct {
     size_t guys_in_orgy_circle_male;
     float guys_in_orgy_circle_hunger_female;
+    uint32_t guys_in_orgy_circle_childcount_female;
 
     view_Transition next_view;
     int held_item_idx;
@@ -177,6 +178,7 @@ view_Transition view_camp_update(uint64_t _) {
     /* push things in/out of the orgy circle */
     view.guys_in_orgy_circle_male = 0;
     view.guys_in_orgy_circle_hunger_female = 0;
+    view.guys_in_orgy_circle_childcount_female = 0;
     for (size_t i = 0; i < countof(keep.items); i++) {
         camp_Item *item = keep.items + i;
         if (item->kind == camp_ItemKind_NONE) continue;
@@ -191,6 +193,8 @@ view_Transition view_camp_update(uint64_t _) {
                     view.guys_in_orgy_circle_hunger_female += guy_hunger(
                         item->guy
                     );
+                    view.guys_in_orgy_circle_childcount_female +=
+                        guy_fecundity(item->guy);
                 }
             }
         }
@@ -421,6 +425,22 @@ void view_camp_render(void) {
             ui_font_rl(font),
             "the orgy circle",
             (RL_Vector2) { x + 10 - size/2, y - 30 - size/2 },
+            ui_font_size(font),
+            1,
+            (RL_Color) { 0, 0, 0, 255 }
+        );
+
+        char est_output[30] = {0};
+        snprintf(
+            est_output,
+            sizeof(est_output),
+            "est. output = %d",
+            view.guys_in_orgy_circle_childcount_female
+        );
+        RL_DrawTextEx(
+            ui_font_rl(font),
+            est_output,
+            (RL_Vector2) { x + 15 - size/2, y + 15 + size/2 },
             ui_font_size(font),
             1,
             (RL_Color) { 0, 0, 0, 255 }

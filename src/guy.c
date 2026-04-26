@@ -12,18 +12,23 @@
 static float guy_girth(guy_Guy *guy) {
     float x = 0;
 
-    size_t i = guy_GeneLoc_Girth1;
-    for (; i <= guy_GeneLoc_GirthLast; i++)
-        x += guy->genes[i]->amount;
-    return x/(i - guy_GeneLoc_Girth1);
+    size_t n = 0;
+    for (size_t i = guy_GeneLoc_Girth1; i <= guy_GeneLoc_GirthLast; i++)
+        n++, x += guy->genes[i]->amount;
+    return x/(float)n;
 }
 static float guy_strength(guy_Guy *guy) {
-    return guy->genes[guy_GeneLoc_Strength]->amount;
+    float x = 0;
+
+    size_t n = 0;
+    for (size_t i = guy_GeneLoc_Strength1; i <= guy_GeneLoc_StrengthLast; i++)
+        n++, x += guy->genes[i]->amount;
+    return x/(float)n;
 }
 static float guy_metabolism(guy_Guy *guy) {
     return guy->genes[guy_GeneLoc_Metabolism]->amount;
 }
-static float guy_fecundity(guy_Guy *guy) {
+float guy_fecundity(guy_Guy *guy) {
     return guy->genes[guy_GeneLoc_Fecundity]->amount;
 }
 
@@ -37,7 +42,8 @@ float guy_speed(guy_Guy *g) {
     return 2*(guy_metabolism(g) + guy_strength(g)*0.2 - guy_girth(g)*0.2);
 }
 uint32_t guy_initiative(guy_Guy *g) {
-    return roundf(30.0f*guy_metabolism(g));
+    float speed = 100.0f / guy_metabolism(g);
+    return roundf(gaussian_randf(speed, speed*0.2));
 }
 float guy_size(guy_Guy *g) {
     return guy_girth(g);
@@ -53,7 +59,8 @@ float guy_hunger(guy_Guy *g) {
 }
 uint32_t guy_childcount(guy_Guy *g) {
     float f = guy_fecundity(g);
-    return max(1, roundf(gaussian_randf(f, f*0.32f)));
+    float o = roundf(gaussian_randf(f, f*0.32f));
+    return max(1, o);
 }
 
 Color guy_color_skin(guy_Guy *guy) {

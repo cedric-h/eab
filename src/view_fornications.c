@@ -38,6 +38,7 @@ void view_fornications_init(view_Transition t) {
 
             if (dad_idx == 0) {
                 uint32_t childcount = guy_childcount(mom);
+
                 for (uint32_t i = 0; i < childcount; i++) {
                     if ((new_guy_i+1) == countof(new_guys))
                         puts("no more room!");

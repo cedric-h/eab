@@ -69,7 +69,7 @@ static struct {
     guy_Guy baddies[BADDIE_MAX_COUNT];
 
     battle_Guy guys[COMBATANT_MAX_COUNT];
-    struct { bool active; f2 pos; } graves[COMBATANT_MAX_COUNT];
+    struct { bool active; f2 pos; float size; } graves[COMBATANT_MAX_COUNT];
 
     float food;
 
@@ -77,7 +77,7 @@ static struct {
 } view;
 
 static battle_Guy battle_guy_init(battle_Guy g) {
-    g.initiative = guy_initiative(g.guy);
+    g.initiative = RL_GetRandomValue(0, guy_initiative(g.guy));
     return g;
 }
 
@@ -281,9 +281,9 @@ view_Transition view_battle_update(uint64_t update) {
             float bguy_start_y = bguy->pos.y;
 
             /* distance towards which the guy moves in the approaching phase */
-            float best_dist = 60.0f;
-            /* distance within which an blow will land */
-            float attack_dist = 70.0f * guy_size(bguy->guy);
+            float attacking_dist = 10.0f + guy_size(bguy->guy)*40;
+            if (bguy->target != NULL && bguy->target->phase)
+                attacking_dist += guy_size(bguy->target->guy)*40;
 
             switch (bguy->phase) {
                 case battle_GuyPhase_NONE: continue;
@@ -295,7 +295,7 @@ view_Transition view_battle_update(uint64_t update) {
                     float dy = bguy->target->pos.y - bguy->pos.y;
                     float dlen = sqrtf(dx*dx + dy*dy);
 
-                    float from_best_dist = dlen - best_dist;
+                    float from_best_dist = dlen - attacking_dist;
                     {
                         float speed = min(
                             guy_speed(bguy->guy), fabsf(from_best_dist)
@@ -327,7 +327,7 @@ view_Transition view_battle_update(uint64_t update) {
                     float dlen = sqrtf(dx*dx + dy*dy);
 
                     /* "best dist" is a bit closer in attacking phase */
-                    float from_best_dist = dlen - best_dist*0.5;
+                    float from_best_dist = dlen - attacking_dist*0.8;
                     {
                         float speed = min(
                             guy_speed(bguy->guy), fabsf(from_best_dist)
@@ -354,8 +354,7 @@ view_Transition view_battle_update(uint64_t update) {
                             float vdy = victim->pos.y - bguy->pos.y;
                             float vdlen = sqrtf(vdx*vdx + vdy*vdy);
 
-                            float p = guy_size(victim->guy) + 10;
-                            if (!(vdlen < (attack_dist+p) && vdlen > 0))
+                            if (!(vdlen < (attacking_dist+15) && vdlen > 0))
                                 continue;
 
                             float dmg = guy_damage(bguy->guy);
@@ -369,17 +368,18 @@ view_Transition view_battle_update(uint64_t update) {
                                 view.food += meat;
                                 save.run.food += meat;
 
-                                victim->guy->state = guy_GuyState_NONE;
-                                victim->guy = NULL;
-                                victim->phase = battle_GuyPhase_NONE;
-
                                 for (size_t i = 0; i < countof(view.graves); i++) {
                                     if (view.graves[i].active)
                                         continue;
                                     view.graves[i].active = true;
                                     view.graves[i].pos = victim->pos;
+                                    view.graves[i].size = guy_size(victim->guy);
                                     break;
                                 }
+
+                                victim->guy->state = guy_GuyState_NONE;
+                                victim->guy = NULL;
+                                victim->phase = battle_GuyPhase_NONE;
 
                                 ui_FlyingIcon fi = {
                                     .start.x = victim->pos.x,
@@ -424,6 +424,11 @@ view_Transition view_battle_update(uint64_t update) {
                 }; break;
 
                 case battle_GuyPhase_Hurting: {
+
+                    /* you can still burn off initiative while hurting */
+                    if (bguy->initiative > 0)
+                        bguy->initiative -= 1;
+
                     bguy->pos.x += bguy->last_hurt.knockback.x;
                     bguy->pos.y += bguy->last_hurt.knockback.y;
 
@@ -447,7 +452,7 @@ view_Transition view_battle_update(uint64_t update) {
                     float dy = RL_GetScreenHeight()*0.1 - bguy->pos.y;
                     float dlen = sqrtf(dx*dx + dy*dy);
 
-                    float from_best_dist = dlen - best_dist;
+                    float from_best_dist = dlen - attacking_dist;
                     {
                         float speed = min(
                             guy_speed(bguy->guy), fabsf(from_best_dist)
@@ -511,13 +516,14 @@ void view_battle_render(void) {
 
     for (size_t i = 0; i < countof(view.graves); i++) {
         if (!view.graves[i].active) continue;
+        float size = view.graves[i].size * 20.0f;
         draw_icon(
             ui_Icon_Grave,
             (draw_Rect) {
-                .min_x = view.graves[i].pos.x - 20,
-                .min_y = view.graves[i].pos.y - 20,
-                .max_x = view.graves[i].pos.x + 20,
-                .max_y = view.graves[i].pos.y + 20,
+                .min_x = view.graves[i].pos.x - size,
+                .min_y = view.graves[i].pos.y - size,
+                .max_x = view.graves[i].pos.x + size,
+                .max_y = view.graves[i].pos.y + size,
             },
             (Color) { 255, 255, 255, 255 }
         );
