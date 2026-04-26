@@ -5,6 +5,7 @@
 #include <string.h>
 #include <stdio.h>
 #include <math.h>
+#include <assert.h>
 
 #include "svg.h"
 #include "svg/path.h"
@@ -34,21 +35,22 @@ view_Transition view_worldmap_update(uint64_t _) {
 typedef struct {
     ui_Icon icon;
     float x, y;
+    size_t unit_count;
 } Stop;
 
 Stop stops[] = {
-    { ui_Icon_Bed,    129.6, 178.2 },
-    { ui_Icon_Swords, 237.6, 178.2 },
-    { ui_Icon_Bed,    316.4, 221.4 },
-    { ui_Icon_Swords, 208.4, 259.2 },
-    { ui_Icon_Bed,    132.8, 302.4 },
-    { ui_Icon_Swords, 165.2, 399.6 },
-    { ui_Icon_Swords, 221.4, 345.6 },
-    { ui_Icon_Bed,    297.0, 345.6 },
-    { ui_Icon_Swords, 297.0, 453.6 },
-    { ui_Icon_Bed,    189.0, 480.6 },
-    { ui_Icon_Swords, 210.6, 556.2 },
-    { ui_Icon_Crown,  324.0, 556.2 },
+    { ui_Icon_Bed,    129.6, 178.2,   0 },
+    { ui_Icon_Swords, 237.6, 178.2,   6 },
+    { ui_Icon_Bed,    316.4, 221.4,   0 },
+    { ui_Icon_Swords, 208.4, 259.2,  12 },
+    { ui_Icon_Bed,    132.8, 302.4,   0 },
+    { ui_Icon_Swords, 165.2, 399.6,  18 },
+    { ui_Icon_Swords, 221.4, 345.6,  18 },
+    { ui_Icon_Bed,    297.0, 345.6,   0 },
+    { ui_Icon_Swords, 297.0, 453.6,  40 },
+    { ui_Icon_Bed,    189.0, 480.6,   0 },
+    { ui_Icon_Swords, 210.6, 556.2,  80 },
+    { ui_Icon_Crown,  324.0, 556.2, 100 },
 };
 
 static bool stop_available(size_t index) {
@@ -128,18 +130,29 @@ void view_worldmap_render(void) {
 
                 eab_mouse_cursor = MOUSE_CURSOR_POINTING_HAND;
 
-                if (stop->icon == ui_Icon_Swords) {
-                    if (RL_IsMouseButtonPressed(0))
-                        RL_PlaySound(ui_sound(ui_Sound_BattleEnter));
-                    if (RL_IsMouseButtonReleased(0))
-                        view.next_view.kind = view_TransitionKind_StartBattle;
-                }
+                switch (stop->icon) {
 
-                if (stop->icon == ui_Icon_Bed) {
-                    if (RL_IsMouseButtonPressed(0))
-                        RL_PlaySound(ui_sound(ui_Sound_CampEnter));
-                    if (RL_IsMouseButtonReleased(0))
-                        view.next_view.kind = view_TransitionKind_StartCamp;
+                    case ui_Icon_Crown:
+                    case ui_Icon_Swords: {
+                        if (RL_IsMouseButtonPressed(0))
+                            RL_PlaySound(ui_sound(ui_Sound_BattleEnter));
+                        if (RL_IsMouseButtonReleased(0)) {
+                            view.next_view.battle.unit_count = stop->unit_count;
+                            view.next_view.kind = view_TransitionKind_StartBattle;
+                        }
+                    } break;
+
+                    case ui_Icon_Bed: {
+                        if (RL_IsMouseButtonPressed(0))
+                            RL_PlaySound(ui_sound(ui_Sound_CampEnter));
+                        if (RL_IsMouseButtonReleased(0))
+                            view.next_view.kind = view_TransitionKind_StartCamp;
+                    } break;
+
+                    default:
+                        assert(false);
+                        break;
+
                 }
             }
         }

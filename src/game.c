@@ -41,10 +41,10 @@ start:
                 uint32_t run_id = save.run.id;
                 memset(&save.run, 0, sizeof(save.run));
                 save.run.id = run_id + 1;
-                save.run.coin = 30;
-                save.run.food = 30;
+                save.run.coin = 0;
+                save.run.food = 10;
 
-                for (int i = 0; i < 12; i++) {
+                for (int i = 0; i < 3; i++) {
                     guy_Race race = guy_Race_Human;
                     guy_Sex sex = i%2 ? guy_Sex_Male : guy_Sex_Female;
                     save.run.guys[i] = guy_from_race(race, sex);
@@ -107,15 +107,15 @@ int main(void) {
 
     guy_system_init();
     ui_init();
-    game.view = View_Battle;
-    save.run.food = 5;
-    save.run.furniture[0] = save_Furniture_Bed;
-    {
-        guy_Guy mom = guy_from_race(guy_Race_Human, guy_Sex_Female);
-        guy_Guy dad = guy_from_race(guy_Race_Human, guy_Sex_Male);
-        for (int i = 0; i < 6; i++)
-            save.run.guys[i] = guy_from_parents(&mom, &dad);
-    }
+    game.view = View_Title;
+    // save.run.food = 5;
+    // save.run.furniture[0] = save_Furniture_Bed;
+    // {
+    //     guy_Guy mom = guy_from_race(guy_Race_Human, guy_Sex_Female);
+    //     guy_Guy dad = guy_from_race(guy_Race_Human, guy_Sex_Male);
+    //     for (int i = 0; i < 6; i++)
+    //         save.run.guys[i] = guy_from_parents(&mom, &dad);
+    // }
     view_handlers[game.view].init((view_Transition) {0});
 
 #if defined(PLATFORM_WEB)

@@ -8,13 +8,15 @@
 static struct {
     view_Transition next_view;
 
-    uint32_t food, coin;
+    guy_Guy *captured[countof(save.run.guys)];
+    float food, coin;
 } view;
 
 void view_battlevictory_init(view_Transition t) {
     memset(&view, 0, sizeof(view));
     view.food = t.battle_victory.food;
     view.coin = t.battle_victory.coin;
+    memcpy(view.captured, t.battle_victory.captured, sizeof(view.captured));
 }
 void view_battlevictory_free(void) {}
 
@@ -30,7 +32,7 @@ void view_battlevictory_render(void) {
     RL_EndDrawing();
 }
 
-static void ui_tally(ui_Icon icon, uint32_t added, uint32_t total) {
+static void ui_tally(ui_Icon icon, float added, float total) {
     CLAY_AUTO_ID({
         .layout = {
             .childAlignment = {
@@ -54,7 +56,7 @@ static void ui_tally(ui_Icon icon, uint32_t added, uint32_t total) {
         });
 
         Clay_String tmp;
-        ui_sprintf(tmp, "+ %d = %d", added, total);
+        ui_sprintf(tmp, "+ %.1f = %.1f", added, total);
         CLAY_TEXT(tmp, ui_font(ui_Font_Button));
     }
 }
@@ -95,6 +97,33 @@ static Clay_RenderCommandArray ui_create_layout(void) {
         }) {
             ui_tally(ui_Icon_Food, view.food, save.run.food);
             ui_tally(ui_Icon_Fleur, view.coin, save.run.coin);
+        }
+
+        CLAY_AUTO_ID({
+            .layout = {
+                .layoutDirection = CLAY_TOP_TO_BOTTOM,
+                .padding = { 32, 32, 32, 32 },
+                .childGap = 32,
+            },
+        }) {
+            CLAY_TEXT(
+                CLAY_STRING("captured"),
+                ui_font(ui_Font_Button),
+            );
+
+            for (size_t i = 0; i < countof(view.captured); i++) {
+                if (view.captured[i] == NULL) break;
+
+                CLAY_AUTO_ID({
+                    .layout = {
+                        .sizing = {
+                            .width = CLAY_SIZING_FIXED(45),
+                            .height = CLAY_SIZING_FIXED(45),
+                        },
+                    },
+                    .custom = { .customData = view.captured[i] }
+                });
+            }
         }
 
 

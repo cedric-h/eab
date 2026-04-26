@@ -34,12 +34,20 @@ typedef enum {
 } view_TransitionKind;
 typedef struct {
     view_TransitionKind kind;
+
     struct {
-        uint32_t food, coin;
+        size_t unit_count;
+    } battle;
+
+    struct {
+        guy_Guy *captured[countof(save.run.guys)];
+        float food, coin;
     } battle_victory;
+
     struct {
         guy_Guy *in_orgy[countof(save.run.guys)];
     } fornications;
+
 } view_Transition;
 
 typedef enum {

@@ -36,7 +36,7 @@ typedef struct {
 
 static struct {
     size_t guys_in_orgy_circle_male;
-    size_t guys_in_orgy_circle_female;
+    float guys_in_orgy_circle_hunger_female;
 
     view_Transition next_view;
     int held_item_idx;
@@ -120,7 +120,11 @@ void view_camp_init(view_Transition t) {
 
         for (size_t guy_i = 0; guy_i < countof(save.run.guys); guy_i++) {
             guy_Guy *g = save.run.guys + guy_i;
-            if (g->state == guy_GuyState_NONE) continue;
+            if (g->state == guy_GuyState_NONE) {
+                *g = (guy_Guy) {0};
+                *camp_get_item(camp_ItemKind_Guy, guy_i) = (camp_Item) {0};
+                continue;
+            }
 
             camp_Item *i = camp_get_item(camp_ItemKind_Guy, guy_i);
 
@@ -172,7 +176,7 @@ view_Transition view_camp_update(uint64_t _) {
 
     /* push things in/out of the orgy circle */
     view.guys_in_orgy_circle_male = 0;
-    view.guys_in_orgy_circle_female = 0;
+    view.guys_in_orgy_circle_hunger_female = 0;
     for (size_t i = 0; i < countof(keep.items); i++) {
         camp_Item *item = keep.items + i;
         if (item->kind == camp_ItemKind_NONE) continue;
@@ -183,7 +187,11 @@ view_Transition view_camp_update(uint64_t _) {
         if (from_center < (ORGY_CIRCLE_SIZE/2)) {
             if (item->kind == camp_ItemKind_Guy) {
                 view.guys_in_orgy_circle_male   += item->guy->sex == guy_Sex_Male;
-                view.guys_in_orgy_circle_female += item->guy->sex == guy_Sex_Female;
+                if (item->guy->sex == guy_Sex_Female) {
+                    view.guys_in_orgy_circle_hunger_female += guy_hunger(
+                        item->guy
+                    );
+                }
             }
         }
         float from_edge = (ORGY_CIRCLE_SIZE/2 - 5) - from_center;
@@ -384,7 +392,7 @@ void view_camp_render(void) {
             }; break;
 
             case camp_ItemKind_Guy: {
-                guy_DrawFlags flags = guy_DrawFlags_Target;
+                guy_DrawFlags flags = guy_DrawFlags_Hp;
                 if (item_closest_mouse == item) flags |= guy_DrawFlags_Name;
                 guy_draw(item->guy, item->pos.x, item->pos.y, flags);
             }; break;
@@ -429,17 +437,69 @@ void view_camp_render(void) {
             (keep.items[view.held_item_idx].kind == camp_ItemKind_Guy)
         ) {
             camp_Item *i = keep.items + view.held_item_idx;
+
+            save.run.food += guy_meat(i->guy);
+
             i->guy->state = guy_GuyState_NONE;
             i->kind = camp_ItemKind_NONE;
-            save.run.food += 1;
             RL_PlaySound(view.stew[
-                (size_t)floorf(RL_GetRandomValue(0, countof(view.stew) - 1))
+                RL_GetRandomValue(0, countof(view.stew) - 1)
             ]);
         }
 
         view.held_item_idx = -1;
     }
 }
+
+ui_Click ui_small_button_with_cost(
+    RL_Texture *icon,
+    bool disabled,
+    float cost
+) {
+    ui_Click ret = false;
+
+    CLAY_AUTO_ID({
+        .layout = {
+            .layoutDirection = CLAY_TOP_TO_BOTTOM,
+            .childGap = 5,
+            .childAlignment = {
+                .x = CLAY_ALIGN_X_CENTER,
+            },
+        }
+    }) {
+        ret = ui_small_button(icon, disabled);
+
+        CLAY_AUTO_ID({
+            .layout = {
+                .sizing = { .width = CLAY_SIZING_GROW() },
+                .childAlignment = {
+                    .x = CLAY_ALIGN_X_CENTER,
+                    .y = CLAY_ALIGN_Y_CENTER,
+                },
+            },
+        }) {
+
+
+            CLAY_AUTO_ID({
+                .layout = {
+                    .sizing = {
+                        .height = CLAY_SIZING_FIXED(32),
+                        .width = CLAY_SIZING_FIXED(32),
+                    },
+                },
+                .image = { .imageData = ui_icon(ui_Icon_Food) }
+            });
+
+            Clay_String tmp;
+            ui_sprintf(tmp, "x%.1f", cost);
+            CLAY_TEXT(tmp, ui_font(ui_Font_Cost));
+
+        }
+    }
+
+    return ret;
+}
+
 
 static Clay_RenderCommandArray ui_create_layout(void) {
     Clay_BeginLayout();
@@ -451,7 +511,7 @@ static Clay_RenderCommandArray ui_create_layout(void) {
                 .width = CLAY_SIZING_GROW(0),
                 .height = CLAY_SIZING_GROW(0)
             },
-            .padding = { 32, 32, 32, 32 },
+            .padding = { 32, 32, 32, 4 },
             .childGap = 16,
         },
         .backgroundColor = {0}
@@ -484,7 +544,7 @@ static Clay_RenderCommandArray ui_create_layout(void) {
             });
 
             Clay_String tmp;
-            ui_sprintf(tmp, "x%d", save.run.food);
+            ui_sprintf(tmp, "x%.1f", save.run.food);
             CLAY_TEXT(tmp, ui_font(ui_Font_Cost));
         }
 
@@ -498,77 +558,30 @@ static Clay_RenderCommandArray ui_create_layout(void) {
                 .layoutDirection = CLAY_TOP_TO_BOTTOM
             },
         }) {
-            uint32_t map_cost = 0;
-            uint32_t bed_cost = view.guys_in_orgy_circle_female*2 * (view.guys_in_orgy_circle_male > 0);
+            float heal_cost = 0;
+            float bed_cost = view.guys_in_orgy_circle_hunger_female*2 * (view.guys_in_orgy_circle_male > 0);
             for (size_t i = 0; i < countof(save.run.guys); i++) {
-                if (save.run.guys[i].state == guy_GuyState_NONE)
+                guy_Guy *g = save.run.guys + i;
+                if (g->state == guy_GuyState_NONE)
                     continue;
-                map_cost += 1;
-            }
 
-            CLAY_AUTO_ID({
-                .layout = {
-                    .childAlignment = { .y = CLAY_ALIGN_Y_CENTER },
-                    .padding = { 6, 6, 0, 0 },
-                    .sizing = { .width = CLAY_SIZING_GROW() },
-                }
-            }) {
-                CLAY_AUTO_ID({
-                    .layout = {
-                        .sizing = {
-                            .height = CLAY_SIZING_FIXED(32),
-                            .width = CLAY_SIZING_FIXED(32),
-                        },
-                    },
-                    .image = { .imageData = ui_icon(ui_Icon_Food) }
-                });
-
-                CLAY_AUTO_ID({
-                    .layout = { .sizing = { .width = CLAY_SIZING_FIXED(10) } }
-                });
-
-                {
-                    Clay_String tmp;
-                    ui_sprintf(tmp, "x%u", bed_cost);
-                    CLAY_TEXT(tmp, ui_font(ui_Font_Cost));
-                }
-
-                CLAY_AUTO_ID({
-                    .layout = { .sizing = { .width = CLAY_SIZING_GROW() } }
-                });
-
-                CLAY_AUTO_ID({
-                    .layout = {
-                        .sizing = {
-                            .height = CLAY_SIZING_FIXED(32),
-                            .width = CLAY_SIZING_FIXED(32),
-                        },
-                    },
-                    .image = { .imageData = ui_icon(ui_Icon_Food) }
-                });
-
-                CLAY_AUTO_ID({
-                    .layout = { .sizing = { .width = CLAY_SIZING_FIXED(10) } }
-                });
-
-                {
-                    Clay_String tmp;
-                    ui_sprintf(tmp, "x%d", map_cost);
-                    CLAY_TEXT(tmp, ui_font(ui_Font_Cost));
-                }
+                float heal_needed = (float)(guy_maxhp(g) - g->hp) / 100.0f;
+                heal_cost += heal_needed * guy_hunger(g);
             }
 
             CLAY_AUTO_ID({
                 .layout = { .sizing = { .width = CLAY_SIZING_GROW() } },
             }) {
-                switch (ui_small_button(
+                switch (ui_small_button_with_cost(
                         ui_icon(ui_Icon_Bed),
-                        (bed_cost == 0) || (save.run.food < bed_cost)
+                        (bed_cost == 0) || (save.run.food < bed_cost),
+                        bed_cost
                     )) {
                     case ui_Click_Pressed: {
                         RL_PlaySound(ui_sound(ui_Sound_Click));
                     } break;
                     case ui_Click_Released: {
+                        save.run.food -= bed_cost;
                         view.next_view = to_fornications();
 
                     } break;
@@ -579,9 +592,34 @@ static Clay_RenderCommandArray ui_create_layout(void) {
                     .layout = { .sizing = { .width = CLAY_SIZING_GROW() } }
                 });
 
+                switch (ui_small_button_with_cost(
+                        ui_icon(ui_Icon_Heal),
+                        (heal_cost == 0) || (save.run.food < heal_cost),
+                        heal_cost
+                    )) {
+                    case ui_Click_Pressed: {
+                        RL_PlaySound(ui_sound(ui_Sound_Click));
+                    } break;
+                    case ui_Click_Released: {
+                        save.run.food -= heal_cost;
+
+                        for (size_t i = 0; i < countof(save.run.guys); i++) {
+                            guy_Guy *g = save.run.guys + i;
+                            if (g->state == guy_GuyState_NONE)
+                                continue;
+                            g->hp = guy_maxhp(g);
+                        }
+                    } break;
+                    default: break;
+                }
+
+                CLAY_AUTO_ID({
+                    .layout = { .sizing = { .width = CLAY_SIZING_GROW() } }
+                });
+
                 switch (ui_small_button(
                     ui_icon(ui_Icon_BackToMap),
-                    save.run.food < map_cost
+                    false
                 )) {
                     case ui_Click_Pressed: {
                         RL_PlaySound(ui_sound(ui_Sound_CampLeave));

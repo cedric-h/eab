@@ -53,7 +53,7 @@ struct battle_Guy {
     } last_hurt;
 };
 
-#define BADDIE_MAX_COUNT 6
+#define BADDIE_MAX_COUNT 101
 #define COMBATANT_MAX_COUNT (countof(save.run.guys) + BADDIE_MAX_COUNT)
 typedef enum {
     battle_Outcome_Unknown,
@@ -71,6 +71,8 @@ static struct {
     battle_Guy guys[COMBATANT_MAX_COUNT];
     struct { bool active; f2 pos; } graves[COMBATANT_MAX_COUNT];
 
+    float food;
+
     RL_Sound sound_hit, sound_dead;
 } view;
 
@@ -79,7 +81,7 @@ static battle_Guy battle_guy_init(battle_Guy g) {
     return g;
 }
 
-void view_battle_init(view_Transition _) {
+void view_battle_init(view_Transition t) {
     memset(&view, 0, sizeof(view));
 
     view.sound_hit  = RL_LoadSound("./resources/audio/hit.wav");
@@ -90,13 +92,16 @@ void view_battle_init(view_Transition _) {
     size_t guy_i = 0;
 
     /* breed up some baddies */
-    {
-        guy_Guy mom = guy_from_race(guy_Race_Human, guy_Sex_Female);
-        guy_Guy dad = guy_from_race(guy_Race_Human, guy_Sex_Male);
-        for (int i = 0; i < BADDIE_MAX_COUNT; i++) {
-            view.baddies[i] = guy_from_parents(&mom, &dad);
 
-            float x = lerp(w*0.1, w*0.9, (float)i / (float)(BADDIE_MAX_COUNT - 1));
+    {
+        // guy_Guy mom = guy_from_race(guy_Race_Bunny, guy_Sex_Female);
+        // guy_Guy dad = guy_from_race(guy_Race_Bunny, guy_Sex_Male);
+        for (size_t i = 0; i < t.battle.unit_count; i++) {
+            // view.baddies[i] = guy_from_parents(&mom, &dad);
+            guy_Sex sex = i%2 ? guy_Sex_Male : guy_Sex_Female;
+            view.baddies[i] = guy_from_race(guy_Race_Bunny, sex);
+
+            float x = lerp(w*0.1, w*0.9, (float)i / (float)(t.battle.unit_count - 1));
             float y = RL_GetRandomValue(h*0.1, h*0.3);
             view.guys[guy_i++] = battle_guy_init((battle_Guy) {
                 .phase = battle_GuyPhase_Approaching,
@@ -137,14 +142,6 @@ static float battle_guy_size(battle_Guy *bg) {
 
 view_Transition view_battle_update(uint64_t update) {
     ui_update();
-
-    if (RL_IsMouseButtonPressed(0)) {
-        for (size_t bguy_i = 0; bguy_i < countof(view.guys); bguy_i++) {
-            battle_Guy *bguy = view.guys + bguy_i;
-            if (bguy->phase == battle_GuyPhase_NONE) continue;
-            bguy->swing_t = RL_GetTime();
-        }
-    }
 
     /* win conditions, initiate fleeing */
     if (view.outcome == battle_Outcome_Unknown) {
@@ -277,13 +274,16 @@ view_Transition view_battle_update(uint64_t update) {
     {
         for (size_t guy_i = 0; guy_i < countof(view.guys); guy_i++) {
             battle_Guy *bguy = view.guys + guy_i;
+            if (!bguy->phase)
+                continue;
+
             float bguy_start_x = bguy->pos.x;
             float bguy_start_y = bguy->pos.y;
 
             /* distance towards which the guy moves in the approaching phase */
             float best_dist = 60.0f;
             /* distance within which an blow will land */
-            float attack_dist = 70.0f;
+            float attack_dist = 70.0f * guy_size(bguy->guy);
 
             switch (bguy->phase) {
                 case battle_GuyPhase_NONE: continue;
@@ -339,20 +339,79 @@ view_Transition view_battle_update(uint64_t update) {
                     uint64_t updates_since = update - bguy->last_attack_update;
 
                     if (updates_since == 20) {
-                        if (dlen < attack_dist) {
-                            bguy->target->phase = battle_GuyPhase_Hurting;
-                            bguy->target->last_hurt.knockback.x += dx/dlen * 15;
-                            bguy->target->last_hurt.knockback.y += dy/dlen * 15;
-
-                            RL_SetSoundPitch(
-                                view.sound_hit,
-                                lerp(0.35f, 1.1f, (float)(guy_i % 12)/12)
-                            );
-                            RL_PlaySound(view.sound_hit);
-                        }
-
                         /* initiative isn't spent until the attack is launched */
                         bguy->initiative = guy_initiative(bguy->guy);
+
+                        /* find guys in range and kill them */
+                        for (size_t victim_i = 0; victim_i < countof(view.guys); victim_i++) {
+                            battle_Guy *victim = view.guys + victim_i;
+                            if (!victim->phase) continue;
+
+                            /* no friendly fire */
+                            if (victim->team == bguy->team) continue;
+
+                            float vdx = victim->pos.x - bguy->pos.x;
+                            float vdy = victim->pos.y - bguy->pos.y;
+                            float vdlen = sqrtf(vdx*vdx + vdy*vdy);
+
+                            float p = guy_size(victim->guy) + 10;
+                            if (!(vdlen < (attack_dist+p) && vdlen > 0))
+                                continue;
+
+                            float dmg = guy_damage(bguy->guy);
+                            victim->phase = battle_GuyPhase_Hurting;
+                            victim->last_hurt.knockback.x += dx/dlen * dmg;
+                            victim->last_hurt.knockback.y += dy/dlen * dmg;
+
+                            victim->guy->hp = max(0.0f, victim->guy->hp - roundf(dmg));
+                            if (victim->guy->hp == 0) {
+                                float meat = guy_meat(victim->guy);
+                                view.food += meat;
+                                save.run.food += meat;
+
+                                victim->guy->state = guy_GuyState_NONE;
+                                victim->guy = NULL;
+                                victim->phase = battle_GuyPhase_NONE;
+
+                                for (size_t i = 0; i < countof(view.graves); i++) {
+                                    if (view.graves[i].active)
+                                        continue;
+                                    view.graves[i].active = true;
+                                    view.graves[i].pos = victim->pos;
+                                    break;
+                                }
+
+                                ui_FlyingIcon fi = {
+                                    .start.x = victim->pos.x,
+                                    .start.y = victim->pos.y,
+                                    .end.x = RL_GetScreenWidth()*0.9,
+                                    .end.y = RL_GetScreenHeight()*0.1,
+                                    .start_t = RL_GetTime(),
+                                    .icon = ui_Icon_Food,
+                                    .size = 10,
+                                };
+                                fi.end_t = RL_GetTime() + 0.004*sqrtf(
+                                    (fi.start.x - fi.end.x)*
+                                        (fi.start.x - fi.end.x) +
+                                    (fi.start.y - fi.end.y)*
+                                        (fi.start.y - fi.end.y)
+                                );
+                                ui_flying_icon(fi);
+
+                                RL_SetSoundPitch(
+                                    view.sound_dead,
+                                    0.5f + (float)(guy_i % 12)/12
+                                );
+                                RL_PlaySound(view.sound_dead);
+
+                            } else {
+                                RL_SetSoundPitch(
+                                    view.sound_hit,
+                                    lerp(0.35f, 1.1f, (float)(guy_i % 12)/12)
+                                );
+                                RL_PlaySound(view.sound_hit);
+                            }
+                        }
                     }
 
                     /**
@@ -377,26 +436,6 @@ view_Transition view_battle_update(uint64_t update) {
                         bguy->last_hurt.knockback.y*bguy->last_hurt.knockback.y
                     );
                     if (dlen < 5) {
-                        bguy->guy->hp--;
-                        if (bguy->guy->hp == 0) {
-                            bguy->guy->state = guy_GuyState_NONE;
-                            bguy->guy = NULL;
-                            bguy->phase = battle_GuyPhase_NONE;
-
-                            for (size_t i = 0; i < countof(view.graves); i++) {
-                                if (view.graves[i].active)
-                                    continue;
-                                view.graves[i].active = true;
-                                view.graves[i].pos = bguy->pos;
-                                break;
-                            }
-
-                            RL_SetSoundPitch(
-                                view.sound_dead,
-                                0.5f + (float)(guy_i % 12)/12
-                            );
-                            RL_PlaySound(view.sound_dead);
-                        }
                     }
                     if (dlen < 0.1) {
                         bguy->phase = battle_GuyPhase_Approaching;
@@ -535,14 +574,48 @@ static Clay_RenderCommandArray ui_create_layout(void) {
         .backgroundColor = {0}
     }) {
 
-        switch (view.outcome) {
+        CLAY_AUTO_ID({
+            .layout = { .sizing = { .width = CLAY_SIZING_GROW() } },
+        }) {
+            CLAY_AUTO_ID({
+                .layout = { .sizing = { .width = CLAY_SIZING_GROW() } },
+            });
+
+            CLAY_AUTO_ID({
+                .layout = {
+                    .sizing = {
+                        .height = CLAY_SIZING_FIXED(32),
+                        .width = CLAY_SIZING_FIXED(32),
+                    },
+                },
+                .image = { .imageData = ui_icon(ui_Icon_Food) }
+            });
+
+            Clay_String tmp;
+            ui_sprintf(tmp, "x%.1f", save.run.food);
+            CLAY_TEXT(tmp, ui_font(ui_Font_Cost));
+        }
+
+        CLAY_AUTO_ID({
+            .layout = { .sizing = { .height = CLAY_SIZING_GROW() } },
+        });
+
+        double outcome_t = RL_GetTime() - view.outcome_t;
+        outcome_t -= 2.0;
+
+        battle_Outcome outcome = view.outcome;
+
+        if (outcome_t < 0)
+            outcome = battle_Outcome_Unknown;
+
+        switch (outcome) {
 
             case battle_Outcome_Unknown: {
             } break;
 
             case battle_Outcome_Victory: {
                 size_t chars_since_outcome = floorf(
-                    ((RL_GetTime() - view.outcome_t) / 0.2)
+                    ((RL_GetTime() - outcome_t) / 0.2)
                 );
 
                 char *button_text = "victory!!";
@@ -573,10 +646,30 @@ static Clay_RenderCommandArray ui_create_layout(void) {
                         view.next_view = (view_Transition) {
                             .kind = view_TransitionKind_BattleVictory,
                             .battle_victory = {
-                                .coin = 23,
-                                .food = 13,
+                                .coin = 0,
+                                .food = view.food,
                             }
                         };
+
+                        size_t capture_i = 0;
+                        for (size_t guy_i = 0; guy_i < countof(view.guys); guy_i++) {
+                            battle_Guy *bguy = view.guys + guy_i;
+                            if (!bguy->phase) continue;
+                            if (bguy->team != battle_Team_Baddie) continue;
+                            guy_Guy *space = guy_alloc();
+                            if (space == NULL) {
+                                printf("no space for capture!");
+                                break;
+                            }
+
+                            char my_name[GUY_NAME_LEN_MAX] = {0};
+                            guy_name(bguy->guy, my_name);
+                            printf("capturing %s!\n", my_name);
+
+                            *space = *bguy->guy;
+                            view.next_view.battle_victory.captured[capture_i++] = space;
+                        }
+
                     } break;
                     default: break;
                 }
@@ -584,7 +677,7 @@ static Clay_RenderCommandArray ui_create_layout(void) {
 
             case battle_Outcome_Defeat: {
                 size_t chars_since_outcome = floorf(
-                    ((RL_GetTime() - view.outcome_t) / 0.2)
+                    (outcome_t / 0.2)
                 );
 
                 char *button_text = "defeat";

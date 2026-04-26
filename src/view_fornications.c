@@ -23,35 +23,55 @@ void view_fornications_init(view_Transition t) {
     }
     assert(male_count > 0);
 
-    size_t kid_i = 0;
+    struct { guy_Guy kid, *mom, *dad; } new_guys[countof(save.run.guys)] = {0};
+    size_t new_guy_i = 0;
+
     for (size_t i = 0; i < countof(t.fornications.in_orgy); i++) {
         guy_Guy *mom = t.fornications.in_orgy[i];
-        if (mom == NULL || !(mom->sex & guy_Sex_Female)) continue;
+        if (mom == NULL || !mom->state || !(mom->sex & guy_Sex_Female)) continue;
 
-        size_t dad_idx = roundf(RL_GetRandomValue(0, male_count - 1));
+        size_t dad_idx = RL_GetRandomValue(0, male_count - 1);
 
         for (size_t j = 0; j < countof(t.fornications.in_orgy); j++) {
             guy_Guy *dad = t.fornications.in_orgy[j];
-            if (dad == NULL || !(dad->sex & guy_Sex_Male)) continue;
+            if (dad == NULL || !dad->state || !(dad->sex & guy_Sex_Male)) continue;
 
             if (dad_idx == 0) {
-                guy_Guy *kid = guy_alloc();
-                if (kid == NULL) {
-                    printf("no space for kid!");
-                    break;
+                uint32_t childcount = guy_childcount(mom);
+                for (uint32_t i = 0; i < childcount; i++) {
+                    if ((new_guy_i+1) == countof(new_guys))
+                        puts("no more room!");
+                    else {
+                        new_guys[new_guy_i].mom = mom;
+                        new_guys[new_guy_i].dad = dad;
+                        new_guys[new_guy_i].kid = guy_from_parents(mom, dad);
+                        new_guy_i++;
+                    }
                 }
-
-                *kid = guy_from_parents(mom, dad);
-                view.families[kid_i].mom = mom;
-                view.families[kid_i].dad = dad;
-                view.families[kid_i].kid = kid;
-                kid_i++;
 
                 break;
             }
 
             dad_idx -= 1;
         }
+    }
+
+    size_t kid_i = 0;
+    for (size_t i = 0; i < countof(new_guys); i++) {
+        if (new_guys[i].kid.state == guy_GuyState_NONE)
+            continue;
+
+        guy_Guy *kid = guy_alloc();
+        if (kid == NULL) {
+            printf("no space for kid!");
+            break;
+        }
+
+        *kid = new_guys[i].kid;
+        view.families[kid_i].mom = new_guys[i].mom;
+        view.families[kid_i].dad = new_guys[i].dad;
+        view.families[kid_i].kid = kid;
+        kid_i++;
     }
 }
 void view_fornications_free(void) {}
@@ -174,7 +194,11 @@ static Clay_RenderCommandArray ui_create_layout(void) {
                 },
                 .childGap = 32,
             },
-            .backgroundColor = {0}
+            .backgroundColor = {0},
+            .clip = {
+                .vertical = true,
+                .childOffset = Clay_GetScrollOffset(),
+            },
         }) {
             for (size_t i = 0; i < countof(view.families); i++) {
                 if (view.families[i].mom == NULL ||

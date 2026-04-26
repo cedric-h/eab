@@ -6,24 +6,56 @@
 #include <math.h>
 #include <stdio.h>
 #include <assert.h>
+#include <signal.h>
 
-uint16_t guy_maxhp(guy_Guy *guy) {
-    return 100;
-}
-float guy_speed(guy_Guy *guy) {
-    return 2;
-}
-uint32_t guy_initiative(guy_Guy *guy) {
-    return 10;
-}
-float guy_size(guy_Guy *guy) {
+/* raw meta stats */
+static float guy_girth(guy_Guy *guy) {
     float x = 0;
 
-    size_t i = guy_GeneLoc_Size1;
-    for (; i <= guy_GeneLoc_SizeLast; i++)
-        x += guy->genes[i]->size;
-    return x/(i - guy_GeneLoc_Size1);
+    size_t i = guy_GeneLoc_Girth1;
+    for (; i <= guy_GeneLoc_GirthLast; i++)
+        x += guy->genes[i]->amount;
+    return x/(i - guy_GeneLoc_Girth1);
 }
+static float guy_strength(guy_Guy *guy) {
+    return guy->genes[guy_GeneLoc_Strength]->amount;
+}
+static float guy_metabolism(guy_Guy *guy) {
+    return guy->genes[guy_GeneLoc_Metabolism]->amount;
+}
+static float guy_fecundity(guy_Guy *guy) {
+    return guy->genes[guy_GeneLoc_Fecundity]->amount;
+}
+
+/* girth: +size, +max hp, -knockback received, -movement speed, +hunger, +meat */
+/* strength: +damage, +knockback dealt, +movement speed */
+/* metabolism: +movement speed, +hunger, +attack speed, +heals, -longevity */
+uint16_t guy_maxhp(guy_Guy *g) {
+    return roundf(guy_girth(g) * 100.0f);
+}
+float guy_speed(guy_Guy *g) {
+    return 2*(guy_metabolism(g) + guy_strength(g)*0.2 - guy_girth(g)*0.2);
+}
+uint32_t guy_initiative(guy_Guy *g) {
+    return roundf(30.0f*guy_metabolism(g));
+}
+float guy_size(guy_Guy *g) {
+    return guy_girth(g);
+}
+float guy_damage(guy_Guy *g) {
+    return guy_strength(g)*15;
+}
+float guy_meat(guy_Guy *g) {
+    return guy_girth(g);
+}
+float guy_hunger(guy_Guy *g) {
+    return guy_metabolism(g) + guy_girth(g)*0.2;
+}
+uint32_t guy_childcount(guy_Guy *g) {
+    float f = guy_fecundity(g);
+    return max(1, roundf(gaussian_randf(f, f*0.32f)));
+}
+
 Color guy_color_skin(guy_Guy *guy) {
     return color_lerp(
         color_lerp(
@@ -69,7 +101,7 @@ guy_Guy guy_from_race(guy_Race race, guy_Sex sex) {
         .state = guy_GuyState_Inited,
     };
 
-    for (int loc = 0; loc < guy_GeneLoc_COUNT; loc++) {
+    for (guy_GeneLoc loc = 1; loc < guy_GeneLoc_COUNT; loc++) {
 
         /* find applicable gene for this loc and sex/race */
         float applicable_count = 0;
@@ -84,7 +116,11 @@ guy_Guy guy_from_race(guy_Race race, guy_Sex sex) {
             }
         }
 
-        size_t applicable_idx = floorf(RL_GetRandomValue(0, applicable_count - 1));
+        if (applicable_count == 0) {
+            raise(SIGTRAP);
+        }
+
+        size_t applicable_idx = RL_GetRandomValue(0, applicable_count - 1);
         guy_GeneConfig *applicable = NULL;
         for (size_t cfg_i = 0; cfg_i < countof(guy_gene_configs); cfg_i++) {
             guy_GeneConfig *cfg = guy_gene_configs + cfg_i;
@@ -238,7 +274,7 @@ void guy_draw_ex(
     }
 
     {
-        float sword_size = size * 0.8;
+        float sword_size = size * 0.8 * guy_strength(guy_guy);
 
         /* from the origin to the pommel */
         float pommel_x = sword_size*0.2;
@@ -418,9 +454,12 @@ guy_Guy guy_from_parents(guy_Guy *mom, guy_Guy *dad) {
         .hp = 10,
     };
 
-    for (size_t i = 1; i < guy_GeneLoc_COUNT; i++) {
+    for (guy_GeneLoc i = 1; i < guy_GeneLoc_COUNT; i++) {
         guy_GeneConfig *mom_gene = mom->genes[i];
         guy_GeneConfig *dad_gene = dad->genes[i];
+
+        assert(mom_gene != NULL);
+        assert(dad_gene != NULL);
 
         if ((mom_gene->sex & kid.sex) && (dad_gene->sex & kid.sex))
             kid.genes[i] = (RL_GetRandomValue(0, 1) < 0.5f) ? mom_gene : dad_gene;

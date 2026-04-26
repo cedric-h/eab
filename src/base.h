@@ -1,9 +1,13 @@
 #ifndef EAB_BASE_IMPL
 #define EAB_BASE_IMPL
 
+#include "raylib.h"
+#include <stdlib.h>
+#include <time.h>
 #include <stdint.h>
 #include <math.h>
 #include <string.h>
+#include <float.h>
 
 #define countof(arr) ( sizeof(arr) / sizeof((arr)[0]) )
 #define max(a, b) (((a) > (b)) ? (a) : (b))
@@ -37,6 +41,27 @@ static double lerp(double start, double end, double amount) {
 }
 static double inv_lerp(double min, double max, double p) {
     return (p - min) / (max - min);
+}
+
+static float randf() {
+    uint32_t random = RL_GetRandomValue(0, 1 << 23);
+    union { uint32_t u32; float f; } u = {
+        .u32 = random | 0x3f800000
+    };
+    return u.f - 1.0;
+}
+
+static float gaussian_randf(float mean, float stddev) {
+	float u1 = randf();
+	float u2 = randf();
+
+	/* avoid log(0) */
+	if (u1 == 0) {
+		u1 = FLT_MIN;
+	}
+
+	float z0 = sqrtf(-2*logf(u1)) * cosf(2*M_PI*u2);
+	return z0*stddev + mean;
 }
 
 /* https://bottosson.github.io/posts/oklab/#converting-from-linear-srgb-to-oklab */

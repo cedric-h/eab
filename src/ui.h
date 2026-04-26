@@ -34,6 +34,7 @@ typedef enum {
     ui_Icon_Soup,
     ui_Icon_BackToMap,
     ui_Icon_Grave,
+    ui_Icon_Heal,
     ui_Icon_COUNT,
 } ui_Icon;
 
@@ -59,6 +60,15 @@ void ui_init(void);
 void ui_free(void);
 void ui_update(void);
 void ui_render(Clay_RenderCommandArray render_cmds);
+
+typedef struct {
+    ui_Icon icon;
+    f2 start, end;
+    double start_t, end_t;
+    float size;
+} ui_FlyingIcon;
+/* returns true if there was room for the flying icon */
+bool ui_flying_icon(ui_FlyingIcon icon);
 
 Clay_String ui_layout_alloc(size_t size);
 #define ui_sprintf(dst, fmt, ...)                                              \

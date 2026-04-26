@@ -1,5 +1,7 @@
 #include "base.h"
 #include "view.h"
+#include "draw.h"
+#include "ease.h"
 #include "raylib.h"
 #include "clay.h"
 #include "clay_renderer_raylib.h"
@@ -35,6 +37,7 @@ char *ui_icon_paths[] = {
     [ui_Icon_Soup     ] = "resources/icon/soup.png",
     [ui_Icon_BackToMap] = "resources/icon/back_to_map.png",
     [ui_Icon_Grave    ] = "resources/icon/grave.png",
+    [ui_Icon_Heal     ] = "resources/icon/heal.png",
 };
 _Static_assert(countof(ui_icon_paths) == ui_Icon_COUNT, "missing icon path");
 
@@ -50,6 +53,7 @@ char *ui_sound_paths[] = {
 };
 _Static_assert(countof(ui_sound_paths) == ui_Sound_COUNT, "missing sound path");
 
+#define ui_FLYING_ICON_MAX 200
 static struct {
     Clay_Arena clay_memory;
 
@@ -59,6 +63,8 @@ static struct {
     RL_Font    fonts [ ui_Font_COUNT];
     RL_Texture icons [ ui_Icon_COUNT];
     RL_Sound   sounds[ui_Sound_COUNT];
+
+    ui_FlyingIcon flying_icon[ui_FLYING_ICON_MAX];
 } ui = {0};
 
 size_t ui_font_size(ui_Font f) { return ui_font_sizes[f]; }
@@ -201,9 +207,44 @@ void ui_update(void) {
     );
 }
 
+bool ui_flying_icon(ui_FlyingIcon new_icon) {
+    for (int i = 0; i < ui_FLYING_ICON_MAX; i++) {
+        ui_FlyingIcon *icon = ui.flying_icon + i;
+        if (icon->end_t > RL_GetTime()) continue;
+
+        *icon = new_icon;
+        return true;
+    }
+    return false;
+}
+
 void ui_render(Clay_RenderCommandArray render_cmds) {
     Clay_Raylib_Render(render_cmds, ui.fonts);
     ui.layout_arena = ui.layout_arena_backing;
+
+    for (int i = 0; i < ui_FLYING_ICON_MAX; i++) {
+        ui_FlyingIcon *item = ui.flying_icon + i;
+        double t = inv_lerp(item->start_t, item->end_t, RL_GetTime());
+
+        if (t < 0 || t > 1) continue;
+
+        float a = 1.0f - (fabs(0.5 - t)/0.5f);
+        a = min(1, a * 10);
+
+        t = ease_out_circ(t);
+        float x = lerpf(item->start.x, item->end.x, t);
+        float y = lerpf(item->start.y, item->end.y, t);
+        draw_icon(
+            item->icon,
+            (draw_Rect) {
+                .min_x = x - item->size,
+                .min_y = y - item->size,
+                .max_x = x + item->size,
+                .max_y = y + item->size,
+            },
+            (Color) { 255, 255, 255, 255*a }
+        );
+    }
 }
 
 ui_Click ui_big_button(Clay_String text, RL_Texture *icon) {

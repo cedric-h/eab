@@ -29,7 +29,7 @@ typedef struct {
         guy_Guy guys[100];
 
         uint32_t kills;
-        uint32_t food;
+        float food;
         uint32_t coin;
         uint32_t map_progress_idx;
         save_Furniture furniture[10];
