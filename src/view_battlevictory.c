@@ -56,7 +56,7 @@ static void ui_tally(ui_Icon icon, float added, float total) {
         });
 
         Clay_String tmp;
-        ui_sprintf(tmp, "+ %.1f = %.1f", added, total);
+        ui_sprintf(tmp, "%.1f (+ %.1f)", total, added);
         CLAY_TEXT(tmp, ui_font(ui_Font_Button));
     }
 }
@@ -122,7 +122,13 @@ static Clay_RenderCommandArray ui_create_layout(void) {
                         },
                     },
                     .custom = { .customData = view.captured[i] }
-                });
+                }) {
+                    if (Clay_Hovered() &&
+                        (Clay_GetPointerState().state == 
+                            CLAY_POINTER_DATA_RELEASED_THIS_FRAME)) {
+                        ui_guy_show_detail_page(view.captured[i]);
+                    }
+                }
             }
         }
 

@@ -40,6 +40,7 @@ static struct {
     uint32_t guys_in_orgy_circle_childcount_female;
 
     view_Transition next_view;
+    double held_item_t;
     int held_item_idx;
     RL_Sound stew[2];
 } view = {};
@@ -365,8 +366,10 @@ void view_camp_render(void) {
             rotation += sinf(RL_GetTime()*15)*5.0f;
 
             eab_mouse_cursor = MOUSE_CURSOR_POINTING_HAND;
-            if (RL_IsMouseButtonPressed(0))
+            if (RL_IsMouseButtonPressed(0)) {
                 view.held_item_idx = i;
+                view.held_item_t = RL_GetTime();
+            }
         }
 
 
@@ -465,6 +468,13 @@ void view_camp_render(void) {
             RL_PlaySound(view.stew[
                 RL_GetRandomValue(0, countof(view.stew) - 1)
             ]);
+        } else if (
+                (keep.items[view.held_item_idx].kind == camp_ItemKind_Guy) &&
+                ((RL_GetTime() - view.held_item_t) < 0.1)
+        ) {
+            ui_guy_show_detail_page(
+                keep.items[view.held_item_idx].guy
+            );
         }
 
         view.held_item_idx = -1;

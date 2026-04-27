@@ -4,6 +4,7 @@
 #include "raylib.h"
 #include "base.h"
 #include "clay.h"
+#include "guy.h"
 
 typedef enum {
     ui_Font_Button,
@@ -86,5 +87,7 @@ typedef enum {
 
 ui_Click ui_big_button(Clay_String text, RL_Texture *icon);
 ui_Click ui_small_button(RL_Texture *icon, bool disabled);
+void ui_guy_show_detail_page(guy_Guy *guy);
+bool ui_takeover(void);
 
 #endif

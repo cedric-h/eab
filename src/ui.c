@@ -8,6 +8,9 @@
 
 #include "ui.h"
 
+static void ui_clay_init(void);
+static void ui_clay_free(void);
+
 size_t ui_font_sizes[] = {
     [ui_Font_Button  ] = 35,
     [ui_Font_Title   ] = 60,
@@ -65,6 +68,12 @@ static struct {
     RL_Sound   sounds[ui_Sound_COUNT];
 
     ui_FlyingIcon flying_icon[ui_FLYING_ICON_MAX];
+
+    struct {
+        bool active, show_stats;
+        guy_GeneConfig *gene_hovered;
+        guy_Guy *guy;
+    } guy_detail;
 } ui = {0};
 
 size_t ui_font_size(ui_Font f) { return ui_font_sizes[f]; }
@@ -84,6 +93,7 @@ Clay_TextElementConfig ui_font_ex(ui_Font f, Clay_TextElementConfig tec) {
 RL_Texture *ui_icon(ui_Icon i) { return &ui.icons[i]; }
 RL_Sound ui_sound(ui_Sound s) { return ui.sounds[s]; }
 
+/* allocate strings that have a lifetime of a single layout */
 Clay_String ui_layout_alloc(size_t alloc_size) {
     size_t new_size = (ui.layout_arena - ui.layout_arena_backing) + alloc_size;
     if (new_size >= ui.layout_arena_size) {
@@ -102,16 +112,16 @@ void ui_handle_clay_errors(Clay_ErrorData errorData) {
     switch (errorData.errorType) {
         case CLAY_ERROR_TYPE_ELEMENTS_CAPACITY_EXCEEDED: {
             Clay_SetMaxElementCount(Clay_GetMaxElementCount() * 2);
-            ui_free();
-            ui_init();
+            ui_clay_free();
+            ui_clay_init();
         } break;
 
         case CLAY_ERROR_TYPE_TEXT_MEASUREMENT_CAPACITY_EXCEEDED: {
             Clay_SetMaxMeasureTextCacheWordCount(
                 Clay_GetMaxMeasureTextCacheWordCount() * 2
             );
-            ui_free();
-            ui_init();
+            ui_clay_free();
+            ui_clay_init();
         } break;
 
         default:
@@ -119,7 +129,7 @@ void ui_handle_clay_errors(Clay_ErrorData errorData) {
     }
 }
 
-void ui_init(void) {
+static void ui_clay_init(void) {
     ui.layout_arena_backing = malloc(1 << 12);
     ui.layout_arena_size = 1 << 12;
     ui.layout_arena = ui.layout_arena_backing;
@@ -139,6 +149,15 @@ void ui_init(void) {
     );
 
     Clay_Raylib_Initialize();
+}
+
+static void ui_clay_free(void) {
+    free(ui.layout_arena_backing);
+    free(ui.clay_memory.memory);
+}
+
+void ui_init(void) {
+    ui_clay_init();
 
     const char *font_path = "resources/WackClubSans-Regular.otf";
     for (int i = 0; i < ui_Font_COUNT; i++) {
@@ -168,8 +187,7 @@ void ui_init(void) {
     Clay_SetMeasureTextFunction(Raylib_MeasureText, ui.fonts);
 }
 void ui_free(void) {
-    free(ui.layout_arena_backing);
-    free(ui.clay_memory.memory);
+    ui_clay_free();
 
     for (int i = 0; i < ui_Font_COUNT; i++)
         RL_UnloadFont(ui.fonts[i]);
@@ -218,8 +236,13 @@ bool ui_flying_icon(ui_FlyingIcon new_icon) {
     return false;
 }
 
+static Clay_RenderCommandArray ui_guy_detail(void);
 void ui_render(Clay_RenderCommandArray render_cmds) {
-    Clay_Raylib_Render(render_cmds, ui.fonts);
+    if (ui.guy_detail.active)
+        Clay_Raylib_Render(ui_guy_detail(), ui.fonts);
+    else
+        Clay_Raylib_Render(render_cmds, ui.fonts);
+
     ui.layout_arena = ui.layout_arena_backing;
 
     for (int i = 0; i < ui_FLYING_ICON_MAX; i++) {
@@ -376,3 +399,414 @@ ui_Click ui_small_button(RL_Texture *icon, bool disabled) {
     return ret;
 }
 
+static void ui_gene_tally(
+    guy_Guy *guy,
+    char *gene_desc,
+    float sum,
+    guy_GeneCategory category
+) {
+    Clay_String tmp;
+
+    ui_sprintf(tmp, "%s: %.2f", gene_desc, sum);
+    CLAY_TEXT(tmp, ui_font(ui_Font_Desc));
+
+    CLAY_AUTO_ID({
+        .layout.childGap = 6,
+    }) {
+        ui_sprintf(tmp, "%s GENES: ", gene_desc);
+        CLAY_TEXT(tmp, ui_font(ui_Font_Desc));
+
+        bool first = true;
+        for (guy_GeneLoc i = 0; i < guy_GeneLoc_COUNT; i++) {
+            if (guy_gene_loc_categories[i] != category)
+                continue;
+
+            if (!first)
+                CLAY_TEXT(CLAY_STRING(","), ui_font(ui_Font_Desc));
+            first = false;
+
+            CLAY_AUTO_ID({}) {
+                ui_sprintf(tmp, "%.2f", guy->genes[i]->amount);
+                CLAY_TEXT(tmp, ui_font(ui_Font_Desc));
+
+                if (Clay_Hovered())
+                    ui.guy_detail.gene_hovered = guy->genes[i];
+            }
+        }
+    }
+
+}
+
+/* returns true if hovered */
+static bool ui_swatch(Color color) {
+    bool hover = false;
+
+    CLAY_AUTO_ID({
+        .layout = {
+            .sizing = {
+                .width = CLAY_SIZING_FIXED(20),
+                .height = CLAY_SIZING_FIXED(20),
+            },
+        },
+        .backgroundColor = { color.r, color.g, color.b, color.a },
+        .cornerRadius = CLAY_CORNER_RADIUS(4),
+    }) {
+        hover = Clay_Hovered();
+    }
+
+    return hover;
+}
+
+static void ui_gene_tally_color(
+    guy_Guy *guy,
+    char *gene_desc,
+    Color sum,
+    guy_GeneCategory category
+) {
+    CLAY_AUTO_ID({
+        .layout.childGap = 6,
+    }) {
+        Clay_String tmp;
+
+        ui_sprintf(tmp, "%s: ", gene_desc);
+        CLAY_TEXT(tmp, ui_font(ui_Font_Desc));
+        ui_swatch(sum);
+
+        CLAY_TEXT(CLAY_STRING("("), ui_font(ui_Font_Desc));
+        bool first = true;
+        for (guy_GeneLoc i = 1; i < guy_GeneLoc_COUNT; i++) {
+            if (guy_gene_loc_categories[i] != category)
+                continue;
+
+            if (!first)
+                CLAY_TEXT(CLAY_STRING(","), ui_font(ui_Font_Desc));
+            first = false;
+
+            if (ui_swatch(guy->genes[i]->color))
+                ui.guy_detail.gene_hovered = guy->genes[i];
+        }
+        CLAY_TEXT(CLAY_STRING(")"), ui_font(ui_Font_Desc));
+    }
+}
+
+static void ui_race_summary(guy_Guy *guy) {
+    uint32_t gene_count_by_race[guy_Race_COUNT] = {0};
+
+    for (guy_GeneLoc i = 1; i < guy_GeneLoc_COUNT; i++) {
+        gene_count_by_race[guy->genes[i]->race] += 1;
+    }
+
+    typedef struct {
+        guy_Race race;
+        uint32_t count;
+    } Entry;
+    Entry entries[guy_Race_COUNT] = {0};
+
+    for (guy_Race race = 1; race < guy_Race_COUNT; race++) {
+        Entry e = { race, gene_count_by_race[race] };
+
+        size_t i = race;
+        while (i > 0 && entries[i - 1].count < e.count)
+            entries[i] = entries[i - 1], i--;
+        entries[i] = e;
+    }
+
+    CLAY_AUTO_ID({
+    }) {
+        bool first = true;
+        for (size_t i = 0; i < countof(entries); i++) {
+            uint32_t count = entries[i].count;
+            if (count == 0) continue;
+            guy_Race race = entries[i].race;
+            char *race_name = guy_race_names[race];
+
+            float f = 100.0f * (
+                (float)count / (float)(guy_GeneLoc_COUNT-1)
+            );
+
+            Clay_String tmp;
+            if (first)
+                ui_sprintf(tmp, "race: %.1f%% %s", f, race_name);
+            else
+                ui_sprintf(tmp, ", %.1f%% %s", f, race_name);
+            CLAY_TEXT(tmp, ui_font(ui_Font_Desc));
+
+            first = false;
+        }
+    }
+}
+
+static void ui_closest_relatives(guy_Guy *guy) {
+
+    struct {
+        guy_Guy *guy;
+        uint32_t shared_genes;
+    } closest[3] = {0};
+
+    for (size_t i = 0; i < countof(save.run.guys); i++) {
+        guy_Guy *rel = save.run.guys + i;
+        if (rel == guy) continue;
+        if (rel->state == guy_GuyState_NONE) continue;
+
+        uint32_t related_count = 0;
+
+        for (guy_GeneLoc i = 1; i < guy_GeneLoc_COUNT; i++)
+            related_count += rel->genes[i] == guy->genes[i];
+
+        size_t i = countof(closest) - 1;
+        while (i > 0 && closest[i - 1].shared_genes < related_count)
+            closest[i] = closest[i - 1], i--;
+        closest[i].guy = rel;
+        closest[i].shared_genes = related_count;
+    }
+
+    CLAY_AUTO_ID({
+        .layout.childGap = 48,
+        .layout.padding.left = 32,
+    }) {
+        for (size_t i = 0; i < countof(closest); i++) {
+            if (closest[i].guy == NULL)
+                continue;
+
+            CLAY_AUTO_ID({
+                .layout.layoutDirection = CLAY_TOP_TO_BOTTOM,
+                .layout.childAlignment.x = CLAY_ALIGN_X_CENTER,
+                .layout.childGap = 8,
+            }) {
+                uint32_t count = closest[i].shared_genes;
+                float p = 100 * (
+                    (float)count / (float)(guy_GeneLoc_COUNT-1)
+                );
+                Clay_String tmp;
+                ui_sprintf(tmp, "%.1f%%", p);
+                CLAY_TEXT(tmp, ui_font(ui_Font_Desc));
+
+                CLAY_AUTO_ID({
+                    .layout = {
+                        .sizing = {
+                            .width = CLAY_SIZING_FIXED(45),
+                            .height = CLAY_SIZING_FIXED(45),
+                        },
+                        .padding = { 16, 16, 16, 16 },
+                    },
+                    .custom = { .customData = closest[i].guy }
+                });
+            }
+        }
+    }
+}
+
+static Clay_RenderCommandArray ui_guy_detail(void) {
+    guy_Guy *guy = ui.guy_detail.guy;
+
+    Clay_BeginLayout();
+
+    CLAY(CLAY_ID("OuterContainer"), {
+        .layout = {
+            .layoutDirection = CLAY_TOP_TO_BOTTOM,
+            .sizing = {
+                .width = CLAY_SIZING_GROW(0),
+                .height = CLAY_SIZING_GROW(0)
+            },
+            .padding = { 32, 32, 32, 32 },
+            .childGap = 16,
+        },
+        .backgroundColor = { 255, 255, 255, 255 }
+    }) {
+
+        CLAY(CLAY_ID("content"), {
+            .layout = {
+                .padding = { 0, 0, 0, 24 },
+                .layoutDirection = CLAY_TOP_TO_BOTTOM,
+                .childGap = 16,
+                .sizing = {
+                    .width = CLAY_SIZING_GROW(0),
+                    .height = CLAY_SIZING_GROW(0)
+                },
+            },
+        }) {
+            char name[GUY_NAME_LEN_MAX] = {0};
+            guy_name(guy, name);
+
+            Clay_String tmp;
+            ui_sprintf(tmp, "%s", name);
+            CLAY_TEXT(tmp, ui_font(ui_Font_Button));
+
+
+            CLAY_AUTO_ID({
+                .layout.sizing.width = CLAY_SIZING_GROW(),
+            }) {
+                CLAY_AUTO_ID({ .layout.sizing.width = CLAY_SIZING_GROW() });
+
+                CLAY_AUTO_ID({
+                    .layout = {
+                        .sizing = {
+                            .width = CLAY_SIZING_FIXED(45),
+                            .height = CLAY_SIZING_FIXED(45),
+                        },
+                        .padding = { 16, 16, 16, 16 },
+                    },
+                    .custom = { .customData = guy }
+                });
+
+
+                CLAY_AUTO_ID({ .layout.sizing.width = CLAY_SIZING_GROW() });
+            }
+
+            ui_sprintf(tmp, "hp: %d/%d", guy->hp, guy_maxhp(guy));
+            CLAY_TEXT(tmp, ui_font(ui_Font_Desc));
+
+            ui_sprintf(tmp, "sex: %s", guy_sex_str(guy->sex));
+            CLAY_TEXT(tmp, ui_font(ui_Font_Desc));
+
+            ui_race_summary(guy);
+
+            CLAY_AUTO_ID({
+                .border = {
+                    .width = CLAY_BORDER_OUTSIDE(4),
+                    .color = {0, 0, 0, 255}
+                },
+                .backgroundColor = Clay_Hovered()
+                    ? (Clay_Color) { 128, 128, 128, 128 }
+                    : (Clay_Color) { 255, 255, 255, 255 },
+                .cornerRadius = CLAY_CORNER_RADIUS(6),
+                .layout = {
+                    .padding = { 16, 16, 8, 8 },
+                }
+            }) {
+                if (Clay_Hovered()) {
+                    if (Clay_GetPointerState().state == 
+                            CLAY_POINTER_DATA_RELEASED_THIS_FRAME
+                        )
+                        ui.guy_detail.show_stats ^= 1;
+                }
+
+                CLAY_TEXT(
+                    (ui.guy_detail.show_stats)
+                        ? CLAY_STRING("SHOW STATS  v")
+                        : CLAY_STRING("SHOW STATS  >"),
+                    ui_font(ui_Font_Desc)
+                );
+            }
+
+            if (ui.guy_detail.show_stats) CLAY_AUTO_ID({
+                .layout = {
+                    .layoutDirection = CLAY_TOP_TO_BOTTOM,
+                    .sizing = {
+                        .width = CLAY_SIZING_GROW(0),
+                        .height = CLAY_SIZING_GROW(0)
+                    },
+                    .padding = { 4, 4, 4, 4 },
+                    .childGap = 4,
+                },
+                .clip = {
+                    .horizontal = true,
+                    .vertical = true,
+                    .childOffset = Clay_GetScrollOffset()
+                },
+            }) {
+
+                ui_gene_tally_color(
+                    guy,
+                    "hair",
+                    guy_color_hair(guy),
+                    guy_GeneCategory_HairColor
+                );
+
+                ui_gene_tally_color(
+                    guy,
+                    "skin",
+                    guy_color_skin(guy),
+                    guy_GeneCategory_SkinColor
+                );
+
+                ui_gene_tally(
+                    guy,
+                    "kids per night",
+                    guy_fecundity(guy),
+                    guy_GeneCategory_Fecundity
+                );
+
+                ui_gene_tally(
+                    guy,
+                    "metabolism",
+                    guy_metabolism(guy),
+                    guy_GeneCategory_Metabolism
+                );
+
+                ui_gene_tally(
+                    guy,
+                    "girth",
+                    guy_girth(guy),
+                    guy_GeneCategory_Girth
+                );
+
+                ui_gene_tally(
+                    guy,
+                    "strength",
+                    guy_strength(guy),
+                    guy_GeneCategory_Strength
+                );
+            }
+            
+            if (ui.guy_detail.gene_hovered) {
+                guy_GeneConfig *gene = ui.guy_detail.gene_hovered;
+                size_t gene_number = gene - &guy_gene_configs[0];
+                ui_sprintf(
+                    tmp,
+                    "%s gene #%ld (sex: %s)",
+                    guy_race_names[gene->race],
+                    gene_number,
+                    guy_sex_str(gene->sex)
+                );
+                CLAY_TEXT(tmp, ui_font(ui_Font_Desc));
+            } else {
+                CLAY_TEXT(
+                    CLAY_STRING("HOVER OVER GENE"),
+                    ui_font(ui_Font_Desc)
+                );
+            }
+
+            CLAY_TEXT(
+                CLAY_STRING("closest relatives:"),
+                ui_font(ui_Font_Desc)
+            );
+            ui_closest_relatives(guy);
+        }
+
+        CLAY_AUTO_ID({
+            .layout = {
+                .sizing = {
+                    .width = CLAY_SIZING_FIXED(20),
+                    .height = CLAY_SIZING_GROW(),
+                },
+            },
+        }) {
+        }
+
+        switch (ui_big_button(
+            CLAY_STRING("BACK"),
+            ui_icon(ui_Icon_Back)
+        )) {
+            case ui_Click_Pressed: RL_PlaySound(ui_sound(ui_Sound_Click)); break;
+            case ui_Click_Released: {
+                ui.guy_detail.active = false;
+            } break;
+            default: break;
+        }
+
+    }
+
+    ui.guy_detail.gene_hovered = NULL;
+
+    return Clay_EndLayout(RL_GetFrameTime());
+}
+
+void ui_guy_show_detail_page(guy_Guy *guy) {
+    ui.guy_detail.active = true;
+    ui.guy_detail.guy = guy;
+}
+
+bool ui_takeover(void) {
+    return ui.guy_detail.active;
+}

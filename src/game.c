@@ -22,6 +22,17 @@ void frame(void) {
 
     RL_SetMouseCursor(eab_mouse_cursor);
     eab_mouse_cursor = 0;
+    
+    if (ui_takeover()) {
+        ui_update();
+
+        RL_BeginDrawing();
+        RL_ClearBackground(RL_WHITE);
+        Clay_BeginLayout();
+        ui_render(Clay_EndLayout(RL_GetFrameTime()));
+        RL_EndDrawing();
+        return;
+    }
 
     view_Transition transition = { 0 };
 
