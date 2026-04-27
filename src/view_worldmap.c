@@ -15,6 +15,14 @@ static struct {
     double ts_view_entered, ts_enter_anim_done;
     view_Transition next_view;
     RL_Camera2D camera;
+
+    /* don't do camera movement with the mouse, it's mine! */
+    struct {
+        f2 pos;
+        float zoom;
+        bool mouse_captured, moving_cam;
+        f2 mouse_pos_down;
+    } cam;
 } view = {};
 
 void view_worldmap_init(view_Transition t) {
@@ -23,6 +31,10 @@ void view_worldmap_init(view_Transition t) {
 
     bool animate = (t.kind == view_TransitionKind_BackToWorldMap);
     view.ts_enter_anim_done = RL_GetTime() + (float)animate;
+    
+    view.cam.pos.x = RL_GetScreenWidth()*0.5;
+    view.cam.pos.y = RL_GetScreenHeight()*0.5;
+    view.cam.zoom = 1.0f;
 }
 void view_worldmap_free(void) {
 }
@@ -63,12 +75,42 @@ static bool stop_complete(size_t index) {
 
 static Clay_RenderCommandArray ui_create_layout(void);
 void view_worldmap_render(void) {
+
+    float cx = view.cam.pos.x;
+    float cy = view.cam.pos.y;
+    if (!view.cam.mouse_captured) { /* free camera controls */
+        RL_Vector2 m = RL_GetMousePosition();
+
+        if (RL_IsMouseButtonPressed(0)) {
+            view.cam.mouse_pos_down.x = m.x;
+            view.cam.mouse_pos_down.y = m.y;
+            view.cam.moving_cam = true;
+        }
+        if (RL_IsMouseButtonDown(0) && view.cam.moving_cam) {
+            cx += m.x - view.cam.mouse_pos_down.x;
+            cy += m.y - view.cam.mouse_pos_down.y;
+        }
+        if (RL_IsMouseButtonReleased(0) && view.cam.moving_cam) {
+            view.cam.pos.x += m.x - view.cam.mouse_pos_down.x;
+            view.cam.pos.y += m.y - view.cam.mouse_pos_down.y;
+            cx = view.cam.pos.x;
+            cy = view.cam.pos.y;
+            view.cam.moving_cam = false;
+        }
+
+        view.cam.zoom += 0.02*RL_GetMouseWheelMoveV().y;
+        view.cam.zoom = fabsf(view.cam.zoom);
+    }
+
+    /* this may get set back to true by the end of this function */
+    view.cam.mouse_captured = false;
+
     RL_BeginDrawing();
     view.camera = (RL_Camera2D) {
-        .offset = { RL_GetScreenWidth()*0.5, RL_GetScreenHeight()*0.5 },
+        .offset = { cx, cy },
         .target = { RL_GetScreenWidth()*0.5, RL_GetScreenHeight()*0.5 },
         .rotation = 0,
-        .zoom = 1.3f,
+        .zoom = 1.3f * view.cam.zoom,
     };
     RL_BeginMode2D(view.camera);
 
@@ -127,6 +169,7 @@ void view_worldmap_render(void) {
             float dist = sqrtf((m.x - x)*(m.x - x) + (m.y - y)*(m.y - y));
             if (dist < size*0.5) {
                 size *= 1.15;
+                view.cam.mouse_captured = true;
 
                 eab_mouse_cursor = MOUSE_CURSOR_POINTING_HAND;
 
