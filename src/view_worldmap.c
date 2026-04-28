@@ -26,6 +26,7 @@ static struct {
 } view = {};
 
 static void map_stops_init(void);
+static void map_stops_layout(void);
 void view_worldmap_init(view_Transition t) {
     memset(&view, 0, sizeof(view));
     view.ts_view_entered = RL_GetTime();
@@ -40,38 +41,54 @@ void view_worldmap_init(view_Transition t) {
     view.cam.zoom = 1.0f;
 
     map_stops_init();
+    for (int i = 0; i < 50000; i++) map_stops_layout();
 }
 void view_worldmap_free(void) {
 }
 
-static void map_stops_layout(void);
 view_Transition view_worldmap_update(uint64_t _) {
-    for (int i = 0; i < 100; i++)
-        map_stops_layout();
+    // for (int i = 0; i < 100; i++) map_stops_layout();
 
     ui_update();
     return view.next_view;
 }
+
+typedef enum {
+    map_Biome_Plains,
+    map_Biome_Forest,
+    map_Biome_DeepForest,
+    map_Biome_Desert,
+    map_Biome_COUNT,
+} map_Biome;
+
+static Color map_biome_color[] = {
+    [map_Biome_Plains    ] = { 104, 148, 122, 255 },
+    [map_Biome_Forest    ] = {  80, 109,  92, 255 },
+    [map_Biome_DeepForest] = {  55,  67,  60, 255 },
+    [map_Biome_Desert    ] = { 229, 196, 163, 255 },
+};
+_Static_assert(countof(map_biome_color) == map_Biome_COUNT, "missing biome color");
 
 typedef struct Stop Stop;
 struct Stop {
     bool active;
     Stop *parent;
 
-    uint32_t steps_from_root;
+    uint16_t steps_from_root;
+    map_Biome biome;
 
     ui_Icon icon;
     float x, y;
     size_t unit_count;
 };
 
-#define map_STOPS_MAX 400
+#define map_STOPS_MAX 100
 static struct {
     Stop all[map_STOPS_MAX];
     Stop *start, *next;
 } stops;
 
-static Stop *map_stops_init_arm(Stop *base, int length, float angle);
+static Stop *map_stops_init_arm(Stop *base, map_Biome biome, int length, float angle);
 static void map_stops_init(void) {
     stops.next = stops.all;
 
@@ -79,62 +96,38 @@ static void map_stops_init(void) {
     *start = (Stop) {
         .active = true,
         .icon = ui_Icon_Camp,
+        .steps_from_root = 0,
         .x = 0,
         .y = 0,
-        .steps_from_root = 0,
     };
 
-    int arm_count = 3;
+    int arm_count = map_Biome_COUNT;
     for (int i = 0; i < arm_count; i++) {
-        float jitter = 0;// 0.1 * (0.5f - randf());
+        map_Biome biome = i;
+        float jitter = 0.1 * (0.5f - randf());
         float t = ((float)i/(float)arm_count);
         float angle = M_PI*2.0f * t + jitter;
-        Stop *end = map_stops_init_arm(start, RL_GetRandomValue(2, 3), angle);
+        Stop *end = map_stops_init_arm(start, biome, 2, angle);
 
-        int arm_count = RL_GetRandomValue(2, 4);
+        int arm_count = 3;
         for (int i = 0; i < arm_count; i++) {
-            float jitter = 0;// 0.1 * (0.5f - randf());
+            float jitter = 0.1 * (0.5f - randf());
             float t = ((float)i/(float)arm_count);
             float angle = M_PI*2.0f * t + jitter;
-            Stop *end2 = map_stops_init_arm(end, RL_GetRandomValue(2, 3), angle);
+            Stop *end2 = map_stops_init_arm(end, biome, 2, angle);
 
-            int arm_count = RL_GetRandomValue(4, 5);
+            int arm_count = 3;
             for (int i = 0; i < arm_count; i++) {
-                float jitter = 0;// 0.1 * (0.5f - randf());
+                float jitter = 0.1 * (0.5f - randf());
                 float t = ((float)i/(float)arm_count);
                 float angle = M_PI*2.0f * t + jitter;
-                Stop *end3 = map_stops_init_arm(end2, RL_GetRandomValue(2, 4), angle);
-
-                int arm_count = RL_GetRandomValue(2, 3);
-                for (int i = 0; i < arm_count; i++) {
-                    float jitter = 0;// 0.1 * (0.5f - randf());
-                    float t = ((float)i/(float)arm_count);
-                    float angle = M_PI*2.0f * t + jitter;
-                    map_stops_init_arm(end3, RL_GetRandomValue(1, 2), angle);
-                }
+                map_stops_init_arm(end2, biome, 2, angle);
             }
         }
     }
 }
 
 static void map_stops_layout(void) {
-
-    for (size_t stop_i = 0; stop_i < countof(stops.all); stop_i++) {
-        Stop *i = stops.all + stop_i;
-        if (!i->active) continue;
-        if (!i->parent) continue;
-
-        /* my distance from 0, 0, should be roughly proportional
-         * to the number of steps from me to the root node */
-        float ideal_dist = i->steps_from_root * 100;
-        float dist = sqrtf(i->x*i->x + i->y*i->y);
-        float push = ideal_dist - dist;
-        if (push > 0) {
-            i->x += (i->x/dist) * push/2 * 0.001;
-            i->y += (i->y/dist) * push/2 * 0.001;
-        }
-    }
-
     for (size_t stop_i = 0; stop_i < countof(stops.all); stop_i++) {
         Stop *i = stops.all + stop_i;
         Stop *p = i->parent;
@@ -146,10 +139,10 @@ static void map_stops_layout(void) {
         float dist = sqrtf(dx*dx + dy*dy);
         float stretch = dist - 100;
         if (stretch > 0) {
-            p->x -= (dx/dist) * stretch/2;
-            p->y -= (dy/dist) * stretch/2;
-            i->x += (dx/dist) * stretch/2;
-            i->y += (dy/dist) * stretch/2;
+            p->x -= (dx/dist) * stretch/2 * 0.1;
+            p->y -= (dy/dist) * stretch/2 * 0.1;
+            i->x += (dx/dist) * stretch/2 * 0.1;
+            i->y += (dy/dist) * stretch/2 * 0.1;
         }
     }
 
@@ -166,16 +159,16 @@ static void map_stops_layout(void) {
             float dist = sqrtf(dx*dx + dy*dy);
             float overlap = (100 + 100) - dist;
             if (overlap > 0) {
-                j->x += (dx/dist) * overlap/2 * 0.01;
-                j->y += (dy/dist) * overlap/2 * 0.01;
-                i->x -= (dx/dist) * overlap/2 * 0.01;
-                i->y -= (dy/dist) * overlap/2 * 0.01;
+                j->x += (dx/dist) * overlap/2 * 0.1;
+                j->y += (dy/dist) * overlap/2 * 0.1;
+                i->x -= (dx/dist) * overlap/2 * 0.1;
+                i->y -= (dy/dist) * overlap/2 * 0.1;
             }
         }
     }
 }
 
-static Stop *map_stops_init_arm(Stop *base, int length, float angle) {
+static Stop *map_stops_init_arm(Stop *base, map_Biome biome, int length, float angle) {
     Stop *last = base;
     for (int i = 0; i < length; i++) {
         Stop *next = stops.next++;
@@ -192,6 +185,11 @@ static Stop *map_stops_init_arm(Stop *base, int length, float angle) {
             .x = fx,
             .y = fy,
         };
+
+        next->biome = (next->steps_from_root < 3)
+            ? map_Biome_Plains
+            : biome;
+
         last = next;
     }
 
@@ -249,6 +247,23 @@ void view_worldmap_render(void) {
     RL_BeginMode2D(view.camera);
 
     RL_ClearBackground(RL_WHITE);
+
+    for (size_t i = 0; i < countof(stops.all); i++) {
+        Stop *stop = stops.all + i;
+        if (!stop->active) continue;
+
+        // RL_DrawCircle(
+        //     stop->x,
+        //     stop->y,
+        //     120.0f,
+        //     (RL_Color) {
+        //         map_biome_color[stop->biome].r,
+        //         map_biome_color[stop->biome].g,
+        //         map_biome_color[stop->biome].b,
+        //         map_biome_color[stop->biome].a,
+        //     }
+        // );
+    }
 
     for (size_t i = 0; i < countof(stops.all); i++) {
         Stop *stop = stops.all + i;
