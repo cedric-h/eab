@@ -11,39 +11,174 @@
 #include "svg/path.h"
 #include "draw.h"
 
+typedef enum {
+    map_Biome_Plains,
+    map_Biome_Forest,
+    map_Biome_DarkForest,
+    map_Biome_Desert,
+    map_Biome_COUNT,
+} map_Biome;
+
+static Color map_biome_color[] = {
+    [map_Biome_Plains    ] = { 104, 148, 122, 255 },
+    [map_Biome_Forest    ] = {  80, 109,  92, 255 },
+    [map_Biome_DarkForest] = {  55,  67,  60, 255 },
+    [map_Biome_Desert    ] = { 229, 196, 163, 255 },
+};
+_Static_assert(
+    countof(map_biome_color) == map_Biome_COUNT,
+    "missing biome color"
+);
+
+typedef struct Stop Stop;
+typedef enum {
+    map_StopStage_NONE,
+    map_StopStage_New,
+    map_StopStage_Visited,
+} map_StopStage;
+struct Stop {
+    map_StopStage stage;
+    Stop *parent;
+
+    uint16_t steps_from_root;
+    map_Biome biome;
+
+    ui_Icon icon;
+    float x, y;
+
+    struct {
+        uint16_t variant;
+        f2 pos;
+    } assets[3];
+};
+
+#define map_STOPS_MAX 400
 static struct {
-    double ts_view_entered, ts_enter_anim_done;
+    bool inited;
+
+    Stop all[map_STOPS_MAX];
+    Stop *start, *current, *previous;
+
+    /* next stop to allocate */
+    Stop *next;
+} stops;
+
+#define map_MAX_ASSETS_PER_BIOME 10
+static struct {
+    double ts_enter_anim_start, ts_enter_anim_done;
     view_Transition next_view;
     RL_Camera2D camera;
 
-    /* don't do camera movement with the mouse, it's mine! */
+    struct {
+        size_t texture_count;
+        RL_Texture textures[map_MAX_ASSETS_PER_BIOME];
+    } biome_art[map_Biome_COUNT];
+
     struct {
         f2 pos;
         float zoom;
-        bool mouse_captured, moving_cam;
+
+        /* don't do camera movement with the mouse, it's mine! */
+        bool mouse_captured;
+
+        /* this mouse movement is being used for camera movement */
+        bool moving_cam;
+
         f2 mouse_pos_down;
     } cam;
 } view = {};
 
 static void map_stops_init(void);
 static void map_stops_layout(void);
+static void map_biome_art_init(void);
 void view_worldmap_init(view_Transition t) {
     memset(&view, 0, sizeof(view));
-    view.ts_view_entered = RL_GetTime();
 
+    view.ts_enter_anim_start = RL_GetTime();
     view.ts_enter_anim_done = RL_GetTime();
     if (t.kind == view_TransitionKind_BackToWorldMap) {
         view.ts_enter_anim_done = RL_GetTime() + 1;
     }
     
-    view.cam.pos.x = RL_GetScreenWidth()*0.5;
-    view.cam.pos.y = RL_GetScreenHeight()*0.5;
-    view.cam.zoom = 1.0f;
+    map_biome_art_init();
 
-    map_stops_init();
-    for (int i = 0; i < 50000; i++) map_stops_layout();
+    if (!stops.inited) {
+        stops.inited = true;
+
+        map_stops_init();
+        for (int i = 0; i < 10000; i++) map_stops_layout();
+    }
+
+    view.cam.pos.x = RL_GetScreenWidth()*0.5 - stops.current->x;
+    view.cam.pos.y = RL_GetScreenHeight()*0.5 - stops.current->y;
+    view.cam.zoom = 1.0f;
 }
+static void map_biome_art_init(void) {
+    struct {
+        char *paths[map_MAX_ASSETS_PER_BIOME];
+    } assets_for_biome[map_Biome_COUNT] = {
+        [map_Biome_DarkForest] = {
+            "darkforest_env1.png",
+            "darkforest_env2.png",
+            "darkforest_env3.png",
+            "darkforest_env4.png",
+            "darkforest_env5.png",
+            "darkforest_env6.png",
+        },
+        [map_Biome_Desert] = {
+            "desert_env1.png",
+            "desert_env2.png",
+            "desert_env3.png",
+            "desert_env4.png",
+        },
+        [map_Biome_Forest] = {
+            "forest_env1.png",
+            "forest_env2.png",
+            "forest_env3.png",
+            "forest_env4.png",
+            "forest_env5.png",
+            "forest_env6.png",
+            "forest_env7.png",
+        },
+        [map_Biome_Plains] = {
+            "forest_env1.png",
+            "forest_env2.png",
+            "forest_env3.png",
+            "forest_env4.png",
+            "forest_env5.png",
+            "forest_env6.png",
+            "forest_env7.png",
+        },
+    };
+
+    for (map_Biome biome = 0; biome < map_Biome_COUNT; biome++) {
+        for (int i = 0; i < map_MAX_ASSETS_PER_BIOME; i++) {
+            char *asset = assets_for_biome[biome].paths[i];
+            if (asset == NULL) continue;
+
+            char path[50] = {0};
+            snprintf(path, sizeof(path) - 1, "resources/env/%s", asset);
+            RL_Texture t = RL_LoadTexture(path);
+            RL_SetTextureFilter(
+                t,
+                TEXTURE_FILTER_BILINEAR
+            );
+            view.biome_art[biome].textures[i] = t;
+            view.biome_art[biome].texture_count += 1;
+        }
+    }
+}
+
 void view_worldmap_free(void) {
+    for (map_Biome biome = 0; biome < map_Biome_COUNT; biome++) {
+        for (
+            size_t i = 0;
+            i < view.biome_art[biome].texture_count;
+            i++
+        ) {
+            RL_UnloadTexture(view.biome_art[biome].textures[i]);
+        }
+    }
 }
 
 view_Transition view_worldmap_update(uint64_t _) {
@@ -53,40 +188,21 @@ view_Transition view_worldmap_update(uint64_t _) {
     return view.next_view;
 }
 
-typedef enum {
-    map_Biome_Plains,
-    map_Biome_Forest,
-    map_Biome_DeepForest,
-    map_Biome_Desert,
-    map_Biome_COUNT,
-} map_Biome;
-
-static Color map_biome_color[] = {
-    [map_Biome_Plains    ] = { 104, 148, 122, 255 },
-    [map_Biome_Forest    ] = {  80, 109,  92, 255 },
-    [map_Biome_DeepForest] = {  55,  67,  60, 255 },
-    [map_Biome_Desert    ] = { 229, 196, 163, 255 },
-};
-_Static_assert(countof(map_biome_color) == map_Biome_COUNT, "missing biome color");
-
-typedef struct Stop Stop;
-struct Stop {
-    bool active;
-    Stop *parent;
-
-    uint16_t steps_from_root;
-    map_Biome biome;
-
-    ui_Icon icon;
-    float x, y;
-    size_t unit_count;
-};
-
-#define map_STOPS_MAX 100
-static struct {
-    Stop all[map_STOPS_MAX];
-    Stop *start, *next;
-} stops;
+static void map_stops_assign_assets(Stop *stop) {
+    for (size_t i = 0; i < countof(stop->assets); i++) {
+        // float x = lerpf(30, 80, randf()) * ((randf() < 0.5) ? -1 : 1);
+        // float y = lerpf(30, 80, randf()) * ((randf() < 0.5) ? -1 : 1);
+        float t = (float)i / (float)countof(stop->assets);
+        float x = cosf(t*M_PI*2.0) * 60; // lerpf(50, 100, randf());
+        float y = sinf(t*M_PI*2.0) * 60; // lerpf(50, 100, randf());
+        stop->assets[i].pos.x = x;
+        stop->assets[i].pos.y = y;
+        stop->assets[i].variant = RL_GetRandomValue(
+            0,
+            view.biome_art[stop->biome].texture_count
+        );
+    }
+}
 
 static Stop *map_stops_init_arm(Stop *base, map_Biome biome, int length, float angle);
 static void map_stops_init(void) {
@@ -94,44 +210,69 @@ static void map_stops_init(void) {
 
     Stop *start = stops.next++;
     *start = (Stop) {
-        .active = true,
-        .icon = ui_Icon_Camp,
+        .stage = map_StopStage_New,
+        .icon = ui_Icon_BackToMap,
+        .biome = map_Biome_Plains,
         .steps_from_root = 0,
         .x = 0,
         .y = 0,
     };
+    map_stops_assign_assets(start);
+    stops.start = start;
+    stops.previous = start;
+    stops.current = start;
 
     int arm_count = map_Biome_COUNT;
-    for (int i = 0; i < arm_count; i++) {
+    for (int i = 1; i < arm_count; i++) {
         map_Biome biome = i;
-        float jitter = 0.1 * (0.5f - randf());
-        float t = ((float)i/(float)arm_count);
-        float angle = M_PI*2.0f * t + jitter;
-        Stop *end = map_stops_init_arm(start, biome, 2, angle);
+        float jitter = 0;// 0.1 * (0.5f - randf());
 
-        int arm_count = 3;
+        float t0 = (((float)i - 0.45f)/(float)(arm_count - 1));
+        float t1 = (((float)i + 0.45f)/(float)(arm_count - 1));
+        float angle0 = M_PI*2.0f * t0 + jitter;
+        float angle1 = M_PI*2.0f * t1 + jitter;
+        Stop *end = map_stops_init_arm(
+            start,
+            biome,
+            RL_GetRandomValue(1, 2),
+            lerp_rads(angle0, angle1, 0.5)
+        );
+
+        int arm_count = RL_GetRandomValue(3, 5);
         for (int i = 0; i < arm_count; i++) {
-            float jitter = 0.1 * (0.5f - randf());
-            float t = ((float)i/(float)arm_count);
-            float angle = M_PI*2.0f * t + jitter;
-            Stop *end2 = map_stops_init_arm(end, biome, 2, angle);
 
-            int arm_count = 3;
+            float imax = arm_count - 1;
+            float _0angle0 = lerp_rads(angle0, angle1, (float)(i - 0.5f)/imax);
+            float _0angle1 = lerp_rads(angle0, angle1, (float)(i + 0.5f)/imax);
+            Stop *end0 = map_stops_init_arm(
+                end,
+                biome,
+                RL_GetRandomValue(1, 3),
+                lerp_rads(_0angle0, _0angle1, 0.5)
+            );
+
+            int arm_count = RL_GetRandomValue(3, 5);
             for (int i = 0; i < arm_count; i++) {
-                float jitter = 0.1 * (0.5f - randf());
-                float t = ((float)i/(float)arm_count);
-                float angle = M_PI*2.0f * t + jitter;
-                map_stops_init_arm(end2, biome, 2, angle);
+                float imax = arm_count - 1;
+                float _1angle0 = lerp_rads(_0angle0, _0angle1, (float)(i - 0.5f)/imax);
+                float _1angle1 = lerp_rads(_0angle0, _0angle1, (float)(i + 0.5f)/imax);
+                map_stops_init_arm(
+                    end0,
+                    biome,
+                    RL_GetRandomValue(0, 3),
+                    lerp_rads(_1angle0, _1angle1, 0.5)
+                );
             }
         }
     }
 }
 
 static void map_stops_layout(void) {
+
     for (size_t stop_i = 0; stop_i < countof(stops.all); stop_i++) {
         Stop *i = stops.all + stop_i;
         Stop *p = i->parent;
-        if (!i->active) continue;
+        if (!i->stage) continue;
         if (!i->parent) continue;
 
         float dx = p->x - i->x;
@@ -148,11 +289,11 @@ static void map_stops_layout(void) {
 
     for (size_t stop_i = 0; stop_i < countof(stops.all); stop_i++) {
         Stop *i = stops.all + stop_i;
-        if (!i->active) continue;
+        if (!i->stage) continue;
 
         for (size_t stop_j = stop_i + 1; stop_j < countof(stops.all); stop_j++) {
             Stop *j = stops.all + stop_j;
-            if (!j->active) continue;
+            if (!j->stage) continue;
 
             float dx = j->x - i->x;
             float dy = j->y - i->y;
@@ -175,13 +316,12 @@ static Stop *map_stops_init_arm(Stop *base, map_Biome biome, int length, float a
 
         float dist = 100;
         float step_angle = angle + 0.1*(0.5 - randf());
-        float fx = last->x + cosf(step_angle) * dist + 50*(0.5 - randf());
-        float fy = last->y + sinf(step_angle) * dist + 50*(0.5 - randf());
+        float fx = last->x + cosf(step_angle) * dist;// + 50*(0.5 - randf());
+        float fy = last->y + sinf(step_angle) * dist;// + 50*(0.5 - randf());
         *next = (Stop) {
             .parent = last,
             .steps_from_root = last->steps_from_root + 1,
-            .active = true,
-            .icon = i%2 ? ui_Icon_Bed : ui_Icon_Swords,
+            .stage = map_StopStage_New,
             .x = fx,
             .y = fy,
         };
@@ -189,6 +329,14 @@ static Stop *map_stops_init_arm(Stop *base, map_Biome biome, int length, float a
         next->biome = (next->steps_from_root < 3)
             ? map_Biome_Plains
             : biome;
+        map_stops_assign_assets(next);
+
+        next->icon = (randf() < 0.2)
+            ? ui_Icon_Swords
+            : ui_Icon_Bed;
+        if (next->parent->icon == ui_Icon_Bed || 
+            next->parent->icon == ui_Icon_BackToMap)
+            next->icon = ui_Icon_Swords;
 
         last = next;
     }
@@ -197,12 +345,11 @@ static Stop *map_stops_init_arm(Stop *base, map_Biome biome, int length, float a
 }
 
 static bool map_stop_available(Stop *stop) {
-    size_t parent_index = stop->parent - stops.all;
-    return parent_index == (size_t)save.run.map_progress_idx;
+    return stop->parent == stops.current || stops.current->parent == stop;
 }
 
-static bool map_stop_complete(size_t index) {
-    return false;
+static bool map_stop_complete(Stop *stop) {
+    return stop->stage == map_StopStage_Visited;
 }
 
 static Clay_RenderCommandArray ui_create_layout(void);
@@ -242,32 +389,74 @@ void view_worldmap_render(void) {
         .offset = { cx, cy },
         .target = { 0, 0 },
         .rotation = 0,
-        .zoom = 1.3f * view.cam.zoom,
+        .zoom = 0.9f * view.cam.zoom,
     };
     RL_BeginMode2D(view.camera);
 
-    RL_ClearBackground(RL_WHITE);
+    RL_ClearBackground((RL_Color) { 97, 131, 161, 255 });
 
-    for (size_t i = 0; i < countof(stops.all); i++) {
-        Stop *stop = stops.all + i;
-        if (!stop->active) continue;
+    map_Biome biome_render_order[map_Biome_COUNT] = {
+        map_Biome_Desert,
+        map_Biome_DarkForest,
+        map_Biome_Forest,
+        map_Biome_Plains,
+    };
+    for (int i = 0; i < map_Biome_COUNT; i++) {
+        map_Biome b = biome_render_order[i];
 
-        // RL_DrawCircle(
-        //     stop->x,
-        //     stop->y,
-        //     120.0f,
-        //     (RL_Color) {
-        //         map_biome_color[stop->biome].r,
-        //         map_biome_color[stop->biome].g,
-        //         map_biome_color[stop->biome].b,
-        //         map_biome_color[stop->biome].a,
-        //     }
-        // );
+        for (size_t i = 0; i < countof(stops.all); i++) {
+            Stop *stop = stops.all + i;
+            if (!stop->stage) break;
+            if (stop->biome != b) continue;
+
+            RL_DrawCircle(
+                stop->x,
+                stop->y,
+                140.0f,
+                (RL_Color) {
+                    map_biome_color[stop->biome].r,
+                    map_biome_color[stop->biome].g,
+                    map_biome_color[stop->biome].b,
+                    map_biome_color[stop->biome].a,
+                }
+            );
+        }
+    }
+
+    for (size_t s = 0; s < countof(stops.all); s++) {
+        Stop *stop = stops.all + s;
+        if (!stop->stage) continue;
+
+        for (size_t i = 0; i < countof(stop->assets); i++) {
+            RL_Texture t = view
+                .biome_art[stop->biome]
+                .textures[stop->assets[i].variant];
+
+            // RL_DrawLineBezier(
+            float scale = 0.1;
+            RL_DrawTextureEx(
+                t,
+                (RL_Vector2) {
+                    stop->x + stop->assets[i].pos.x - t.width*0.5*scale,
+                    stop->y + stop->assets[i].pos.y - t.height*0.8*scale,
+                },
+                0,
+                scale,
+                (RL_Color) { 255, 255, 255, 75 }
+            );
+
+            if (0) RL_DrawCircle(
+                stop->x + stop->assets[i].pos.x,
+                stop->y + stop->assets[i].pos.y,
+                10,
+                (RL_Color) { 255, 0, 0, 255 }
+            );
+        }
     }
 
     for (size_t i = 0; i < countof(stops.all); i++) {
         Stop *stop = stops.all + i;
-        if (!stop->active) continue;
+        if (!stop->stage) continue;
         if (!stop->parent) continue;
 
         // RL_DrawLineBezier(
@@ -281,26 +470,26 @@ void view_worldmap_render(void) {
 
     for (size_t i = 0; i < countof(stops.all); i++) {
         Stop *stop = stops.all + i;
-        if (!stop->active) continue;
+        if (!stop->stage) continue;
         float x = stop->x;
         float y = stop->y;
 
         ui_Icon icon = stop->icon;
-        float size = 30;
+        float size = 65;
 
         Color tint = (Color){ 255, 255, 255, 255 };
-        if (i == save.run.map_progress_idx) {
+        if (stops.current == stop) {
             icon = ui_Icon_Camp;
 
             float t = 1;
-            if (stop->parent) {
+            if (stops.previous != stop) {
                 t = min(1, inv_lerp(
-                        view.ts_view_entered,
+                        view.ts_enter_anim_start,
                         view.ts_enter_anim_done,
                         RL_GetTime()
                 ));
-                x = lerp(stop->parent->x, x, t);
-                y = lerp(stop->parent->y, y, t);
+                x = lerp(stops.previous->x, x, t);
+                y = lerp(stops.previous->y, y, t);
             }
 
             draw_icon(
@@ -314,12 +503,13 @@ void view_worldmap_render(void) {
                 (Color) { 255, 255, 255, lerp(255, 0, t) }
             );
 
-        } else if (map_stop_available(stop))
+        }
+        else if (map_stop_complete(stop))
+            icon = ui_Icon_Grave;
+        else if (map_stop_available(stop))
             size *= 1.0f + 0.1*(1 + 0.5*sinf(RL_GetTime()*10));
-        else if (map_stop_complete(i))
-            tint = (Color) { 80, 80, 80, 180 };
         else if (map_stop_available(stop) == false)
-            tint.a = 120;
+            size *= 0.7, tint = (Color) { 120, 120, 120, 255 };
 
         if (map_stop_available(stop)) {
             RL_Vector2 m = RL_GetScreenToWorld2D(
@@ -327,11 +517,20 @@ void view_worldmap_render(void) {
                 view.camera
             );
             float dist = sqrtf((m.x - x)*(m.x - x) + (m.y - y)*(m.y - y));
-            if (dist < size*0.5) {
+            if (dist < size*0.5) do {
                 size *= 1.15;
                 view.cam.mouse_captured = true;
 
                 eab_mouse_cursor = MOUSE_CURSOR_POINTING_HAND;
+
+                if (RL_IsMouseButtonPressed(0) && map_stop_complete(stop)) {
+                    view.ts_enter_anim_start = RL_GetTime();
+                    view.ts_enter_anim_done = RL_GetTime() + 1;
+                    stops.current->stage = map_StopStage_Visited;
+                    stops.previous = stops.current;
+                    stops.current = stop;
+                    break;
+                }
 
                 switch (stop->icon) {
 
@@ -340,7 +539,10 @@ void view_worldmap_render(void) {
                         if (RL_IsMouseButtonPressed(0))
                             RL_PlaySound(ui_sound(ui_Sound_BattleEnter));
                         if (RL_IsMouseButtonReleased(0)) {
-                            view.next_view.battle.unit_count = stop->unit_count;
+                            stops.current->stage = map_StopStage_Visited;
+                            stops.previous = stops.current;
+                            stops.current = stop;
+                            view.next_view.battle.unit_count = 4 * stop->steps_from_root;
                             view.next_view.kind = view_TransitionKind_StartBattle;
                         }
                     } break;
@@ -348,16 +550,23 @@ void view_worldmap_render(void) {
                     case ui_Icon_Bed: {
                         if (RL_IsMouseButtonPressed(0))
                             RL_PlaySound(ui_sound(ui_Sound_CampEnter));
-                        if (RL_IsMouseButtonReleased(0))
+                        if (RL_IsMouseButtonReleased(0)) {
+                            stops.current->stage = map_StopStage_Visited;
+                            stops.previous = stops.current;
+                            stops.current = stop;
                             view.next_view.kind = view_TransitionKind_StartCamp;
+                        }
                     } break;
+
+                    case ui_Icon_BackToMap:
+                        break;
 
                     default:
                         assert(false);
                         break;
 
                 }
-            }
+            } while (false);
         }
 
         draw_icon(

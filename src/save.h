@@ -31,7 +31,6 @@ typedef struct {
         uint32_t kills;
         float food;
         uint32_t coin;
-        uint32_t map_progress_idx;
         save_Furniture furniture[10];
     } run;
 

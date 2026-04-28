@@ -88,7 +88,6 @@ start:
             }; break;
 
             case view_TransitionKind_BackToWorldMap: {
-                save.run.map_progress_idx += 1;
                 game.view = View_WorldMap;
             } break;
 
@@ -118,7 +117,7 @@ int main(void) {
 
     guy_system_init();
     ui_init();
-    game.view = View_WorldMap;
+    game.view = View_Title;
     // save.run.food = 5;
     // save.run.furniture[0] = save_Furniture_Bed;
     // {
