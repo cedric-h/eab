@@ -118,7 +118,7 @@ int main(void) {
 
     guy_system_init();
     ui_init();
-    game.view = View_Title;
+    game.view = View_WorldMap;
     // save.run.food = 5;
     // save.run.furniture[0] = save_Furniture_Bed;
     // {
