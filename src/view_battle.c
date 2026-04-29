@@ -247,7 +247,7 @@ view_Transition view_battle_update(uint64_t update) {
                 }
             }
 
-            if (bguy->target != current_target) {
+            if (current_target != NULL && bguy->target != current_target) {
                 char my_name[GUY_NAME_LEN_MAX] = {0};
                 guy_name(bguy->guy, my_name);
 
