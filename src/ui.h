@@ -36,6 +36,11 @@ typedef enum {
     ui_Icon_BackToMap,
     ui_Icon_Grave,
     ui_Icon_Heal,
+    ui_Icon_Captured,
+    ui_Icon_Chest,
+    ui_Icon_Key,
+    ui_Icon_Market,
+    ui_Icon_Hole,
     ui_Icon_COUNT,
 } ui_Icon;
 
@@ -48,6 +53,7 @@ typedef enum {
     ui_Sound_PageTurn,
     ui_Sound_CampEnter,
     ui_Sound_CampLeave,
+    ui_Sound_FurnitureUnlock,
     ui_Sound_COUNT,
 } ui_Sound;
 

@@ -711,7 +711,6 @@ static Clay_RenderCommandArray ui_create_layout(void) {
                         RL_PlaySound(ui_sound(ui_Sound_PageTurn));
                     } break;
                     case ui_Click_Released: {
-                        memset(&save, 0, sizeof(save));
                         view.next_view.kind = view_TransitionKind_BattleDefeat;
                     } break;
                     default: break;
@@ -767,7 +766,6 @@ static Clay_RenderCommandArray test_layout(void) {
                 RL_PlaySound(ui_sound(ui_Sound_BattleDefeat));
             } break;
             case ui_Click_Released: {
-                memset(&save, 0, sizeof(save));
                 view.next_view.kind = view_TransitionKind_BattleDefeat;
             } break;
             default: break;

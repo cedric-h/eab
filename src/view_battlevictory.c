@@ -149,7 +149,7 @@ static Clay_RenderCommandArray ui_create_layout(void) {
         )) {
             case ui_Click_Pressed: RL_PlaySound(ui_sound(ui_Sound_PageTurn)); break;
             case ui_Click_Released: {
-                view.next_view.kind = view_TransitionKind_BuyFurniture;
+                view.next_view.kind = view_TransitionKind_BackToWorldMap;
             } break;
             default: break;
         }

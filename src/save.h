@@ -8,6 +8,7 @@ typedef enum {
     save_Furniture_NONE,
     save_Furniture_Tikitorch,
     save_Furniture_Bed,
+    save_Furniture_Crown,
     save_Furniture_CrusaderScrolls,
     save_Furniture_COUNT,
 } save_Furniture;
@@ -29,6 +30,8 @@ typedef struct {
         guy_Guy guys[100];
 
         uint32_t kills;
+
+        uint32_t key_count;
         float food;
         uint32_t coin;
         save_Furniture furniture[10];

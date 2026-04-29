@@ -41,6 +41,11 @@ char *ui_icon_paths[] = {
     [ui_Icon_BackToMap] = "resources/icon/back_to_map.png",
     [ui_Icon_Grave    ] = "resources/icon/grave.png",
     [ui_Icon_Heal     ] = "resources/icon/heal.png",
+	[ui_Icon_Captured ] = "resources/icon/captured.png",
+	[ui_Icon_Chest    ] = "resources/icon/chest.png",
+	[ui_Icon_Key      ] = "resources/icon/key.png",
+	[ui_Icon_Market   ] = "resources/icon/market.png",
+	[ui_Icon_Hole     ] = "resources/icon/hole.png",
 };
 _Static_assert(countof(ui_icon_paths) == ui_Icon_COUNT, "missing icon path");
 
@@ -53,6 +58,7 @@ char *ui_sound_paths[] = {
     [ui_Sound_PageTurn        ] = "resources/audio/page_turn.wav",
     [ui_Sound_CampEnter       ] = "resources/audio/camp_enter.wav",
     [ui_Sound_CampLeave       ] = "resources/audio/camp_leave.wav",
+    [ui_Sound_FurnitureUnlock ] = "resources/audio/furniture_unlock.wav",
 };
 _Static_assert(countof(ui_sound_paths) == ui_Sound_COUNT, "missing sound path");
 

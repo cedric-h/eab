@@ -2,6 +2,7 @@
 #include "view.h"
 #include "ui.h"
 #include "save.h"
+#include "ease.h"
 #include <string.h>
 #include <stdio.h>
 #include <math.h>
@@ -10,6 +11,10 @@
 #include "svg.h"
 #include "svg/path.h"
 #include "draw.h"
+
+#define map_CAMP_MOVE_ANIM_DURATION 0.5
+#define map_SKIP_BATTLES false
+#define map_FREE_CAMERA false
 
 typedef enum {
     map_Biome_Plains,
@@ -30,12 +35,20 @@ _Static_assert(
     "missing biome color"
 );
 
-typedef struct Stop Stop;
 typedef enum {
     map_StopStage_NONE,
     map_StopStage_New,
     map_StopStage_Visited,
 } map_StopStage;
+typedef enum {
+    map_StopKind_NONE,
+    map_StopKind_Battle,
+    map_StopKind_Rest,
+    map_StopKind_Chest,
+    map_StopKind_Key,
+    map_StopKind_Market,
+} map_StopKind;
+typedef struct Stop Stop;
 struct Stop {
     map_StopStage stage;
     Stop *parent;
@@ -43,7 +56,7 @@ struct Stop {
     uint16_t steps_from_root;
     map_Biome biome;
 
-    ui_Icon icon;
+    map_StopKind kind;
     float x, y;
 
     struct {
@@ -54,6 +67,7 @@ struct Stop {
 
 #define map_STOPS_MAX 400
 static struct {
+    uint32_t run_id;
     bool inited;
 
     Stop all[map_STOPS_MAX];
@@ -66,6 +80,7 @@ static struct {
 #define map_MAX_ASSETS_PER_BIOME 10
 static struct {
     double ts_enter_anim_start, ts_enter_anim_done;
+    double ts_move_anim_start, ts_move_anim_done;
     view_Transition next_view;
     RL_Camera2D camera;
 
@@ -94,10 +109,9 @@ static void map_biome_art_init(void);
 void view_worldmap_init(view_Transition t) {
     memset(&view, 0, sizeof(view));
 
-    view.ts_enter_anim_start = RL_GetTime();
-    view.ts_enter_anim_done = RL_GetTime();
-    if (t.kind == view_TransitionKind_BackToWorldMap) {
-        view.ts_enter_anim_done = RL_GetTime() + 1;
+    if (save.run.id != stops.run_id) {
+        memset(&stops, 0, sizeof(stops));
+        stops.run_id = save.run.id;
     }
     
     map_biome_art_init();
@@ -109,9 +123,21 @@ void view_worldmap_init(view_Transition t) {
         for (int i = 0; i < 10000; i++) map_stops_layout();
     }
 
-    view.cam.pos.x = RL_GetScreenWidth()*0.5 - stops.current->x;
-    view.cam.pos.y = RL_GetScreenHeight()*0.5 - stops.current->y;
+    view.cam.pos.x = -stops.current->x;
+    view.cam.pos.y = -stops.current->y;
     view.cam.zoom = 1.0f;
+
+    view.ts_enter_anim_start = RL_GetTime();
+    view.ts_enter_anim_done = RL_GetTime();
+    if (t.kind == view_TransitionKind_StartRun) {
+        view.ts_enter_anim_done += 3;
+    }
+
+    view.ts_move_anim_start = RL_GetTime();
+    view.ts_move_anim_done = RL_GetTime();
+    if (t.kind == view_TransitionKind_BackToWorldMap) {
+        view.ts_move_anim_done += map_CAMP_MOVE_ANIM_DURATION;
+    }
 }
 static void map_biome_art_init(void) {
     struct {
@@ -204,14 +230,22 @@ static void map_stops_assign_assets(Stop *stop) {
     }
 }
 
+static void map_stops_set_current(Stop *stop) {
+    view.ts_move_anim_start = RL_GetTime();
+    view.ts_move_anim_done = RL_GetTime() + map_CAMP_MOVE_ANIM_DURATION;
+    stops.current->stage = map_StopStage_Visited;
+    stops.previous = stops.current;
+    stops.current = stop;
+}
+
 static Stop *map_stops_init_arm(Stop *base, map_Biome biome, int length, float angle);
 static void map_stops_init(void) {
     stops.next = stops.all;
 
     Stop *start = stops.next++;
     *start = (Stop) {
-        .stage = map_StopStage_New,
-        .icon = ui_Icon_BackToMap,
+        .stage = map_StopStage_Visited,
+        .kind = map_StopKind_NONE,
         .biome = map_Biome_Plains,
         .steps_from_root = 0,
         .x = 0,
@@ -239,6 +273,10 @@ static void map_stops_init(void) {
         );
 
         int arm_count = RL_GetRandomValue(3, 5);
+        int arm_idx_key = RL_GetRandomValue(0, arm_count-1);
+        int arm_idx_chest = arm_idx_key;
+        while (arm_idx_chest == arm_idx_key)
+            arm_idx_chest = RL_GetRandomValue(0, arm_count-1);
         for (int i = 0; i < arm_count; i++) {
 
             float imax = arm_count - 1;
@@ -250,6 +288,8 @@ static void map_stops_init(void) {
                 RL_GetRandomValue(1, 3),
                 lerp_rads(_0angle0, _0angle1, 0.5)
             );
+            if (i == arm_idx_key  ) end0->kind = map_StopKind_Key;
+            if (i == arm_idx_chest) end0->kind = map_StopKind_Chest;
 
             int arm_count = RL_GetRandomValue(3, 5);
             for (int i = 0; i < arm_count; i++) {
@@ -331,12 +371,17 @@ static Stop *map_stops_init_arm(Stop *base, map_Biome biome, int length, float a
             : biome;
         map_stops_assign_assets(next);
 
-        next->icon = (randf() < 0.2)
-            ? ui_Icon_Swords
-            : ui_Icon_Bed;
-        if (next->parent->icon == ui_Icon_Bed || 
-            next->parent->icon == ui_Icon_BackToMap)
-            next->icon = ui_Icon_Swords;
+        float f = randf();
+             if (f < 0.8) next->kind = map_StopKind_Battle;
+        else if (f < 0.9)
+            next->kind = (next->steps_from_root > 3)
+                ? map_StopKind_Market
+                : map_StopKind_Rest;
+        else              next->kind = map_StopKind_Rest;
+
+        if (next->parent->kind == map_StopKind_Rest || 
+            next->parent->kind == map_StopKind_NONE)
+            next->kind = map_StopKind_Battle;
 
         last = next;
     }
@@ -355,8 +400,21 @@ static bool map_stop_complete(Stop *stop) {
 static Clay_RenderCommandArray ui_create_layout(void);
 void view_worldmap_render(void) {
 
+
+    {
+        double cam_t = max(0, min(1, inv_lerp(
+                view.ts_move_anim_start + map_CAMP_MOVE_ANIM_DURATION,
+                view.ts_move_anim_done + map_CAMP_MOVE_ANIM_DURATION,
+                RL_GetTime()
+        )));
+        cam_t = ease_out_sine_double(cam_t);
+        view.cam.pos.x = -lerp(stops.previous->x, stops.current->x, cam_t);
+        view.cam.pos.y = -lerp(stops.previous->y, stops.current->y, cam_t);
+    }
+
     float cx = view.cam.pos.x;
     float cy = view.cam.pos.y;
+#if map_FREE_CAMERA
     if (!view.cam.mouse_captured) { /* free camera controls */
         RL_Vector2 m = RL_GetMousePosition();
 
@@ -380,17 +438,32 @@ void view_worldmap_render(void) {
         view.cam.zoom += 0.02*RL_GetMouseWheelMoveV().y;
         view.cam.zoom = fabsf(view.cam.zoom);
     }
+#endif
 
     /* this may get set back to true by the end of this function */
     view.cam.mouse_captured = false;
 
     RL_BeginDrawing();
-    view.camera = (RL_Camera2D) {
-        .offset = { cx, cy },
-        .target = { 0, 0 },
-        .rotation = 0,
-        .zoom = 0.9f * view.cam.zoom,
-    };
+    {
+        float zoom = lerp(
+            0.01f,
+            0.9f * view.cam.zoom,
+            ease_out_sine_double(min(1, inv_lerp(
+                view.ts_enter_anim_start,
+                view.ts_enter_anim_done,
+                RL_GetTime()
+            )))
+        );
+        view.camera = (RL_Camera2D) {
+            .offset = {
+                (cx * zoom) + RL_GetScreenWidth() *0.5,
+                (cy * zoom) + RL_GetScreenHeight()*0.5
+            },
+            .target = { 0, 0 },
+            .rotation = 0,
+            .zoom = zoom,
+        };
+    }
     RL_BeginMode2D(view.camera);
 
     RL_ClearBackground((RL_Color) { 97, 131, 161, 255 });
@@ -474,26 +547,49 @@ void view_worldmap_render(void) {
         float x = stop->x;
         float y = stop->y;
 
-        ui_Icon icon = stop->icon;
+        ui_Icon icon = 0;
+        switch (stop->kind) {
+            case map_StopKind_NONE:   icon = ui_Icon_Hole; break;
+            case map_StopKind_Battle: icon = ui_Icon_Swords; break;
+            case map_StopKind_Rest:   icon = ui_Icon_Bed; break;
+            case map_StopKind_Chest:  icon = ui_Icon_Chest; break;
+            case map_StopKind_Key:    icon = ui_Icon_Key; break;
+            case map_StopKind_Market: icon = ui_Icon_Market; break;
+        }
         float size = 65;
 
         Color tint = (Color){ 255, 255, 255, 255 };
-        if (stops.current == stop) {
-            icon = ui_Icon_Camp;
 
+        /* places you've been before are the grave */
+        if (map_stop_complete(stop))
+            icon = ui_Icon_Captured;
+
+        if (stops.current != stop) {
+            /* but new things you can move to pulse */
+            if (!map_stop_complete(stop) && map_stop_available(stop))
+                size *= 1.0f + 0.1*(1 + 0.5*sinf(RL_GetTime()*10));
+
+            /* things you can't click on are tiny and dark */
+            if (!map_stop_available(stop)) {
+                size *= lerp(0.7, 1.0, map_stop_complete(stop));
+                tint = (Color) { 120, 120, 120, 255 };
+            }
+        }
+
+        if (stops.current == stop) {
             float t = 1;
             if (stops.previous != stop) {
                 t = min(1, inv_lerp(
-                        view.ts_enter_anim_start,
-                        view.ts_enter_anim_done,
+                        view.ts_move_anim_start,
+                        view.ts_move_anim_done,
                         RL_GetTime()
                 ));
-                x = lerp(stops.previous->x, x, t);
-                y = lerp(stops.previous->y, y, t);
+                t = ease_out_circ(t);
             }
 
+            /* draw a fading out version of this spot's icon */
             draw_icon(
-                stop->icon,
+                icon,
                 (draw_Rect) {
                     .min_x = stop->x - size/2,
                     .max_x = stop->x + size/2,
@@ -503,13 +599,11 @@ void view_worldmap_render(void) {
                 (Color) { 255, 255, 255, lerp(255, 0, t) }
             );
 
+            /* hijack this space to draw the moving camp icon */
+            icon = ui_Icon_Camp;
+            x = lerp(stops.previous->x, x, t);
+            y = lerp(stops.previous->y, y, t);
         }
-        else if (map_stop_complete(stop))
-            icon = ui_Icon_Grave;
-        else if (map_stop_available(stop))
-            size *= 1.0f + 0.1*(1 + 0.5*sinf(RL_GetTime()*10));
-        else if (map_stop_available(stop) == false)
-            size *= 0.7, tint = (Color) { 120, 120, 120, 255 };
 
         if (map_stop_available(stop)) {
             RL_Vector2 m = RL_GetScreenToWorld2D(
@@ -517,6 +611,10 @@ void view_worldmap_render(void) {
                 view.camera
             );
             float dist = sqrtf((m.x - x)*(m.x - x) + (m.y - y)*(m.y - y));
+
+            /* where this stop is on the screen */
+            RL_Vector2 screen = RL_GetWorldToScreen2D((RL_Vector2) { x, y }, view.camera);
+
             if (dist < size*0.5) do {
                 size *= 1.15;
                 view.cam.mouse_captured = true;
@@ -524,47 +622,96 @@ void view_worldmap_render(void) {
                 eab_mouse_cursor = MOUSE_CURSOR_POINTING_HAND;
 
                 if (RL_IsMouseButtonPressed(0) && map_stop_complete(stop)) {
-                    view.ts_enter_anim_start = RL_GetTime();
-                    view.ts_enter_anim_done = RL_GetTime() + 1;
-                    stops.current->stage = map_StopStage_Visited;
-                    stops.previous = stops.current;
-                    stops.current = stop;
+                    map_stops_set_current(stop);
                     break;
                 }
 
-                switch (stop->icon) {
+                switch (stop->kind) {
 
-                    case ui_Icon_Crown:
-                    case ui_Icon_Swords: {
+                    case map_StopKind_Battle: {
                         if (RL_IsMouseButtonPressed(0))
                             RL_PlaySound(ui_sound(ui_Sound_BattleEnter));
                         if (RL_IsMouseButtonReleased(0)) {
-                            stops.current->stage = map_StopStage_Visited;
-                            stops.previous = stops.current;
-                            stops.current = stop;
+                            map_stops_set_current(stop);
                             view.next_view.battle.unit_count = 4 * stop->steps_from_root;
-                            view.next_view.kind = view_TransitionKind_StartBattle;
+#if !map_SKIP_BATTLES
+                                view.next_view.kind = view_TransitionKind_StartBattle;
+#endif
                         }
                     } break;
 
-                    case ui_Icon_Bed: {
+                    case map_StopKind_Rest: {
                         if (RL_IsMouseButtonPressed(0))
                             RL_PlaySound(ui_sound(ui_Sound_CampEnter));
                         if (RL_IsMouseButtonReleased(0)) {
-                            stops.current->stage = map_StopStage_Visited;
-                            stops.previous = stops.current;
-                            stops.current = stop;
+                            map_stops_set_current(stop);
                             view.next_view.kind = view_TransitionKind_StartCamp;
                         }
                     } break;
+                    
+                    case map_StopKind_Market: {
+                        if (RL_IsMouseButtonPressed(0))
+                            RL_PlaySound(ui_sound(ui_Sound_CampEnter));
+                        if (RL_IsMouseButtonReleased(0)) {
+                            map_stops_set_current(stop);
+                            view.next_view.kind = view_TransitionKind_BuyFurniture;
+                        }
+                    } break;
+                    
+                    case map_StopKind_Chest: {
+                        if (RL_IsMouseButtonReleased(0)) {
+                            if (save.run.key_count > 0) {
+                                save.run.key_count -= 1;
+                                map_stops_set_current(stop);
+                                RL_PlaySound(ui_sound(ui_Sound_FurnitureUnlock));
 
-                    case ui_Icon_BackToMap:
-                        break;
+                                uint32_t coins_earned = RL_GetRandomValue(10, 20);
+                                save.run.coin += coins_earned;
 
-                    default:
-                        assert(false);
-                        break;
+                                for (uint32_t i = 0; i < coins_earned; i++)
+                                    ui_flying_icon((ui_FlyingIcon) {
+                                        .start.x = screen.x + lerpf(-20, 20, randf()),
+                                        .start.y = screen.y + lerpf(-20, 20, randf()),
+                                        .end.x =  RL_GetScreenWidth()*0.90 + lerpf(-10, 10, randf()),
+                                        .end.y = RL_GetScreenHeight()*0.05 + lerpf(-10, 10, randf()),
+                                        .start_t = RL_GetTime() + i*0.1,
+                                        .end_t = RL_GetTime() + i*0.1 + 1,
+                                        .icon = ui_Icon_Fleur,
+                                        .size = 10,
+                                    });
 
+                            } else {
+                                RL_PlaySound(ui_sound(ui_Sound_CampLeave));
+                            }
+                        }
+                    } break;
+
+                    case map_StopKind_Key: {
+                        if (RL_IsMouseButtonPressed(0)) {
+                            RL_PlaySound(ui_sound(ui_Sound_CampLeave));
+                        } else if (RL_IsMouseButtonReleased(0)) {
+                            save.run.key_count += 1;
+                            map_stops_set_current(stop);
+
+                            ui_flying_icon((ui_FlyingIcon) {
+                                .start.x = screen.x + lerpf(-20, 20, randf()),
+                                .start.y = screen.y + lerpf(-20, 20, randf()),
+                                .end.x =  RL_GetScreenWidth()*0.85,
+                                .end.y = RL_GetScreenHeight()*0.15,
+                                .start_t = RL_GetTime(),
+                                .end_t = RL_GetTime() + 1,
+                                .icon = ui_Icon_Key,
+                                .size = 12,
+                            });
+
+                        }
+                    } break;
+
+                    case map_StopKind_NONE: {
+                        if (RL_IsMouseButtonReleased(0)) {
+                            map_stops_set_current(stop);
+                        }
+                    } break;
                 }
             } while (false);
         }
@@ -588,8 +735,91 @@ void view_worldmap_render(void) {
     RL_EndDrawing();
 }
 
+static void ui_tally(ui_Icon icon, uint32_t count) {
+    CLAY_AUTO_ID({
+        .layout.childAlignment = {
+            .y = CLAY_ALIGN_Y_CENTER,
+        },
+    }) {
+        CLAY_AUTO_ID({
+            .layout = {
+                .sizing = {
+                    .height = CLAY_SIZING_FIXED(24),
+                    .width = CLAY_SIZING_FIXED(24),
+                },
+            },
+            .image = { .imageData = ui_icon(icon) }
+        });
+
+        Clay_String tmp;
+        ui_sprintf(tmp, " x%d", count);
+        CLAY_TEXT(tmp, ui_font_ex(ui_Font_Desc, (Clay_TextElementConfig) {
+            .textColor = { 255, 255, 255, 255 },
+        }));
+    }
+}
+
 static Clay_RenderCommandArray ui_create_layout(void) {
     Clay_BeginLayout();
+
+    CLAY(CLAY_ID("OuterContainer"), {
+        .layout = {
+            .sizing = {
+                .width = CLAY_SIZING_GROW(0),
+                .height = CLAY_SIZING_GROW(0)
+            },
+            .padding = { 32, 32, 32, 4 },
+        },
+    }) {
+
+        CLAY_AUTO_ID({
+            .layout = {
+                .layoutDirection = CLAY_TOP_TO_BOTTOM,
+                .childGap = 10,
+            }
+        }) {
+            Clay_TextElementConfig text = ui_font_ex(ui_Font_Desc, (Clay_TextElementConfig) {
+                .textColor = { 255, 255, 255, 255 },
+            });
+            Clay_String tmp;
+
+            uint32_t stops_total = 0;
+            uint32_t stops_conquered = 0;
+            for (size_t stop_i = 0; stop_i < countof(stops.all); stop_i++) {
+                Stop *i = stops.all + stop_i;
+                switch (i->stage) {
+                    case map_StopStage_NONE: break;
+                    case map_StopStage_Visited: {
+                        stops_total++;
+                        stops_conquered++;
+                    } break;
+                    case map_StopStage_New: {
+                        stops_total++;
+                    } break;
+                }
+            }
+
+            float p = 100.0f * (float)stops_conquered/(float)stops_total;
+            ui_sprintf(tmp, "%.1f%% conquered", p);
+            CLAY_TEXT(tmp, text);
+        }
+
+        /* spacer */
+        CLAY_AUTO_ID({ .layout.sizing.width = CLAY_SIZING_GROW() });
+
+        CLAY_AUTO_ID({
+            .layout = {
+                .layoutDirection = CLAY_TOP_TO_BOTTOM,
+                .childGap = 10,
+            }
+        }) {
+            ui_tally(ui_Icon_Fleur, save.run.coin);
+            ui_tally(ui_Icon_Food, save.run.food);
+            if (save.run.key_count > 0)
+                ui_tally(ui_Icon_Key, save.run.key_count);
+        }
+
+    }
 
     return Clay_EndLayout(RL_GetFrameTime());
 }

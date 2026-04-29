@@ -1,21 +1,20 @@
 #include "save.h"
 
-save_Save save = { .run = { .coin = 40 } };
+save_Save save = {};
 
 save_FurnitureConfig save_furniture_configs[] = {
     [save_Furniture_Tikitorch      ] = {
         ui_Icon_Fire,
         30,
         STRING(
-            "+10% fireball size"
+            "Rain fire from above"
         )
     },
     [save_Furniture_Bed            ] = {
         ui_Icon_Bed,
         40,
         STRING(
-            "+40% day-end healing\n"
-            "+10% food consumed"
+            "Camp on any tile\n"
         )
     },
     [save_Furniture_CrusaderScrolls] = {
@@ -25,6 +24,14 @@ save_FurnitureConfig save_furniture_configs[] = {
             "if all share ancestor:\n"
             "+30% damage\n"
             "otherwise, -30% damage"
+        )
+    },
+    [save_Furniture_Crown] = {
+        ui_Icon_Crown,
+        30,
+        STRING(
+            "Crown a unit\n"
+            "to x2 all stats\n"
         )
     },
 };
