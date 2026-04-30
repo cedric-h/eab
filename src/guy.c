@@ -458,7 +458,7 @@ float guy_girth(guy_Guy *guy) {
     size_t n = 0;
     for (size_t i = guy_GeneLoc_Girth1; i <= guy_GeneLoc_GirthLast; i++)
         n++, x += guy->genes[i]->amount;
-    return x/(float)n;
+    return x/(float)n * (guy->crowned ? 2 : 1);
 }
 float guy_strength(guy_Guy *guy) {
     float x = 0;
@@ -466,13 +466,13 @@ float guy_strength(guy_Guy *guy) {
     size_t n = 0;
     for (size_t i = guy_GeneLoc_Strength1; i <= guy_GeneLoc_StrengthLast; i++)
         n++, x += guy->genes[i]->amount;
-    return x/(float)n;
+    return x/(float)n * (guy->crowned ? 2 : 1);
 }
 float guy_metabolism(guy_Guy *guy) {
-    return guy->genes[guy_GeneLoc_Metabolism]->amount;
+    return guy->genes[guy_GeneLoc_Metabolism]->amount * (guy->crowned ? 2 : 1);
 }
 float guy_fecundity(guy_Guy *guy) {
-    return guy->genes[guy_GeneLoc_Fecundity]->amount;
+    return guy->genes[guy_GeneLoc_Fecundity]->amount * (guy->crowned ? 2 : 1);
 }
 
 /* girth: +size, +max hp, -knockback received, -movement speed, +hunger, +meat */
@@ -732,8 +732,26 @@ void guy_draw_ex(
         );
     }
 
+    if (guy_guy->crowned) {
+        float hair_size = size*0.5;
+        RL_Texture t = *ui_icon(ui_Icon_Crown);
+        RL_DrawTexturePro(
+            t,
+            (RL_Rectangle) { 0, 0, t.width, t.height },
+            (RL_Rectangle) {
+                pos.x - hair_size/2.0f,
+                pos.y - hair_size/2.0f - size*0.6f,
+                hair_size,
+                hair_size
+            },
+            (RL_Vector2) { 0, 0 },
+            0,
+            (RL_Color) { 255, 255, 255, 255 }
+        );
+    }
+
     {
-        float sword_size = size * 0.8 * guy_strength(guy_guy);
+        float sword_size = size * 0.8 * sqrtf(guy_strength(guy_guy));
 
         /* from the origin to the pommel */
         float pommel_x = sword_size*0.2;

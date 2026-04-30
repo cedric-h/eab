@@ -79,6 +79,8 @@ static struct {
 
 #define map_MAX_ASSETS_PER_BIOME 10
 static struct {
+    double ts_telescope_out_anim_start, ts_telescope_out_anim_done;
+    bool telescope_active;
     double ts_enter_anim_start, ts_enter_anim_done;
     double ts_move_anim_start, ts_move_anim_done;
     view_Transition next_view;
@@ -88,6 +90,8 @@ static struct {
         size_t texture_count;
         RL_Texture textures[map_MAX_ASSETS_PER_BIOME];
     } biome_art[map_Biome_COUNT];
+
+    RL_Sound sound_scope_out;
 
     struct {
         f2 pos;
@@ -198,6 +202,8 @@ static void map_biome_art_init(void) {
             view.biome_art[biome].texture_count += 1;
         }
     }
+
+    view.sound_scope_out = RL_LoadSound("resources/src/audio/leather1.wav");
 }
 
 void view_worldmap_free(void) {
@@ -210,6 +216,7 @@ void view_worldmap_free(void) {
             RL_UnloadTexture(view.biome_art[biome].textures[i]);
         }
     }
+    RL_UnloadSound(view.sound_scope_out);
 }
 
 view_Transition view_worldmap_update(uint64_t _) {
@@ -459,6 +466,31 @@ void view_worldmap_render(void) {
                 RL_GetTime()
             )))
         );
+
+        {
+            const float telescope_zoom = 0.35f;
+            const double anim_duration = 1.0;
+
+            double t = min(1, inv_lerp(
+                view.ts_telescope_out_anim_start,
+                view.ts_telescope_out_anim_start + anim_duration,
+                RL_GetTime()
+            ));
+
+            if (view.telescope_active)
+                zoom = lerp(
+                    zoom,
+                    telescope_zoom,
+                    ease_out_sine_double(t)
+                );
+            else
+                zoom = lerp(
+                    telescope_zoom,
+                    zoom,
+                    ease_in_sine_double(t)
+                );
+        }
+
         view.camera = (RL_Camera2D) {
             .offset = {
                 (cx * zoom) + RL_GetScreenWidth() *0.5,
@@ -868,25 +900,47 @@ static Clay_RenderCommandArray ui_create_layout(void) {
         CLAY_AUTO_ID({ .layout.sizing.height = CLAY_SIZING_GROW() });
 
         CLAY_AUTO_ID({
-            .layout.sizing.width = CLAY_SIZING_GROW() 
+            .layout.sizing.width = CLAY_SIZING_GROW(),
+            .layout.childGap = 16,
         }) {
             CLAY_AUTO_ID({ .layout.sizing.width = CLAY_SIZING_GROW() });
 
-            switch (ui_small_button_ex((ui_SmallButton_Config) {
-                .icon = ui_icon(ui_Icon_Bed),
-                .clr_normal = (Color) { 128, 128, 128, 168 },
-                .clr_hovered = (Color) { 255, 255, 255, 168 },
-            })) {
-                case ui_Click_Pressed: {
-                    RL_PlaySound(ui_sound(ui_Sound_CampEnter));
-                } break;
+            if (save_count_furniture(save_Furniture_Telescope)) {
+                switch (ui_small_button_ex((ui_SmallButton_Config) {
+                    .icon = ui_icon(ui_Icon_Telescope),
+                    .clr_normal = (Color) { 128, 128, 128, 168 },
+                    .clr_hovered = (Color) { 255, 255, 255, 168 },
+                })) {
+                    case ui_Click_Pressed: {
+                        RL_PlaySound(view.sound_scope_out);
+                    } break;
 
-                case ui_Click_Released: {
+                    case ui_Click_Released: {
+                        view.ts_telescope_out_anim_start = RL_GetTime();
+                        view.telescope_active ^= 1;
+                    } break;
+
+                    case ui_Click_NONE: break;
+                };
+            }
+
+            if (save_count_furniture(save_Furniture_PocketCamp)) {
+                switch (ui_small_button_ex((ui_SmallButton_Config) {
+                    .icon = ui_icon(ui_Icon_Bed),
+                    .clr_normal = (Color) { 128, 128, 128, 168 },
+                    .clr_hovered = (Color) { 255, 255, 255, 168 },
+                })) {
+                    case ui_Click_Pressed: {
+                        RL_PlaySound(ui_sound(ui_Sound_CampEnter));
+                    } break;
+
+                    case ui_Click_Released: {
                         view.next_view.kind = view_TransitionKind_StartPocketCamp;
-                } break;
+                    } break;
 
-                case ui_Click_NONE: break;
-            };
+                    case ui_Click_NONE: break;
+                };
+            }
         }
 
     }

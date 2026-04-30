@@ -46,6 +46,7 @@ char *ui_icon_paths[] = {
 	[ui_Icon_Key      ] = "resources/icon/key.png",
 	[ui_Icon_Market   ] = "resources/icon/market.png",
 	[ui_Icon_Hole     ] = "resources/icon/hole.png",
+	[ui_Icon_Telescope] = "resources/icon/telescope.png",
 };
 _Static_assert(countof(ui_icon_paths) == ui_Icon_COUNT, "missing icon path");
 

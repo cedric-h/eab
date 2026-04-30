@@ -67,8 +67,14 @@ static float camp_get_item_size(camp_Item *item) {
     switch (item->kind) {
         case camp_ItemKind_NONE:
             return 0;
-        case camp_ItemKind_Furniture:
+        case camp_ItemKind_Furniture: {
+            if (item->kind == camp_ItemKind_Furniture &&
+                item->furniture == save_Furniture_Crown &&
+                &keep.items[view.held_item_idx] == item
+            )
+                return -35; /* can penetrate objects up to this */
             return 25;
+        }
         case camp_ItemKind_Guy:
             return 26*guy_size(item->guy);
     }
@@ -280,6 +286,24 @@ void view_camp_render(void) {
         RL_Vector2 m = RL_GetMousePosition();
         item->pos.x = m.x;
         item->pos.y = m.y;
+
+        if (item->kind == camp_ItemKind_Furniture &&
+            item->furniture == save_Furniture_Crown
+        ) {
+            for (size_t item_j = 0; item_j < countof(keep.items); item_j++) {
+                camp_Item *j = keep.items + item_j;
+                if (j->kind != camp_ItemKind_Guy) continue;
+                if (j == item) continue;
+
+                j->guy->crowned = false;
+                
+                float dx = j->pos.x - item->pos.x;
+                float dy = j->pos.y - item->pos.y;
+                if (sqrtf(dx*dx + dy*dy) < camp_get_item_size(j))
+                    j->guy->crowned = true;
+            }
+
+        }
     }
 
     /* draw guy recycler */
@@ -393,6 +417,21 @@ void view_camp_render(void) {
                 float size = 50.0f * scale;
                 save_FurnitureConfig *fc = save_furniture_configs + item->furniture;
 
+                Color tint = { 255, 255, 255, 255 };
+
+                if (item->furniture == save_Furniture_Crown) {
+                    for (size_t item_j = 0; item_j < countof(keep.items); item_j++) {
+                        camp_Item *j = keep.items + item_j;
+                        if (j->kind != camp_ItemKind_Guy) continue;
+                        if (j == item) continue;
+
+                        if (j->guy->crowned) {
+                            tint = (Color) { 255, 255, 255, 100 };
+                            break;
+                        }
+                    }
+                }
+
                 draw_icon(
                     fc->icon,
                     (draw_Rect) {
@@ -401,7 +440,7 @@ void view_camp_render(void) {
                         .max_x = item->pos.x + size/2,
                         .max_y = item->pos.y + size/2,
                     },
-                    (Color) { 255, 255, 255, 255 }
+                    tint
                 );
             }; break;
 

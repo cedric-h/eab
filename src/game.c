@@ -57,7 +57,8 @@ start:
 
                 save.run.furniture[0] = save_Furniture_PocketCamp;
                 save.run.furniture[1] = save_Furniture_Crown;
-                save.run.furniture[2] = save_Furniture_Tikitorch;
+                save.run.furniture[2] = save_Furniture_Telescope;
+                save.run.furniture[3] = save_Furniture_Tikitorch;
 
                 for (int i = 0; i < 3; i++) {
                     guy_Race race = guy_Race_Human;

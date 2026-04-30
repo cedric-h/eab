@@ -161,6 +161,7 @@ typedef struct {
     guy_Sex sex;
     guy_GeneConfig *genes[guy_GeneLoc_COUNT];
     uint16_t hp;
+    bool crowned;
 } guy_Guy;
 
 guy_Guy guy_from_race(guy_Race race, guy_Sex sex);
