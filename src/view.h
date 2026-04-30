@@ -24,6 +24,7 @@ typedef enum {
     view_TransitionKind_CampTech,
     view_TransitionKind_StartRun,
     view_TransitionKind_StartCamp,
+    view_TransitionKind_StartPocketCamp,
     view_TransitionKind_StartBattle,
     view_TransitionKind_BattleVictory,
     view_TransitionKind_BattleDefeat,
@@ -31,6 +32,7 @@ typedef enum {
     view_TransitionKind_CampFornications,
     view_TransitionKind_BackToCampFromFornications,
     view_TransitionKind_BackToWorldMap,
+    view_TransitionKind_BackToWorldMapFromPocketCamp,
 } view_TransitionKind;
 typedef struct {
     view_TransitionKind kind;

@@ -6,6 +6,8 @@
 #include <string.h>
 #include <stdio.h>
 
+#define battle_LOG_TARGETTING false
+
 typedef enum {
     battle_Team_Player,
     battle_Team_Baddie,
@@ -247,6 +249,7 @@ view_Transition view_battle_update(uint64_t update) {
                 }
             }
 
+#if battle_LOG_TARGETTING
             if (current_target != NULL && bguy->target != current_target) {
                 char my_name[GUY_NAME_LEN_MAX] = {0};
                 guy_name(bguy->guy, my_name);
@@ -262,6 +265,7 @@ view_Transition view_battle_update(uint64_t update) {
                     my_name, ex_name, nu_name
                 );
             }
+#endif
 
             bguy->target = current_target;
             if (current_target) {
@@ -390,12 +394,7 @@ view_Transition view_battle_update(uint64_t update) {
                                     .icon = ui_Icon_Food,
                                     .size = 10,
                                 };
-                                fi.end_t = RL_GetTime() + 0.004*sqrtf(
-                                    (fi.start.x - fi.end.x)*
-                                        (fi.start.x - fi.end.x) +
-                                    (fi.start.y - fi.end.y)*
-                                        (fi.start.y - fi.end.y)
-                                );
+                                ui_flying_icon_end_t_from_speed(&fi, 0.004);
                                 ui_flying_icon(fi);
 
                                 RL_SetSoundPitch(

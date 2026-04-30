@@ -55,6 +55,10 @@ start:
                 save.run.coin = 0;
                 save.run.food = 10;
 
+                save.run.furniture[0] = save_Furniture_PocketCamp;
+                save.run.furniture[1] = save_Furniture_Crown;
+                save.run.furniture[2] = save_Furniture_Tikitorch;
+
                 for (int i = 0; i < 3; i++) {
                     guy_Race race = guy_Race_Human;
                     guy_Sex sex = i%2 ? guy_Sex_Male : guy_Sex_Female;
@@ -64,8 +68,13 @@ start:
                 game.view = View_WorldMap;
             } break;
 
-            case view_TransitionKind_StartCamp: game.view = View_Camp; break;
-            case view_TransitionKind_StartBattle: game.view = View_Battle; break;
+            case view_TransitionKind_StartPocketCamp:
+            case view_TransitionKind_StartCamp: {
+                game.view = View_Camp;
+            } break;
+            case view_TransitionKind_StartBattle: {
+                game.view = View_Battle;
+            } break;
 
             case view_TransitionKind_BattleDefeat: { 
                 game.view = View_BattleDefeat;
@@ -87,6 +96,7 @@ start:
                 game.view = View_Camp;
             }; break;
 
+            case view_TransitionKind_BackToWorldMapFromPocketCamp:
             case view_TransitionKind_BackToWorldMap: {
                 game.view = View_WorldMap;
             } break;

@@ -54,6 +54,7 @@ typedef enum {
     ui_Sound_CampEnter,
     ui_Sound_CampLeave,
     ui_Sound_FurnitureUnlock,
+    ui_Sound_GotFood,
     ui_Sound_COUNT,
 } ui_Sound;
 
@@ -76,6 +77,9 @@ typedef struct {
 } ui_FlyingIcon;
 /* returns true if there was room for the flying icon */
 bool ui_flying_icon(ui_FlyingIcon icon);
+void ui_flying_icon_end_t_from_speed(ui_FlyingIcon *icon, float speed);
+/* offsets start/end randomly */
+void ui_flying_icon_jitter(ui_FlyingIcon *icon, float radius);
 
 Clay_String ui_layout_alloc(size_t size);
 #define ui_sprintf(dst, fmt, ...)                                              \
@@ -92,7 +96,16 @@ typedef enum {
 } ui_Click;
 
 ui_Click ui_big_button(Clay_String text, RL_Texture *icon);
+
+
+typedef struct {
+    RL_Texture *icon;
+    bool disabled;
+    Color clr_normal, clr_hovered;
+} ui_SmallButton_Config;
 ui_Click ui_small_button(RL_Texture *icon, bool disabled);
+ui_Click ui_small_button_ex(ui_SmallButton_Config config);
+
 void ui_guy_show_detail_page(guy_Guy *guy);
 bool ui_takeover(void);
 

@@ -18,6 +18,9 @@ static double ease_in_sine_double(double x) {
   return 1.0 - cos((x * M_PI) / 2.0);
 }
 
+static double ease_out_sine(double x) {
+  return sinf((x * M_PI) / 2.0f);
+}
 static double ease_out_sine_double(double x) {
   return sin((x * M_PI) / 2);
 }

@@ -63,6 +63,9 @@ static float gaussian_randf(float mean, float stddev) {
 	float z0 = sqrtf(-2*logf(u1)) * cosf(2*M_PI*u2);
 	return z0*stddev + mean;
 }
+static int gaussian_rand(float mean, float stddev) {
+    return roundf(gaussian_randf(mean, stddev));
+}
 
 /* https://bottosson.github.io/posts/oklab/#converting-from-linear-srgb-to-oklab */
 typedef struct { float L, a, b; } color_Lab;

@@ -39,6 +39,7 @@ static struct {
     float guys_in_orgy_circle_hunger_female;
     uint32_t guys_in_orgy_circle_childcount_female;
 
+    view_TransitionKind to_go_back;
     view_Transition next_view;
     double held_item_t;
     int held_item_idx;
@@ -98,6 +99,12 @@ static camp_Item camp_make_item(camp_ItemKind kind) {
 void view_camp_init(view_Transition t) {
     memset(&view, 0, sizeof(view));
     view.held_item_idx = -1;
+
+    /* world map likes to know where you're coming from so it
+     * knows whether or not to play a camp movement animation */
+    view.to_go_back = view_TransitionKind_BackToWorldMap;
+    if (t.kind == view_TransitionKind_StartPocketCamp)
+        view.to_go_back = view_TransitionKind_BackToWorldMapFromPocketCamp;
 
     if (save.run.id != keep.run_id) {
         memset(&keep, 0, sizeof(keep));
@@ -656,7 +663,7 @@ static Clay_RenderCommandArray ui_create_layout(void) {
                     } break;
                     case ui_Click_Released: {
                         view.next_view = (view_Transition) {
-                            .kind = view_TransitionKind_BackToWorldMap
+                            .kind = view.to_go_back
                         };
                     } break;
                     default: break;

@@ -7,7 +7,7 @@
 typedef enum {
     save_Furniture_NONE,
     save_Furniture_Tikitorch,
-    save_Furniture_Bed,
+    save_Furniture_PocketCamp,
     save_Furniture_Crown,
     save_Furniture_CrusaderScrolls,
     save_Furniture_COUNT,
@@ -19,6 +19,8 @@ typedef struct {
     String desc;
 } save_FurnitureConfig;
 extern save_FurnitureConfig save_furniture_configs[];
+
+int save_count_furniture(save_Furniture);
 
 typedef struct {
     uint32_t gems;

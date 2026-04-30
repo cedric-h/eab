@@ -135,8 +135,13 @@ void view_worldmap_init(view_Transition t) {
 
     view.ts_move_anim_start = RL_GetTime();
     view.ts_move_anim_done = RL_GetTime();
+    /* note that view_TransitionKind_BackToWorldMapFromPocketCamp
+     * will not trigger this */
     if (t.kind == view_TransitionKind_BackToWorldMap) {
         view.ts_move_anim_done += map_CAMP_MOVE_ANIM_DURATION;
+    }
+    if (t.kind == view_TransitionKind_BackToWorldMapFromPocketCamp) {
+        stops.previous = stops.current;
     }
 }
 static void map_biome_art_init(void) {
@@ -635,12 +640,41 @@ void view_worldmap_render(void) {
                             map_stops_set_current(stop);
                             view.next_view.battle.unit_count = 4 * stop->steps_from_root;
 #if !map_SKIP_BATTLES
-                                view.next_view.kind = view_TransitionKind_StartBattle;
+                            view.next_view.kind = view_TransitionKind_StartBattle;
 #endif
                         }
                     } break;
 
                     case map_StopKind_Rest: {
+                        if (save_count_furniture(save_Furniture_PocketCamp) > 0) {
+                            if (RL_IsMouseButtonPressed(0))
+                                RL_PlaySound(ui_sound(ui_Sound_GotFood));
+                            if (RL_IsMouseButtonReleased(0)) {
+                                int new_food = gaussian_rand(5, 2);
+                                new_food = max(0, new_food);
+
+                                save.run.food += new_food;
+
+                                for (int i = 0; i < new_food; i++) {
+                                    ui_FlyingIcon fi = {
+                                        .start.x = screen.x,
+                                        .start.y = screen.y,
+                                        .end.x =  RL_GetScreenWidth()*0.9,
+                                        .end.y = RL_GetScreenHeight()*0.1,
+                                        .start_t = RL_GetTime() + i*0.02,
+                                        .icon = ui_Icon_Food,
+                                        .size = 10,
+                                    };
+                                    ui_flying_icon_jitter(&fi, 10);
+                                    ui_flying_icon_end_t_from_speed(&fi, 0.004f);
+                                    ui_flying_icon(fi);
+                                }
+
+                                map_stops_set_current(stop);
+                            }
+                            break;
+                        }
+
                         if (RL_IsMouseButtonPressed(0))
                             RL_PlaySound(ui_sound(ui_Sound_CampEnter));
                         if (RL_IsMouseButtonReleased(0)) {
@@ -668,17 +702,21 @@ void view_worldmap_render(void) {
                                 uint32_t coins_earned = RL_GetRandomValue(10, 20);
                                 save.run.coin += coins_earned;
 
-                                for (uint32_t i = 0; i < coins_earned; i++)
-                                    ui_flying_icon((ui_FlyingIcon) {
-                                        .start.x = screen.x + lerpf(-20, 20, randf()),
-                                        .start.y = screen.y + lerpf(-20, 20, randf()),
-                                        .end.x =  RL_GetScreenWidth()*0.90 + lerpf(-10, 10, randf()),
-                                        .end.y = RL_GetScreenHeight()*0.05 + lerpf(-10, 10, randf()),
-                                        .start_t = RL_GetTime() + i*0.1,
-                                        .end_t = RL_GetTime() + i*0.1 + 1,
+                                for (uint32_t i = 0; i < coins_earned; i++) {
+                                    ui_FlyingIcon fi = {
+                                        .start.x = screen.x,
+                                        .start.y = screen.y,
+                                        .end.x =  RL_GetScreenWidth()*0.90,
+                                        .end.y = RL_GetScreenHeight()*0.05,
+                                        .start_t = RL_GetTime(),
                                         .icon = ui_Icon_Fleur,
                                         .size = 10,
-                                    });
+                                    };
+                                    ui_flying_icon_jitter(&fi, 10);
+                                    ui_flying_icon_end_t_from_speed(&fi, 0.004f);
+                                    fi.end_t += i*0.1;
+                                    ui_flying_icon(fi);
+                                }
 
                             } else {
                                 RL_PlaySound(ui_sound(ui_Sound_CampLeave));
@@ -693,16 +731,17 @@ void view_worldmap_render(void) {
                             save.run.key_count += 1;
                             map_stops_set_current(stop);
 
-                            ui_flying_icon((ui_FlyingIcon) {
+                            ui_FlyingIcon fi = {
                                 .start.x = screen.x + lerpf(-20, 20, randf()),
                                 .start.y = screen.y + lerpf(-20, 20, randf()),
                                 .end.x =  RL_GetScreenWidth()*0.85,
                                 .end.y = RL_GetScreenHeight()*0.15,
                                 .start_t = RL_GetTime(),
-                                .end_t = RL_GetTime() + 1,
                                 .icon = ui_Icon_Key,
                                 .size = 12,
-                            });
+                            };
+                            ui_flying_icon_end_t_from_speed(&fi, 0.004);
+                            ui_flying_icon(fi);
 
                         }
                     } break;
@@ -768,55 +807,86 @@ static Clay_RenderCommandArray ui_create_layout(void) {
                 .width = CLAY_SIZING_GROW(0),
                 .height = CLAY_SIZING_GROW(0)
             },
-            .padding = { 32, 32, 32, 4 },
+            .padding = { 32, 32, 32, 32 },
+            .layoutDirection = CLAY_TOP_TO_BOTTOM,
         },
     }) {
 
         CLAY_AUTO_ID({
-            .layout = {
-                .layoutDirection = CLAY_TOP_TO_BOTTOM,
-                .childGap = 10,
-            }
+            .layout.sizing = {
+                .width = CLAY_SIZING_GROW(0),
+                .height = CLAY_SIZING_GROW(0)
+            },
         }) {
-            Clay_TextElementConfig text = ui_font_ex(ui_Font_Desc, (Clay_TextElementConfig) {
-                .textColor = { 255, 255, 255, 255 },
-            });
-            Clay_String tmp;
-
-            uint32_t stops_total = 0;
-            uint32_t stops_conquered = 0;
-            for (size_t stop_i = 0; stop_i < countof(stops.all); stop_i++) {
-                Stop *i = stops.all + stop_i;
-                switch (i->stage) {
-                    case map_StopStage_NONE: break;
-                    case map_StopStage_Visited: {
-                        stops_total++;
-                        stops_conquered++;
-                    } break;
-                    case map_StopStage_New: {
-                        stops_total++;
-                    } break;
+            CLAY_AUTO_ID({
+                .layout = {
+                    .layoutDirection = CLAY_TOP_TO_BOTTOM,
+                    .childGap = 10,
                 }
+            }) {
+                Clay_TextElementConfig text = ui_font_ex(ui_Font_Desc, (Clay_TextElementConfig) {
+                    .textColor = { 255, 255, 255, 255 },
+                });
+                Clay_String tmp;
+
+                uint32_t stops_total = 0;
+                uint32_t stops_conquered = 0;
+                for (size_t stop_i = 0; stop_i < countof(stops.all); stop_i++) {
+                    Stop *i = stops.all + stop_i;
+                    switch (i->stage) {
+                        case map_StopStage_NONE: break;
+                        case map_StopStage_Visited: {
+                            stops_total++;
+                            stops_conquered++;
+                        } break;
+                        case map_StopStage_New: {
+                            stops_total++;
+                        } break;
+                    }
+                }
+
+                float p = 100.0f * (float)stops_conquered/(float)stops_total;
+                ui_sprintf(tmp, "%.1f%% conquered", p);
+                CLAY_TEXT(tmp, text);
             }
 
-            float p = 100.0f * (float)stops_conquered/(float)stops_total;
-            ui_sprintf(tmp, "%.1f%% conquered", p);
-            CLAY_TEXT(tmp, text);
+            CLAY_AUTO_ID({ .layout.sizing.width = CLAY_SIZING_GROW() });
+
+            CLAY_AUTO_ID({
+                .layout = {
+                    .layoutDirection = CLAY_TOP_TO_BOTTOM,
+                    .childGap = 10,
+                }
+            }) {
+                ui_tally(ui_Icon_Fleur, save.run.coin);
+                ui_tally(ui_Icon_Food, save.run.food);
+                if (save.run.key_count > 0)
+                    ui_tally(ui_Icon_Key, save.run.key_count);
+            }
         }
 
-        /* spacer */
-        CLAY_AUTO_ID({ .layout.sizing.width = CLAY_SIZING_GROW() });
+        CLAY_AUTO_ID({ .layout.sizing.height = CLAY_SIZING_GROW() });
 
         CLAY_AUTO_ID({
-            .layout = {
-                .layoutDirection = CLAY_TOP_TO_BOTTOM,
-                .childGap = 10,
-            }
+            .layout.sizing.width = CLAY_SIZING_GROW() 
         }) {
-            ui_tally(ui_Icon_Fleur, save.run.coin);
-            ui_tally(ui_Icon_Food, save.run.food);
-            if (save.run.key_count > 0)
-                ui_tally(ui_Icon_Key, save.run.key_count);
+            CLAY_AUTO_ID({ .layout.sizing.width = CLAY_SIZING_GROW() });
+
+            switch (ui_small_button_ex((ui_SmallButton_Config) {
+                .icon = ui_icon(ui_Icon_Bed),
+                .clr_normal = (Color) { 128, 128, 128, 168 },
+                .clr_hovered = (Color) { 255, 255, 255, 168 },
+            })) {
+                case ui_Click_Pressed: {
+                    RL_PlaySound(ui_sound(ui_Sound_CampEnter));
+                } break;
+
+                case ui_Click_Released: {
+                        view.next_view.kind = view_TransitionKind_StartPocketCamp;
+                } break;
+
+                case ui_Click_NONE: break;
+            };
         }
 
     }

@@ -59,6 +59,7 @@ char *ui_sound_paths[] = {
     [ui_Sound_CampEnter       ] = "resources/audio/camp_enter.wav",
     [ui_Sound_CampLeave       ] = "resources/audio/camp_leave.wav",
     [ui_Sound_FurnitureUnlock ] = "resources/audio/furniture_unlock.wav",
+    [ui_Sound_GotFood         ] = "resources/audio/got_food.wav",
 };
 _Static_assert(countof(ui_sound_paths) == ui_Sound_COUNT, "missing sound path");
 
@@ -231,6 +232,26 @@ void ui_update(void) {
     );
 }
 
+/* offsets start/end randomly */
+void ui_flying_icon_jitter(ui_FlyingIcon *fi, float radius) {
+    fi->start.x += gaussian_randf(0, radius);
+    fi->start.y += gaussian_randf(0, radius);
+    fi->end.x += gaussian_randf(0, radius);
+    fi->end.y += gaussian_randf(0, radius);
+}
+
+/* calculates the duration of the animation as a function of the
+ * distance traveled, by setting end_t to start_t plus the product
+ * of speed multiplied by the distance between start and end */
+void ui_flying_icon_end_t_from_speed(ui_FlyingIcon *fi, float speed) {
+    fi->end_t = fi->start_t + 0.004*sqrtf(
+        (fi->start.x - fi->end.x)*
+            (fi->start.x - fi->end.x) +
+        (fi->start.y - fi->end.y)*
+            (fi->start.y - fi->end.y)
+    );
+}
+
 bool ui_flying_icon(ui_FlyingIcon new_icon) {
     for (int i = 0; i < ui_FLYING_ICON_MAX; i++) {
         ui_FlyingIcon *icon = ui.flying_icon + i;
@@ -258,9 +279,9 @@ void ui_render(Clay_RenderCommandArray render_cmds) {
         if (t < 0 || t > 1) continue;
 
         float a = 1.0f - (fabs(0.5 - t)/0.5f);
-        a = min(1, a * 10);
+        a = min(1, a * 5);
 
-        t = ease_out_circ(t);
+        t = ease_out_sine(t);
         float x = lerpf(item->start.x, item->end.x, t);
         float y = lerpf(item->start.y, item->end.y, t);
         draw_icon(
@@ -341,7 +362,21 @@ ui_Click ui_big_button(Clay_String text, RL_Texture *icon) {
     return ret;
 }
 
+static Clay_Color ui_clay_color_from_color(Color color) {
+    return (Clay_Color) { color.r, color.g, color.b, color.a };
+}
+
 ui_Click ui_small_button(RL_Texture *icon, bool disabled) {
+    return ui_small_button_ex((ui_SmallButton_Config) {
+        .icon = icon,
+        .disabled = disabled,
+        .clr_normal = (Color) { 255, 255, 255, 255 },
+        .clr_hovered = (Color) { 128, 128, 128, 128 },
+    });
+}
+ui_Click ui_small_button_ex(ui_SmallButton_Config cfg) {
+    RL_Texture *icon = cfg.icon;
+    bool disabled = cfg.disabled;
     ui_Click ret = ui_Click_NONE;
 
     Clay_Color enabled_black = 
@@ -356,8 +391,8 @@ ui_Click ui_small_button(RL_Texture *icon, bool disabled) {
             .color = enabled_black,
         },
         .backgroundColor = (!disabled && Clay_Hovered())
-            ? (Clay_Color) { 128, 128, 128, 128 }
-            : (Clay_Color) { 255, 255, 255, 255 },
+            ? ui_clay_color_from_color(cfg.clr_hovered)
+            : ui_clay_color_from_color(cfg.clr_normal),
         .cornerRadius = CLAY_CORNER_RADIUS(6),
         .layout = {
             .padding = { 16, 16, 16, 16 },
