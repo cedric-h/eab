@@ -55,9 +55,6 @@ start:
                 save.run.coin = 0;
                 save.run.food = 10;
 
-                save.run.furniture[0] = save_Furniture_PocketCamp;
-                save.run.furniture[1] = save_Furniture_Crown;
-                save.run.furniture[2] = save_Furniture_Telescope;
                 save.run.furniture[3] = save_Furniture_Tikitorch;
 
                 for (int i = 0; i < 3; i++) {
@@ -128,8 +125,8 @@ int main(void) {
 
     guy_system_init();
     ui_init();
-    game.view = View_Title;
-    // save.run.food = 5;
+    game.view = View_Furniture;
+    save.run.coin = 185;
     // save.run.furniture[0] = save_Furniture_Bed;
     // {
     //     guy_Guy mom = guy_from_race(guy_Race_Human, guy_Sex_Female);

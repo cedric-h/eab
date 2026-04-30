@@ -16,10 +16,21 @@ static struct {
 void roll_options(void) {
     memset(&view.options, 0, sizeof(view.options));
 
-    for (size_t i = 0; i < countof(view.options); i++) {
+    save_Furniture available[save_Furniture_COUNT] = {0};
+    size_t available_i = 0;
+
+    for (save_Furniture f = 0; f < countof(available); f++) {
+        save_FurnitureConfig *fc = save_furniture_configs + f;
+        if (save_count_furniture(f) < (int)fc->max_count)
+            available[available_i++] = f;
+    }
+
+    for (size_t i = 0; i < min(available_i, countof(view.options)); i++) {
         save_Furniture f = save_Furniture_NONE;
+
+        /* keep rerolling until we don't have any dupes */
         while (f == save_Furniture_NONE) {
-            f = (save_Furniture)RL_GetRandomValue(1, save_Furniture_COUNT-1);
+            f = available[RL_GetRandomValue(0, available_i - 1)];
 
             for (size_t j = 0; j < i; j++)
                 if (view.options[j] == f) {
@@ -27,6 +38,7 @@ void roll_options(void) {
                     break;
                 }
         }
+
         view.options[i] = f;
     }
 }

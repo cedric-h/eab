@@ -17,6 +17,8 @@ typedef enum {
 typedef struct {
     ui_Icon icon;
     uint32_t cost;
+    /* maximum amount of this type of furniture you can have */
+    uint32_t max_count;
     String desc;
 } save_FurnitureConfig;
 extern save_FurnitureConfig save_furniture_configs[];
