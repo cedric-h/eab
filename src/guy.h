@@ -5,6 +5,42 @@
 #include "base.h"
 
 #define guy_assets \
+    x(guy_Asset_None, "./resources/guy2/none.png") \
+    x(guy_Asset_MoaiFrame1, "./resources/guy2/moai_frame1.png") \
+    x(guy_Asset_MoaiFrame2, "./resources/guy2/moai_frame2.png") \
+    x(guy_Asset_MoaiFrame3, "./resources/guy2/moai_frame3.png") \
+    x(guy_Asset_MoaiEyes1, "./resources/guy2/moai_eyes1.png") \
+    x(guy_Asset_MoaiEyes2, "./resources/guy2/moai_eyes2.png") \
+    x(guy_Asset_MoaiEyes3, "./resources/guy2/moai_eyes3.png") \
+    x(guy_Asset_MoaiMouth1, "./resources/guy2/moai_mouth1.png") \
+    x(guy_Asset_MoaiMouth2, "./resources/guy2/moai_mouth2.png") \
+    x(guy_Asset_MoaiMouth3, "./resources/guy2/moai_mouth3.png") \
+    x(guy_Asset_MoaiNose1, "./resources/guy2/moai_nose1.png") \
+    x(guy_Asset_MoaiNose2, "./resources/guy2/moai_nose2.png") \
+    x(guy_Asset_MoaiNose3, "./resources/guy2/moai_nose3.png") \
+    x(guy_Asset_BunnyFrame1, "./resources/guy2/bunny_frame1.png") \
+    x(guy_Asset_BunnyFrame2, "./resources/guy2/bunny_frame2.png") \
+    x(guy_Asset_BunnyFrame3, "./resources/guy2/bunny_frame3.png") \
+    x(guy_Asset_BunnyFrame4, "./resources/guy2/bunny_frame4.png") \
+    x(guy_Asset_BunnyFrame5, "./resources/guy2/bunny_frame5.png") \
+    x(guy_Asset_BunnyEyes1, "./resources/guy2/bunny_eyes1.png") \
+    x(guy_Asset_BunnyEyes2, "./resources/guy2/bunny_eyes2.png") \
+    x(guy_Asset_BunnyMouth1, "./resources/guy2/bunny_mouth1.png") \
+    x(guy_Asset_HumanEyes1,      "./resources/guy2/human_eyes1.png") \
+    x(guy_Asset_HumanEyes2,      "./resources/guy2/human_eyes2.png") \
+    x(guy_Asset_HumanEyes3,      "./resources/guy2/human_eyes3.png") \
+    x(guy_Asset_HumanEyes4,      "./resources/guy2/human_eyes4.png") \
+    x(guy_Asset_HumanFrame1,     "./resources/guy2/human_frame1.png") \
+    x(guy_Asset_HumanFrame2,     "./resources/guy2/human_frame2.png") \
+    x(guy_Asset_HumanHair1Front, "./resources/guy2/human_hair1_front.png") \
+    x(guy_Asset_HumanHair2Front, "./resources/guy2/human_hair2_front.png") \
+    x(guy_Asset_HumanHair3Front, "./resources/guy2/human_hair3_front.png") \
+    x(guy_Asset_HumanHair4Front, "./resources/guy2/human_hair4_front.png") \
+    x(guy_Asset_HumanHair4Back,  "./resources/guy2/human_hair4_back.png") \
+    x(guy_Asset_HumanMouth1,    "./resources/guy2/human_mouth1.png") \
+    x(guy_Asset_HumanMouth2,    "./resources/guy2/human_mouth2.png") \
+    x(guy_Asset_HumanMouth3,    "./resources/guy2/human_mouth3.png") \
+    x(guy_Asset_HumanMouth4,    "./resources/guy2/human_mouth4.png") \
     x(guy_Asset_HairHumanMale1, "./resources/guy/hair_human_male1.png") \
     x(guy_Asset_HairHumanMale2, "./resources/guy/hair_human_male2.png") \
     x(guy_Asset_HairHumanFemale1, "./resources/guy/hair_human_female1.png") \

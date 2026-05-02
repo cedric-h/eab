@@ -597,7 +597,7 @@ guy_Guy guy_from_race(guy_Race race, guy_Sex sex) {
 }
 
 static struct {
-    RL_Texture body, body_bg, sword;
+    RL_Texture body, sword;
     RL_Texture assets[guy_Asset_COUNT];
 } guy;
 
@@ -606,22 +606,26 @@ static RL_Texture load_and_premultiply(char *path) {
     RL_ImageAlphaPremultiply(&i);
 
     RL_Texture t = RL_LoadTextureFromImage(i);
-    RL_SetTextureFilter(t, TEXTURE_FILTER_BILINEAR);
+    RL_GenTextureMipmaps(&t);
+    RL_SetTextureFilter(t, TEXTURE_FILTER_TRILINEAR);
     RL_UnloadImage(i);
     return t;
 }
 
 void guy_system_init() {
-    guy.body = load_and_premultiply("./resources/guy/body.png");
-    guy.body_bg = load_and_premultiply("./resources/guy/body_bg.png");
-    guy.sword = load_and_premultiply("./resources/guy/sword.png");
+    {
+        RL_Image sword = RL_LoadImage("./resources/guy/sword.png");
+        RL_ImageAlphaPremultiply(&sword);
+        guy.sword = RL_LoadTextureFromImage(sword);
+        RL_SetTextureFilter(guy.sword, TEXTURE_FILTER_BILINEAR);
+        RL_UnloadImage(sword);
+    }
 
     for (int i = guy_Asset_NONE+1; i < guy_Asset_COUNT; i++)
         guy.assets[i] = load_and_premultiply(guy_asset_paths[i]);
 }
 void guy_system_free() {
     RL_UnloadTexture(guy.body);
-    RL_UnloadTexture(guy.body_bg);
     RL_UnloadTexture(guy.sword);
     for (int i = guy_Asset_NONE+1; i < guy_Asset_COUNT; i++)
         RL_UnloadTexture(guy.assets[i]);
@@ -657,6 +661,34 @@ void guy_draw(guy_Guy *guy_guy, float x, float y, guy_DrawFlags flags) {
         flags
     );
 }
+
+typedef struct {
+    Color skin, eye;
+    float size;
+    f2 pos;
+} guy_DrawCtx;
+
+static void guy_draw_layer(guy_DrawCtx *ctx, Color c, RL_Texture t) {
+    /* features are oriented on a canvas x3 larger than the guy so that
+     * all of the positioning information can be authored alongside the
+     * object inside art tools, and rendering them is simply compositing
+     * layers. */
+    float size = 3*ctx->size;
+    RL_DrawTexturePro(
+        t,
+        (RL_Rectangle) { 0, 0, t.width, t.height },
+        (RL_Rectangle) {
+            ctx->pos.x - size/2,
+            ctx->pos.y - size/2,
+            size,
+            size
+        },
+        (RL_Vector2) { 0, 0 },
+        0,
+        (RL_Color) { c.r, c.g, c.b, c.a }
+    );
+}
+
 void guy_draw_ex(
     guy_Guy *guy_guy,
     f2 pos,
@@ -665,93 +697,35 @@ void guy_draw_ex(
     double hurt_t,
     guy_DrawFlags flags
 ) {
-    float size = 40*guy_size(guy_guy);
-    Color skin = color_lerp(
-        guy_color_skin(guy_guy),
-        (Color) { 255, 255, 255, 255 },
-        0.02
-    );
-    Color skin_outline = color_lerp(
-        guy_color_skin(guy_guy),
-        (Color) { 0, 0, 0, 255 },
-        0.02
-    );
-    Color hair = guy_color_hair(guy_guy);
-
-    if (hurt_t > 0 && (RL_GetTime() - hurt_t) < 0.4) {
-        double t = ease_out_circ((RL_GetTime() - hurt_t) / 0.4);
-        skin        .r = lerp(min(255,         skin.r + 32),         skin.r, t);
-        skin_outline.r = lerp(min(255, skin_outline.r + 32), skin_outline.r, t);
-        hair        .r = lerp(min(255, hair        .r + 32), hair        .r, t);
-    }
+    guy_DrawCtx ctx = {
+        .size = 50*guy_size(guy_guy),
+        // .skin = guy_color_skin(guy_guy),
+        // .skin = (Color) { 128, 128, 128, 255 },
+        .skin = guy_color_hair(guy_guy),
+        .eye = (Color) { 255, 255, 255, 255 },
+        .pos = pos,
+    };
 
     RL_BeginBlendMode(BLEND_ALPHA_PREMULTIPLY);
-    RL_DrawTexturePro(
-        guy.body_bg,
-        (RL_Rectangle) { 0, 0, guy.body_bg.width, guy.body_bg.height },
-        (RL_Rectangle) {
-            pos.x - size/2,
-            pos.y - size/2,
-            size,
-            size
-        },
-        (RL_Vector2) { 0, 0 },
-        0,
-        (RL_Color) { skin.r, skin.g, skin.b, skin.a }
-    );
 
-    RL_DrawTexturePro(
-        guy.body,
-        (RL_Rectangle) { 0, 0, guy.body.width, guy.body.height },
-        (RL_Rectangle) {
-            pos.x - size/2,
-            pos.y - size/2,
-            size,
-            size
-        },
-        (RL_Vector2) { 0, 0 },
-        0,
-        (RL_Color) { skin_outline.r, skin_outline.g, skin_outline.b, skin_outline.a }
-    );
+    static size_t a = 999;
+    static size_t b = 999;
+    static size_t c = 999;
+    if (a == 999) a = RL_GetRandomValue(0, 0);
+    if (b == 999) b = RL_GetRandomValue(0, 3);
+    if (c == 999) c = RL_GetRandomValue(0, 3);
+    // Color opts[] = {
+    //     { 139, 141, 150, 255 },
+    //     { 108, 129,  71, 255 },
+    //     { 124, 101,  60, 255 },
+    // };
+
+    guy_draw_layer(&ctx, ctx.skin, guy.assets[guy_Asset_HumanFrame1 + a]);
+    guy_draw_layer(&ctx, ctx. eye, guy.assets[guy_Asset_HumanMouth1 + b]);
+    guy_draw_layer(&ctx, ctx. eye, guy.assets[guy_Asset_HumanEyes1 + c]);
 
     {
-        float hair_size = size + 20;
-        RL_Texture t = guy.assets[guy_guy->genes[guy_GeneLoc_HairAsset]->asset];
-        RL_DrawTexturePro(
-            t,
-            (RL_Rectangle) { 0, 0, t.width, t.height },
-            (RL_Rectangle) {
-                pos.x - hair_size*0.65,
-                pos.y - hair_size/2,
-                hair_size,
-                hair_size
-            },
-            (RL_Vector2) { 0, 0 },
-            0,
-            (RL_Color) { hair.r, hair.g, hair.b, hair.a }
-        );
-    }
-
-    if (guy_guy->crowned) {
-        float hair_size = size*0.5;
-        RL_Texture t = *ui_icon(ui_Icon_Crown);
-        RL_DrawTexturePro(
-            t,
-            (RL_Rectangle) { 0, 0, t.width, t.height },
-            (RL_Rectangle) {
-                pos.x - hair_size/2.0f,
-                pos.y - hair_size/2.0f - size*0.6f,
-                hair_size,
-                hair_size
-            },
-            (RL_Vector2) { 0, 0 },
-            0,
-            (RL_Color) { 255, 255, 255, 255 }
-        );
-    }
-
-    {
-        float sword_size = size * 0.8 * sqrtf(guy_strength(guy_guy));
+        float sword_size = ctx.size * 1.2 * sqrtf(guy_strength(guy_guy));
 
         /* from the origin to the pommel */
         float pommel_x = sword_size*0.2;
@@ -880,44 +854,58 @@ void guy_draw_ex(
         );
     }
 
+
     RL_EndBlendMode();
 
-    if (flags & guy_DrawFlags_Hp && guy_guy->hp != guy_maxhp(guy_guy)) {
-        float w = 40;
+    // if (hurt_t > 0 && (RL_GetTime() - hurt_t) < 0.4) {
+    //     double t = ease_out_circ((RL_GetTime() - hurt_t) / 0.4);
+    //     skin        .r = lerp(min(255,         skin.r + 32),         skin.r, t);
+    // }
 
-        float t = (float)guy_guy->hp / (float)guy_maxhp(guy_guy);
-        w *= t;
+    // RL_Texture t = guy.assets[guy_guy->genes[guy_GeneLoc_HairAsset]->asset];
 
-        RL_Color good = { 100, 255, 100, 255 };
-        RL_Color mid  = { 255, 255, 100, 255 };
-        RL_Color bad  = { 255, 100, 100, 255 };
-        RL_Color clr = (t > 0.5) ?
-            ColorLerp(good, mid, inv_lerpf(1.0f, 0.5f, t)) :
-            ColorLerp( mid, bad, inv_lerpf(0.5f, 0.0f, t));
 
-        RL_DrawRectangle(
-            pos.x - w/2,
-            pos.y + size*0.6,
-            w,
-            5,
-            (RL_Color) { clr.r, clr.g, clr.b, 155 }
-        );
-    }
+    // if (guy_guy->crowned) {
+    //     float hair_size = size*0.5;
+    //     RL_Texture t = *ui_icon(ui_Icon_Crown);
+    // }
 
-    if (flags & guy_DrawFlags_Name) {
-        ui_Font font = ui_Font_Name;
-        char name[GUY_NAME_LEN_MAX] = {0};
-        guy_name(guy_guy, name);
-        float w = RL_MeasureTextEx(ui_font_rl(font), name, ui_font_size(font), 1).x;
-        RL_DrawTextEx(
-            ui_font_rl(font),
-            name,
-            (RL_Vector2) { pos.x - w/2, pos.y + size*0.6 },
-            ui_font_size(font),
-            1,
-            (RL_Color) { 0, 0, 0, 255 }
-        );
-    }
+    // if (flags & guy_DrawFlags_Hp && guy_guy->hp != guy_maxhp(guy_guy)) {
+    //     float w = 40;
+
+    //     float t = (float)guy_guy->hp / (float)guy_maxhp(guy_guy);
+    //     w *= t;
+
+    //     RL_Color good = { 100, 255, 100, 255 };
+    //     RL_Color mid  = { 255, 255, 100, 255 };
+    //     RL_Color bad  = { 255, 100, 100, 255 };
+    //     RL_Color clr = (t > 0.5) ?
+    //         ColorLerp(good, mid, inv_lerpf(1.0f, 0.5f, t)) :
+    //         ColorLerp( mid, bad, inv_lerpf(0.5f, 0.0f, t));
+
+    //     RL_DrawRectangle(
+    //         pos.x - w/2,
+    //         pos.y + size*0.6,
+    //         w,
+    //         5,
+    //         (RL_Color) { clr.r, clr.g, clr.b, 155 }
+    //     );
+    // }
+
+    // if (flags & guy_DrawFlags_Name) {
+    //     ui_Font font = ui_Font_Name;
+    //     char name[GUY_NAME_LEN_MAX] = {0};
+    //     guy_name(guy_guy, name);
+    //     float w = RL_MeasureTextEx(ui_font_rl(font), name, ui_font_size(font), 1).x;
+    //     RL_DrawTextEx(
+    //         ui_font_rl(font),
+    //         name,
+    //         (RL_Vector2) { pos.x - w/2, pos.y + size*0.6 },
+    //         ui_font_size(font),
+    //         1,
+    //         (RL_Color) { 0, 0, 0, 255 }
+    //     );
+    // }
 }
 
 guy_Guy guy_from_parents(guy_Guy *mom, guy_Guy *dad) {
