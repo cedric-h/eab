@@ -15,6 +15,7 @@
     x( battledefeat, View_BattleDefeat ) \
     x(         camp, View_Camp         ) \
     x( fornications, View_Fornications ) \
+    x(guycustomizer, View_GuyCustomizer) \
 
 
 typedef enum {
