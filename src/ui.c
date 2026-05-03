@@ -516,7 +516,7 @@ static void ui_gene_tally_color(
 
         CLAY_TEXT(CLAY_STRING("("), ui_font(ui_Font_Desc));
         bool first = true;
-        for (guy_GeneLoc i = 1; i < guy_GeneLoc_COUNT; i++) {
+        for (guy_GeneLoc i = 0; i < guy_GeneLoc_COUNT; i++) {
             if (guy_gene_loc_categories[i] != category)
                 continue;
 
@@ -534,7 +534,7 @@ static void ui_gene_tally_color(
 static void ui_race_summary(guy_Guy *guy) {
     uint32_t gene_count_by_race[guy_Race_COUNT] = {0};
 
-    for (guy_GeneLoc i = 1; i < guy_GeneLoc_COUNT; i++) {
+    for (guy_GeneLoc i = 0; i < guy_GeneLoc_COUNT; i++) {
         gene_count_by_race[guy->genes[i]->race] += 1;
     }
 
@@ -554,6 +554,7 @@ static void ui_race_summary(guy_Guy *guy) {
     }
 
     CLAY_AUTO_ID({
+        .layout.layoutDirection = CLAY_TOP_TO_BOTTOM,
     }) {
         bool first = true;
         for (size_t i = 0; i < countof(entries); i++) {
@@ -563,7 +564,7 @@ static void ui_race_summary(guy_Guy *guy) {
             char *race_name = guy_race_names[race];
 
             float f = 100.0f * (
-                (float)count / (float)(guy_GeneLoc_COUNT-1)
+                (float)count / (float)(guy_GeneLoc_COUNT)
             );
 
             Clay_String tmp;
@@ -592,7 +593,7 @@ static void ui_closest_relatives(guy_Guy *guy) {
 
         uint32_t related_count = 0;
 
-        for (guy_GeneLoc i = 1; i < guy_GeneLoc_COUNT; i++)
+        for (guy_GeneLoc i = 0; i < guy_GeneLoc_COUNT; i++)
             related_count += rel->genes[i] == guy->genes[i];
 
         size_t i = countof(closest) - 1;

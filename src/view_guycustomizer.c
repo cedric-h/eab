@@ -14,7 +14,7 @@ static struct {
 void view_guycustomizer_init(view_Transition _) {
     memset(&view, 0, sizeof(view));
 
-    view.race = guy_Race_Bunny;
+    view.race = guy_Race_Raccoon;
     view.sex = guy_Sex_Female;
     save.run.guys[0] = guy_from_race(view.race, view.sex);
     ui_guy_show_detail_page(&save.run.guys[0]);
@@ -50,8 +50,8 @@ static Clay_RenderCommandArray ui_create_layout(void) {
     }) {
 
         CLAY_TEXT(CLAY_STRING("race"), ui_font(ui_Font_Button));
-        for (guy_Race r = 1; r < guy_Race_COUNT; r++) {
-            char *race_name = guy_race_names[r];
+        for (guy_Race r = 0; r < guy_Race_COUNT; r++) {
+            char *race_name = r ? guy_race_names[r] : "CHAOS";
 
             CLAY_AUTO_ID({ .layout.padding.left = 16 }) {
                 Clay_String tmp;
@@ -115,7 +115,10 @@ static Clay_RenderCommandArray ui_create_layout(void) {
                 Clay_GetPointerState().state == 
                         CLAY_POINTER_DATA_RELEASED_THIS_FRAME
             )) {
-                save.run.guys[0] = guy_from_race(view.race, view.sex);
+                if (view.race)
+                    save.run.guys[0] = guy_from_race(view.race, view.sex);
+                else
+                    save.run.guys[0] = guy_from_chaos(view.sex);
                 ui_guy_show_detail_page(&save.run.guys[0]);
             }
 

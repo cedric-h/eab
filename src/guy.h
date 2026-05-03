@@ -5,7 +5,7 @@
 #include "base.h"
 
 #define guy_assets \
-    x(guy_Asset_None, "./resources/guy2/none.png") \
+    x(guy_Asset_NONE, "./resources/guy2/none.png") \
     x(guy_Asset_MoaiFrame1, "./resources/guy2/moai_frame1.png") \
     x(guy_Asset_MoaiFrame2, "./resources/guy2/moai_frame2.png") \
     x(guy_Asset_MoaiFrame3, "./resources/guy2/moai_frame3.png") \
@@ -15,9 +15,12 @@
     x(guy_Asset_MoaiMouth1, "./resources/guy2/moai_mouth1.png") \
     x(guy_Asset_MoaiMouth2, "./resources/guy2/moai_mouth2.png") \
     x(guy_Asset_MoaiMouth3, "./resources/guy2/moai_mouth3.png") \
-    x(guy_Asset_MoaiNose1, "./resources/guy2/moai_nose1.png") \
-    x(guy_Asset_MoaiNose2, "./resources/guy2/moai_nose2.png") \
-    x(guy_Asset_MoaiNose3, "./resources/guy2/moai_nose3.png") \
+    x(guy_Asset_BirbFrame1, "./resources/guy2/bird_frame1.png") \
+    x(guy_Asset_BirbMouth1, "./resources/guy2/bird_mouth1.png") \
+    x(guy_Asset_BirbEyes1, "./resources/guy2/bird_eyes1.png") \
+    x(guy_Asset_RaccoonFrame1, "./resources/guy2/raccoon_frame1.png") \
+    x(guy_Asset_RaccoonMouth1, "./resources/guy2/raccoon_mouth1.png") \
+    x(guy_Asset_RaccoonEyes1, "./resources/guy2/raccoon_eyes1.png") \
     x(guy_Asset_BunnyFrame1, "./resources/guy2/bunny_frame1.png") \
     x(guy_Asset_BunnyFrame2, "./resources/guy2/bunny_frame2.png") \
     x(guy_Asset_BunnyFrame3, "./resources/guy2/bunny_frame3.png") \
@@ -26,6 +29,7 @@
     x(guy_Asset_BunnyEyes1, "./resources/guy2/bunny_eyes1.png") \
     x(guy_Asset_BunnyEyes2, "./resources/guy2/bunny_eyes2.png") \
     x(guy_Asset_BunnyMouth1, "./resources/guy2/bunny_mouth1.png") \
+    x(guy_Asset_BunnyTail1, "./resources/guy2/bunny_tail1.png") \
     x(guy_Asset_HumanEyes1,      "./resources/guy2/human_eyes1.png") \
     x(guy_Asset_HumanEyes2,      "./resources/guy2/human_eyes2.png") \
     x(guy_Asset_HumanEyes3,      "./resources/guy2/human_eyes3.png") \
@@ -41,14 +45,9 @@
     x(guy_Asset_HumanMouth2,    "./resources/guy2/human_mouth2.png") \
     x(guy_Asset_HumanMouth3,    "./resources/guy2/human_mouth3.png") \
     x(guy_Asset_HumanMouth4,    "./resources/guy2/human_mouth4.png") \
-    x(guy_Asset_HairHumanMale1, "./resources/guy/hair_human_male1.png") \
-    x(guy_Asset_HairHumanMale2, "./resources/guy/hair_human_male2.png") \
-    x(guy_Asset_HairHumanFemale1, "./resources/guy/hair_human_female1.png") \
-    x(guy_Asset_HairHumanFemale2, "./resources/guy/hair_human_female2.png")
 
 typedef enum {
 #define x(e, _) e,
-    guy_Asset_NONE,
 guy_assets
 #undef x
     guy_Asset_COUNT,
@@ -60,50 +59,16 @@ guy_assets
 #undef x
 };
 
-#undef guy_assets
-
-typedef enum {
-    guy_GeneLoc_NONE,
-    guy_GeneLoc_SkinColor1,
-    guy_GeneLoc_SkinColor2,
-    guy_GeneLoc_SkinColor3,
-    guy_GeneLoc_SkinColor4,
-    guy_GeneLoc_SkinColorLast = guy_GeneLoc_SkinColor4,
-
-    guy_GeneLoc_HairColor1,
-    guy_GeneLoc_HairColor2,
-    guy_GeneLoc_HairColor3,
-    guy_GeneLoc_HairColor4,
-    guy_GeneLoc_HairColorLast = guy_GeneLoc_HairColor4,
-
-    guy_GeneLoc_HairAsset,
-
-    guy_GeneLoc_Strength1,
-    guy_GeneLoc_Strength2,
-    guy_GeneLoc_Strength3,
-    guy_GeneLoc_StrengthLast = guy_GeneLoc_Strength3,
-
-    guy_GeneLoc_Metabolism,
-    guy_GeneLoc_Fecundity,
-
-    guy_GeneLoc_Girth1,
-    guy_GeneLoc_Girth2,
-    guy_GeneLoc_Girth3,
-    guy_GeneLoc_Girth4,
-    guy_GeneLoc_GirthLast = guy_GeneLoc_Girth4,
-
-    guy_GeneLoc_NamePrefix,
-    guy_GeneLoc_NameBase,
-    guy_GeneLoc_NameSuffix,
-
-    guy_GeneLoc_COUNT,
-} guy_GeneLoc;
-
 typedef enum {
     guy_GeneCategory_NONE,
     guy_GeneCategory_SkinColor,
     guy_GeneCategory_HairColor,
+
+    guy_GeneCategory_TailAsset,
     guy_GeneCategory_HairAsset,
+    guy_GeneCategory_FrameAsset,
+    guy_GeneCategory_MouthAsset,
+    guy_GeneCategory_EyesAsset,
 
     guy_GeneCategory_Girth,
     guy_GeneCategory_Strength,
@@ -115,53 +80,99 @@ typedef enum {
     guy_GeneCategory_NameSuffix,
 } guy_GeneCategory;
 
-static guy_GeneCategory guy_gene_loc_categories[] = {
-    [guy_GeneLoc_SkinColor1] = guy_GeneCategory_SkinColor,
-    [guy_GeneLoc_SkinColor2] = guy_GeneCategory_SkinColor,
-    [guy_GeneLoc_SkinColor3] = guy_GeneCategory_SkinColor,
-    [guy_GeneLoc_SkinColor4] = guy_GeneCategory_SkinColor,
+#undef guy_assets
 
-    [guy_GeneLoc_HairColor1] = guy_GeneCategory_HairColor,
-    [guy_GeneLoc_HairColor2] = guy_GeneCategory_HairColor,
-    [guy_GeneLoc_HairColor3] = guy_GeneCategory_HairColor,
-    [guy_GeneLoc_HairColor4] = guy_GeneCategory_HairColor,
+#define guy_gene_locs \
+    x(guy_GeneLoc_SkinColor1, "skin color 1", guy_GeneCategory_SkinColor) \
+    x(guy_GeneLoc_SkinColor2, "skin color 2", guy_GeneCategory_SkinColor) \
+    x(guy_GeneLoc_SkinColor3, "skin color 3", guy_GeneCategory_SkinColor) \
+    x(guy_GeneLoc_SkinColor4, "skin color 4", guy_GeneCategory_SkinColor) \
+    section(guy_GeneLoc_SkinColorLast, guy_GeneLoc_SkinColor4) \
+\
+    x(guy_GeneLoc_HairColor1, "hair color 1", guy_GeneCategory_HairColor) \
+    x(guy_GeneLoc_HairColor2, "hair color 2", guy_GeneCategory_HairColor) \
+    x(guy_GeneLoc_HairColor3, "hair color 3", guy_GeneCategory_HairColor) \
+    x(guy_GeneLoc_HairColor4, "hair color 4", guy_GeneCategory_HairColor) \
+    section(guy_GeneLoc_HairColorLast, guy_GeneLoc_HairColor4) \
+\
+    x(guy_GeneLoc_TailAsset,  "tail" , guy_GeneCategory_TailAsset ) \
+    x(guy_GeneLoc_HairAsset,  "hair" , guy_GeneCategory_HairAsset ) \
+    x(guy_GeneLoc_FrameAsset, "frame", guy_GeneCategory_FrameAsset) \
+    x(guy_GeneLoc_MouthAsset, "mouth", guy_GeneCategory_MouthAsset) \
+    x(guy_GeneLoc_EyesAsset,  "eyes" , guy_GeneCategory_EyesAsset ) \
+\
+    x(guy_GeneLoc_Strength1, "strength 1", guy_GeneCategory_Strength) \
+    x(guy_GeneLoc_Strength2, "strength 2", guy_GeneCategory_Strength) \
+    x(guy_GeneLoc_Strength3, "strength 3", guy_GeneCategory_Strength) \
+    section(guy_GeneLoc_StrengthLast, guy_GeneLoc_Strength3) \
+\
+    x(guy_GeneLoc_Metabolism, "metabolism", guy_GeneCategory_Metabolism) \
+    x(guy_GeneLoc_Fecundity,  "fecundity" , guy_GeneCategory_Fecundity ) \
+\
+    x(guy_GeneLoc_Girth1, "girth 1", guy_GeneCategory_Girth) \
+    x(guy_GeneLoc_Girth2, "girth 2", guy_GeneCategory_Girth) \
+    x(guy_GeneLoc_Girth3, "girth 3", guy_GeneCategory_Girth) \
+    x(guy_GeneLoc_Girth4, "girth 4", guy_GeneCategory_Girth) \
+    section(guy_GeneLoc_GirthLast, guy_GeneLoc_Girth4) \
+\
+    x(guy_GeneLoc_NamePrefix, "name prefix", guy_GeneCategory_NamePrefix) \
+    x(guy_GeneLoc_NameBase  , "name base"  , guy_GeneCategory_NameBase  ) \
+    x(guy_GeneLoc_NameSuffix, "name suffix", guy_GeneCategory_NameSuffix) \
 
-    [guy_GeneLoc_HairAsset] = guy_GeneCategory_HairAsset,
+typedef enum {
+#define x(loc, name, category) loc,
+#define section(a, b) a = b,
+guy_gene_locs
+#undef x
+#undef section
+    guy_GeneLoc_COUNT,
+} guy_GeneLoc;
 
-    [guy_GeneLoc_Strength1] = guy_GeneCategory_Strength,
-    [guy_GeneLoc_Strength2] = guy_GeneCategory_Strength,
-    [guy_GeneLoc_Strength3] = guy_GeneCategory_Strength,
-
-    [guy_GeneLoc_Metabolism] = guy_GeneCategory_Metabolism,
-    [guy_GeneLoc_Fecundity] = guy_GeneCategory_Fecundity,
-
-    [guy_GeneLoc_Girth1] = guy_GeneCategory_Girth,
-    [guy_GeneLoc_Girth2] = guy_GeneCategory_Girth,
-    [guy_GeneLoc_Girth3] = guy_GeneCategory_Girth,
-    [guy_GeneLoc_Girth4] = guy_GeneCategory_Girth,
-
-    [guy_GeneLoc_NamePrefix] = guy_GeneCategory_NamePrefix,
-    [guy_GeneLoc_NameBase  ] = guy_GeneCategory_NameBase  ,
-    [guy_GeneLoc_NameSuffix] = guy_GeneCategory_NameSuffix,
+static char *guy_gene_loc_names[guy_GeneLoc_COUNT] = {
+#define x(loc, name, category) [loc] = name,
+#define section(a, b)
+guy_gene_locs
+#undef x
+#undef section
 };
-_Static_assert(
-    countof(guy_gene_loc_categories) == guy_GeneLoc_COUNT,
-    "missing gene category for gene loc"
-);
+
+static guy_GeneCategory guy_gene_loc_categories[guy_GeneLoc_COUNT] = {
+#define x(loc, name, category) [loc] = category,
+#define section(a, b)
+guy_gene_locs
+#undef x
+#undef section
+};
+
+/* just used to throw errors on unused assets, as of 2026/05 */
+static guy_GeneCategory guy_asset_gene_categories[] = {
+    guy_GeneCategory_TailAsset,
+    guy_GeneCategory_HairAsset,
+    guy_GeneCategory_FrameAsset,
+    guy_GeneCategory_MouthAsset,
+    guy_GeneCategory_EyesAsset,
+};
+
+#undef guy_gene_locs
+
 
 typedef enum {
     guy_Race_NONE,
     guy_Race_Human,
     guy_Race_Bunny,
-    guy_Race_Elf,
+    guy_Race_Moai,
+    guy_Race_Birb,
+    guy_Race_Raccoon,
     guy_Race_COUNT,
 } guy_Race;
 
-static char *guy_race_names[guy_Race_COUNT] = {
+static char *guy_race_names[] = {
     [guy_Race_NONE] = "N/A",
     [guy_Race_Human] = "Human",
     [guy_Race_Bunny] = "Bunny",
-    [guy_Race_Elf] = "Elf",
+    [guy_Race_Moai] = "Moai",
+    [guy_Race_Birb] = "Birb",
+    [guy_Race_Raccoon] = "Rapoonda",
 };
 _Static_assert(
     countof(guy_race_names) == guy_Race_COUNT,
@@ -182,7 +193,7 @@ typedef struct {
         Color color;
         float amount;
         char *str;
-        guy_Asset asset;
+        guy_Asset asset[2];
     };
 } guy_GeneConfig;
 
@@ -201,6 +212,7 @@ typedef struct {
 } guy_Guy;
 
 guy_Guy guy_from_race(guy_Race race, guy_Sex sex);
+guy_Guy guy_from_chaos(guy_Sex sex);
 guy_Guy guy_from_parents(guy_Guy *mom, guy_Guy *dad);
 guy_Guy *guy_alloc(void);
 
