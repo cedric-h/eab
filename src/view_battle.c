@@ -648,6 +648,9 @@ static Clay_RenderCommandArray ui_create_layout(void) {
                         RL_PlaySound(ui_sound(ui_Sound_PageTurn));
                     } break;
                     case ui_Click_Released: {
+
+                        save.run.battles_won += 1;
+
                         view.next_view = (view_Transition) {
                             .kind = view_TransitionKind_BattleVictory,
                             .battle_victory = {

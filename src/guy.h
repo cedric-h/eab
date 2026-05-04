@@ -6,6 +6,12 @@
 
 #define guy_assets \
     x(guy_Asset_NONE, "./resources/guy2/none.png") \
+    x(guy_Asset_BatFrame1, "./resources/guy2/bat_frame1.png") \
+    x(guy_Asset_BatEyes1, "./resources/guy2/bat_eyes1.png") \
+    x(guy_Asset_BatMouth1, "./resources/guy2/bat_mouth1.png") \
+    x(guy_Asset_SpiderFrame1, "./resources/guy2/spider_frame1.png") \
+    x(guy_Asset_SpiderEyes1, "./resources/guy2/spider_eyes1.png") \
+    x(guy_Asset_SpiderMouth1, "./resources/guy2/spider_mouth1.png") \
     x(guy_Asset_FrogFrame1, "./resources/guy2/frog_frame1.png") \
     x(guy_Asset_FrogEyes1, "./resources/guy2/frog_eyes1.png") \
     x(guy_Asset_FrogMouth1, "./resources/guy2/frog_mouth1.png") \
@@ -170,6 +176,8 @@ typedef enum {
     guy_Race_Birb,
     guy_Race_Raccoon,
     guy_Race_Frog,
+    guy_Race_Spider,
+    guy_Race_Bat,
     guy_Race_COUNT,
 } guy_Race;
 
@@ -181,6 +189,8 @@ static char *guy_race_names[] = {
     [guy_Race_Birb] = "Birb",
     [guy_Race_Raccoon] = "Rapoonda",
     [guy_Race_Frog] = "Phrawgh",
+    [guy_Race_Spider] = "Crawley",
+    [guy_Race_Bat] = "Swoopy",
 };
 _Static_assert(
     countof(guy_race_names) == guy_Race_COUNT,

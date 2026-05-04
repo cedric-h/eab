@@ -34,7 +34,7 @@ typedef struct {
 
         guy_Guy guys[100];
 
-        uint32_t kills;
+        uint32_t kills, battles_won;
 
         uint32_t key_count;
         float food;
