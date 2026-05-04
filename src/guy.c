@@ -64,7 +64,7 @@ guy_GeneConfig guy_gene_configs[] = {
     /* humans unfortunately lack tails */
     { .category = guy_GeneCategory_TailAsset, .race = guy_Race_Human, .sex = guy_Sex_Any },
     { .category = guy_GeneCategory_FrameAsset, .race = guy_Race_Human, .sex = guy_Sex_Any, .asset = guy_Asset_HumanFrame1 },
-    { .category = guy_GeneCategory_FrameAsset, .race = guy_Race_Human, .sex = guy_Sex_Any, .asset = guy_Asset_HumanFrame2 },
+    // { .category = guy_GeneCategory_FrameAsset, .race = guy_Race_Human, .sex = guy_Sex_Any, .asset = guy_Asset_HumanFrame2 },
     { .category = guy_GeneCategory_MouthAsset, .race = guy_Race_Human, .sex = guy_Sex_Any, .asset = guy_Asset_HumanMouth1 },
     { .category = guy_GeneCategory_MouthAsset, .race = guy_Race_Human, .sex = guy_Sex_Any, .asset = guy_Asset_HumanMouth2 },
     { .category = guy_GeneCategory_MouthAsset, .race = guy_Race_Human, .sex = guy_Sex_Any, .asset = guy_Asset_HumanMouth3 },
@@ -968,20 +968,20 @@ void guy_draw_ex(
     //     );
     // }
 
-    // if (flags & guy_DrawFlags_Name) {
-    //     ui_Font font = ui_Font_Name;
-    //     char name[GUY_NAME_LEN_MAX] = {0};
-    //     guy_name(guy_guy, name);
-    //     float w = RL_MeasureTextEx(ui_font_rl(font), name, ui_font_size(font), 1).x;
-    //     RL_DrawTextEx(
-    //         ui_font_rl(font),
-    //         name,
-    //         (RL_Vector2) { pos.x - w/2, pos.y + size*0.6 },
-    //         ui_font_size(font),
-    //         1,
-    //         (RL_Color) { 0, 0, 0, 255 }
-    //     );
-    // }
+    if (flags & guy_DrawFlags_Name) {
+        ui_Font font = ui_Font_Name;
+        char name[GUY_NAME_LEN_MAX] = {0};
+        guy_name(guy_guy, name);
+        float w = RL_MeasureTextEx(ui_font_rl(font), name, ui_font_size(font), 1).x;
+        RL_DrawTextEx(
+            ui_font_rl(font),
+            name,
+            (RL_Vector2) { pos.x - w/2, pos.y + ctx.size*0.6 },
+            ui_font_size(font),
+            1,
+            (RL_Color) { 0, 0, 0, 255 }
+        );
+    }
 }
 
 guy_Guy guy_from_parents(guy_Guy *mom, guy_Guy *dad) {

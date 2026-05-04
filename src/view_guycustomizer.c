@@ -14,9 +14,12 @@ static struct {
 void view_guycustomizer_init(view_Transition _) {
     memset(&view, 0, sizeof(view));
 
-    view.race = guy_Race_Raccoon;
+    view.race = guy_Race_Bunny;
     view.sex = guy_Sex_Female;
     save.run.guys[0] = guy_from_race(view.race, view.sex);
+    // save.run.guys[0].genes[guy_GeneLoc_HairAsset]->asset[0] = guy_Asset_HumanHair4Front;
+    // save.run.guys[0].genes[guy_GeneLoc_HairAsset]->asset[1] = guy_Asset_HumanHair4Back;
+    // save.run.guys[0].genes[guy_GeneLoc_Girth1]->amount = 4.0f;
     ui_guy_show_detail_page(&save.run.guys[0]);
 }
 void view_guycustomizer_free(void) {}

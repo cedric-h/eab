@@ -35,7 +35,6 @@
     x(guy_Asset_HumanEyes3,      "./resources/guy2/human_eyes3.png") \
     x(guy_Asset_HumanEyes4,      "./resources/guy2/human_eyes4.png") \
     x(guy_Asset_HumanFrame1,     "./resources/guy2/human_frame1.png") \
-    x(guy_Asset_HumanFrame2,     "./resources/guy2/human_frame2.png") \
     x(guy_Asset_HumanHair1Front, "./resources/guy2/human_hair1_front.png") \
     x(guy_Asset_HumanHair2Front, "./resources/guy2/human_hair2_front.png") \
     x(guy_Asset_HumanHair3Front, "./resources/guy2/human_hair3_front.png") \

@@ -571,7 +571,7 @@ static void ui_race_summary(guy_Guy *guy) {
             if (first)
                 ui_sprintf(tmp, "race: %.1f%% %s", f, race_name);
             else
-                ui_sprintf(tmp, ", %.1f%% %s", f, race_name);
+                ui_sprintf(tmp, "%.1f%% %s", f, race_name);
             CLAY_TEXT(tmp, ui_font(ui_Font_Desc));
 
             first = false;
