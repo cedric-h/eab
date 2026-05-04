@@ -125,7 +125,7 @@ int main(void) {
 
     guy_system_init();
     ui_init();
-    game.view = View_Title;
+    game.view = View_GuyCustomizer;
     save.run.coin = 185;
     // save.run.furniture[0] = save_Furniture_Bed;
     // {

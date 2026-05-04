@@ -4,23 +4,58 @@
 #include <string.h>
 #include <stdio.h>
 
+typedef enum {
+    gcz_GuySourceKind_Chaos,
+    gcz_GuySourceKind_HalfBreed,
+    gcz_GuySourceKind_Pure,
+    gcz_GuySourceKind_COUNT,
+} gcz_GuySourceKind;
+static char *gcz_guy_source_names[gcz_GuySourceKind_COUNT] = {
+    [gcz_GuySourceKind_Chaos]     = "chaos",
+    [gcz_GuySourceKind_HalfBreed] = "half breed",
+    [gcz_GuySourceKind_Pure]      = "pure",
+};
+typedef struct {
+    gcz_GuySourceKind kind;
+    guy_Sex sex;
+    guy_Race races[2];
+} gcz_GuySource;
+
+static guy_Guy gcz_guy_from_source(gcz_GuySource source) {
+    switch (source.kind) {
+        case gcz_GuySourceKind_Chaos: {
+            return guy_from_chaos(source.sex);
+        } break;
+        case gcz_GuySourceKind_HalfBreed: {
+            guy_Guy mom = guy_from_race(source.races[0], guy_Sex_Female);
+            guy_Guy dad = guy_from_race(source.races[1], guy_Sex_Male);
+            return guy_from_parents(&mom, &dad);
+        } break;
+        case gcz_GuySourceKind_Pure: {
+            return guy_from_race(source.races[0], source.sex);
+        } break;
+
+        case gcz_GuySourceKind_COUNT: {
+        } break;
+    }
+    return (guy_Guy){0};
+}
+
 static struct {
     view_Transition next_view;
 
-    guy_Race race;
-    guy_Sex sex;
+    gcz_GuySource source;
 } view;
 
 void view_guycustomizer_init(view_Transition _) {
     memset(&view, 0, sizeof(view));
 
-    view.race = guy_Race_Bunny;
-    view.sex = guy_Sex_Female;
-    save.run.guys[0] = guy_from_race(view.race, view.sex);
-    // save.run.guys[0].genes[guy_GeneLoc_HairAsset]->asset[0] = guy_Asset_HumanHair4Front;
-    // save.run.guys[0].genes[guy_GeneLoc_HairAsset]->asset[1] = guy_Asset_HumanHair4Back;
-    // save.run.guys[0].genes[guy_GeneLoc_Girth1]->amount = 4.0f;
-    ui_guy_show_detail_page(&save.run.guys[0]);
+    view.source.kind = gcz_GuySourceKind_HalfBreed;
+    view.source.races[0] = guy_Race_Moai;
+    view.source.races[1] = guy_Race_Bunny;
+    view.source.sex = guy_Sex_Female;
+    save.run.guys[0] = gcz_guy_from_source(view.source);
+    // ui_guy_show_detail_page(&save.run.guys[0]);
 }
 void view_guycustomizer_free(void) {}
 
@@ -34,6 +69,72 @@ void view_guycustomizer_render(void) {
     RL_ClearBackground(RL_WHITE);
     ui_render(ui_create_layout());
     RL_EndDrawing();
+}
+
+
+static void gcz_race_input(guy_Race *out) {
+
+    CLAY_AUTO_ID({
+        .layout = {
+            .layoutDirection = CLAY_TOP_TO_BOTTOM,
+            .childGap = 8,
+            .sizing.height = CLAY_SIZING_FIT(100, 200),
+        },
+        .clip = {
+            .horizontal = true,
+            .vertical = true,
+            .childOffset = Clay_GetScrollOffset()
+        },
+    }) {
+        for (guy_Race r = 1; r < guy_Race_COUNT; r++) {
+            char *race_name = guy_race_names[r];
+
+            CLAY_AUTO_ID({ .layout.padding.left = 16 }) {
+                Clay_String tmp;
+                ui_sprintf(
+                    tmp,
+                    "[%s] %s%s",
+                    (r == *out) ? "x" : "  ",
+                    race_name,
+                    Clay_Hovered() ? " <-" : ""
+                );
+
+                CLAY_TEXT(tmp, ui_font(ui_Font_Desc));
+
+                if (Clay_Hovered() && (
+                    Clay_GetPointerState().state == 
+                        CLAY_POINTER_DATA_RELEASED_THIS_FRAME
+                ))
+                    *out = r;
+            }
+        }
+    }
+}
+
+static void gcz_sex_input(guy_Sex *sex_out) {
+    for (int i = 0; i < 2; i++) {
+        guy_Sex sex = i ? guy_Sex_Male : guy_Sex_Female;
+        char *sex_name = i ? "male" : "female";
+
+        CLAY_AUTO_ID({ .layout.padding.left = 16 }) {
+            Clay_String tmp;
+            ui_sprintf(
+                tmp,
+                "[%s] %s%s",
+                (sex == *sex_out) ? "x" : "  ",
+                sex_name,
+                Clay_Hovered() ? " <-" : ""
+            );
+
+            CLAY_TEXT(tmp, ui_font(ui_Font_Desc));
+
+            if (Clay_Hovered() && (
+                Clay_GetPointerState().state == 
+                    CLAY_POINTER_DATA_RELEASED_THIS_FRAME
+            ))
+                *sex_out = sex;
+        }
+    }
 }
 
 static Clay_RenderCommandArray ui_create_layout(void) {
@@ -52,17 +153,19 @@ static Clay_RenderCommandArray ui_create_layout(void) {
         .backgroundColor = {0}
     }) {
 
-        CLAY_TEXT(CLAY_STRING("race"), ui_font(ui_Font_Button));
-        for (guy_Race r = 0; r < guy_Race_COUNT; r++) {
-            char *race_name = r ? guy_race_names[r] : "CHAOS";
+        CLAY_TEXT(CLAY_STRING("guy tester"), ui_font(ui_Font_SubTitle));
+        CLAY_TEXT(CLAY_STRING("method"), ui_font(ui_Font_Desc));
+
+        for (gcz_GuySourceKind sauce = 0; sauce < gcz_GuySourceKind_COUNT; sauce++) {
+            char *sauce_name = gcz_guy_source_names[sauce];
 
             CLAY_AUTO_ID({ .layout.padding.left = 16 }) {
                 Clay_String tmp;
                 ui_sprintf(
                     tmp,
                     "[%s] %s%s",
-                    (r == view.race) ? "x" : "  ",
-                    race_name,
+                    (sauce == view.source.kind) ? "x" : "  ",
+                    sauce_name,
                     Clay_Hovered() ? " <-" : ""
                 );
 
@@ -72,33 +175,39 @@ static Clay_RenderCommandArray ui_create_layout(void) {
                     Clay_GetPointerState().state == 
                         CLAY_POINTER_DATA_RELEASED_THIS_FRAME
                 ))
-                    view.race = r;
+                    view.source.kind = sauce;
             }
         }
+        CLAY_TEXT(CLAY_STRING(" "), ui_font(ui_Font_Button));
 
-        CLAY_TEXT(CLAY_STRING("sex"), ui_font(ui_Font_Button));
-        for (int i = 0; i < 2; i++) {
-            guy_Sex sex = i ? guy_Sex_Male : guy_Sex_Female;
-            char *sex_name = i ? "male" : "female";
+        switch (view.source.kind) {
 
-            CLAY_AUTO_ID({ .layout.padding.left = 16 }) {
-                Clay_String tmp;
-                ui_sprintf(
-                    tmp,
-                    "[%s] %s%s",
-                    (sex == view.sex) ? "x" : "  ",
-                    sex_name,
-                    Clay_Hovered() ? " <-" : ""
-                );
+            case gcz_GuySourceKind_COUNT:
+            case gcz_GuySourceKind_Chaos: {
+                CLAY_TEXT(CLAY_STRING("sex"), ui_font(ui_Font_Desc));
+                gcz_sex_input(&view.source.sex);
+            } break;
 
-                CLAY_TEXT(tmp, ui_font(ui_Font_Desc));
+            case gcz_GuySourceKind_HalfBreed: {
+                CLAY_TEXT(CLAY_STRING("mom race"), ui_font(ui_Font_Desc));
+                gcz_race_input(&view.source.races[0]);
 
-                if (Clay_Hovered() && (
-                    Clay_GetPointerState().state == 
-                        CLAY_POINTER_DATA_RELEASED_THIS_FRAME
-                ))
-                    view.sex = sex;
-            }
+                CLAY_TEXT(CLAY_STRING(" "), ui_font(ui_Font_Button));
+
+                CLAY_TEXT(CLAY_STRING("dad race"), ui_font(ui_Font_Desc));
+                gcz_race_input(&view.source.races[1]);
+            } break;
+
+            case gcz_GuySourceKind_Pure: {
+                CLAY_TEXT(CLAY_STRING("race"), ui_font(ui_Font_Desc));
+                gcz_race_input(&view.source.races[0]);
+
+                CLAY_TEXT(CLAY_STRING(" "), ui_font(ui_Font_Button));
+
+                CLAY_TEXT(CLAY_STRING("sex"), ui_font(ui_Font_Desc));
+                gcz_sex_input(&view.source.sex);
+            } break;
+
         }
 
         CLAY_AUTO_ID({
@@ -118,10 +227,7 @@ static Clay_RenderCommandArray ui_create_layout(void) {
                 Clay_GetPointerState().state == 
                         CLAY_POINTER_DATA_RELEASED_THIS_FRAME
             )) {
-                if (view.race)
-                    save.run.guys[0] = guy_from_race(view.race, view.sex);
-                else
-                    save.run.guys[0] = guy_from_chaos(view.sex);
+                save.run.guys[0] = gcz_guy_from_source(view.source);
                 ui_guy_show_detail_page(&save.run.guys[0]);
             }
 

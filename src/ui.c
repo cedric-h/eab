@@ -686,7 +686,7 @@ static Clay_RenderCommandArray ui_guy_detail(void) {
                         .width = CLAY_BORDER_OUTSIDE(4),
                         .color = {0, 0, 0, 255}
                     },
-                    .layout.padding = { 32, 32, 32, 32 },
+                    // .layout.padding = { 32, 32, 32, 32 },
                 }) {
                     CLAY_AUTO_ID({
                         .layout = {

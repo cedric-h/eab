@@ -820,6 +820,12 @@ void guy_draw_ex(guy_DrawEx ex) {
         .pos   = ex.pos,
     };
 
+    /* hurt go red */
+    if (ex.hurt_t > 0 && (RL_GetTime() - ex.hurt_t) < 0.4) {
+        double t = ease_out_circ((RL_GetTime() - ex.hurt_t) / 0.4);
+        ctx.skin.r = lerp(min(255, ctx.skin.r + 32), ctx.skin.r, t);
+    }
+
     RL_BeginBlendMode(BLEND_ALPHA_PREMULTIPLY);
 
     guy_draw_layer(&ctx, ctx. hair, guy_system.assets[layer_assets[guy_Layer_Tail     ]]);
@@ -961,14 +967,6 @@ void guy_draw_ex(guy_DrawEx ex) {
 
 
     RL_EndBlendMode();
-
-    // if (hurt_t > 0 && (RL_GetTime() - hurt_t) < 0.4) {
-    //     double t = ease_out_circ((RL_GetTime() - hurt_t) / 0.4);
-    //     skin        .r = lerp(min(255,         skin.r + 32),         skin.r, t);
-    // }
-
-    // RL_Texture t = guy.assets[guy_guy->genes[guy_GeneLoc_HairAsset]->asset];
-
 
     // if (guy_guy->crowned) {
     //     float hair_size = size*0.5;

@@ -229,10 +229,13 @@ void Clay_Raylib_Render(Clay_RenderCommandArray renderCommands, RL_Font* fonts)
                 CustomLayoutElement *customElement = (CustomLayoutElement *)config->customData;
                 if (!customElement) continue;
 
-                float w = renderCommand->boundingBox.width/2;
+                float w = renderCommand->boundingBox.width /2;
                 float h = renderCommand->boundingBox.height/2;
                 float x = renderCommand->boundingBox.x + w;
                 float y = renderCommand->boundingBox.y + h + w/3;
+                w -=  ui_font_size(ui_Font_Desc) + 5.0f;
+                h -=  ui_font_size(ui_Font_Desc) + 5.0f;
+                y -= (ui_font_size(ui_Font_Desc) + 5.0f)*0.5f;
                 guy_draw_ex((guy_DrawEx) {
                     .guy = customElement,
                     .pos = (f2) { x, y },
