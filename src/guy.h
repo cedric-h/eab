@@ -6,6 +6,10 @@
 
 #define guy_assets \
     x(guy_Asset_NONE, "./resources/guy2/none.png") \
+    x(guy_Asset_FrogFrame1, "./resources/guy2/frog_frame1.png") \
+    x(guy_Asset_FrogEyes1, "./resources/guy2/frog_eyes1.png") \
+    x(guy_Asset_FrogMouth1, "./resources/guy2/frog_mouth1.png") \
+    x(guy_Asset_FrogLimbs1, "./resources/guy2/frog_limbs1.png") \
     x(guy_Asset_MoaiFrame1, "./resources/guy2/moai_frame1.png") \
     x(guy_Asset_MoaiFrame2, "./resources/guy2/moai_frame2.png") \
     x(guy_Asset_MoaiFrame3, "./resources/guy2/moai_frame3.png") \
@@ -68,6 +72,7 @@ typedef enum {
     guy_GeneCategory_FrameAsset,
     guy_GeneCategory_MouthAsset,
     guy_GeneCategory_EyesAsset,
+    guy_GeneCategory_LimbsAsset,
 
     guy_GeneCategory_Girth,
     guy_GeneCategory_Strength,
@@ -99,6 +104,7 @@ typedef enum {
     x(guy_GeneLoc_FrameAsset, "frame", guy_GeneCategory_FrameAsset) \
     x(guy_GeneLoc_MouthAsset, "mouth", guy_GeneCategory_MouthAsset) \
     x(guy_GeneLoc_EyesAsset,  "eyes" , guy_GeneCategory_EyesAsset ) \
+    x(guy_GeneLoc_LimbsAsset, "limbs", guy_GeneCategory_LimbsAsset ) \
 \
     x(guy_GeneLoc_Strength1, "strength 1", guy_GeneCategory_Strength) \
     x(guy_GeneLoc_Strength2, "strength 2", guy_GeneCategory_Strength) \
@@ -150,6 +156,7 @@ static guy_GeneCategory guy_asset_gene_categories[] = {
     guy_GeneCategory_FrameAsset,
     guy_GeneCategory_MouthAsset,
     guy_GeneCategory_EyesAsset,
+    guy_GeneCategory_LimbsAsset,
 };
 
 #undef guy_gene_locs
@@ -162,6 +169,7 @@ typedef enum {
     guy_Race_Moai,
     guy_Race_Birb,
     guy_Race_Raccoon,
+    guy_Race_Frog,
     guy_Race_COUNT,
 } guy_Race;
 
@@ -169,9 +177,10 @@ static char *guy_race_names[] = {
     [guy_Race_NONE] = "N/A",
     [guy_Race_Human] = "Human",
     [guy_Race_Bunny] = "Bunny",
-    [guy_Race_Moai] = "Moai",
+    [guy_Race_Moai] = "Doone",
     [guy_Race_Birb] = "Birb",
     [guy_Race_Raccoon] = "Rapoonda",
+    [guy_Race_Frog] = "Phrawgh",
 };
 _Static_assert(
     countof(guy_race_names) == guy_Race_COUNT,

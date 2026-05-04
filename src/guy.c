@@ -63,6 +63,7 @@ guy_GeneConfig guy_gene_configs[] = {
 
     /* humans unfortunately lack tails */
     { .category = guy_GeneCategory_TailAsset, .race = guy_Race_Human, .sex = guy_Sex_Any },
+    { .category = guy_GeneCategory_LimbsAsset, .race = guy_Race_Human, .sex = guy_Sex_Any },
     { .category = guy_GeneCategory_FrameAsset, .race = guy_Race_Human, .sex = guy_Sex_Any, .asset = guy_Asset_HumanFrame1 },
     // { .category = guy_GeneCategory_FrameAsset, .race = guy_Race_Human, .sex = guy_Sex_Any, .asset = guy_Asset_HumanFrame2 },
     { .category = guy_GeneCategory_MouthAsset, .race = guy_Race_Human, .sex = guy_Sex_Any, .asset = guy_Asset_HumanMouth1 },
@@ -117,6 +118,7 @@ guy_GeneConfig guy_gene_configs[] = {
     { .race = guy_Race_Bunny, .category = guy_GeneCategory_SkinColor, .sex = guy_Sex_Any, .color = { 237, 209, 177, 255 } },
 
     { .category = guy_GeneCategory_HairAsset, .race = guy_Race_Bunny, .sex = guy_Sex_Any, .asset = guy_Asset_NONE },
+    { .category = guy_GeneCategory_LimbsAsset, .race = guy_Race_Bunny, .sex = guy_Sex_Any, .asset = guy_Asset_NONE },
     { .category = guy_GeneCategory_TailAsset, .race = guy_Race_Bunny, .sex = guy_Sex_Any, .asset = guy_Asset_BunnyTail1 },
     { .category = guy_GeneCategory_FrameAsset, .race = guy_Race_Bunny, .sex = guy_Sex_Any, .asset = guy_Asset_BunnyFrame1 },
     { .category = guy_GeneCategory_FrameAsset, .race = guy_Race_Bunny, .sex = guy_Sex_Any, .asset = guy_Asset_BunnyFrame2 },
@@ -282,6 +284,7 @@ guy_GeneConfig guy_gene_configs[] = {
     { .race = guy_Race_Raccoon, .category = guy_GeneCategory_HairColor , .sex = guy_Sex_Any  , .color = {  25,  25,  25, 245 } },
     { .race = guy_Race_Raccoon, .category = guy_GeneCategory_HairColor , .sex = guy_Sex_Any  , .color = {  55,  55,  55, 245 } },
     { .race = guy_Race_Raccoon, .category = guy_GeneCategory_TailAsset , .sex = guy_Sex_Any                                    },
+    { .race = guy_Race_Raccoon, .category = guy_GeneCategory_LimbsAsset, .sex = guy_Sex_Any                                    },
     { .race = guy_Race_Raccoon, .category = guy_GeneCategory_HairAsset , .sex = guy_Sex_Any                                    },
     { .race = guy_Race_Raccoon, .category = guy_GeneCategory_FrameAsset, .sex = guy_Sex_Any, .asset = guy_Asset_RaccoonFrame1 },
     { .race = guy_Race_Raccoon, .category = guy_GeneCategory_MouthAsset, .sex = guy_Sex_Any, .asset = guy_Asset_RaccoonMouth1 },
@@ -334,6 +337,50 @@ guy_GeneConfig guy_gene_configs[] = {
     { .race = guy_Race_Raccoon, .category = guy_GeneCategory_NameSuffix, .sex = guy_Sex_Any   , .str = "Teeth" },
     { .race = guy_Race_Raccoon, .category = guy_GeneCategory_NameSuffix, .sex = guy_Sex_Any   , .str = "Thief" },
 
+    { .race = guy_Race_Frog, .category = guy_GeneCategory_SkinColor , .sex = guy_Sex_Any   , .color = {  87,  82,  51, 255 } },
+    { .race = guy_Race_Frog, .category = guy_GeneCategory_SkinColor , .sex = guy_Sex_Any   , .color = { 184, 224, 115, 255 } },
+    { .race = guy_Race_Frog, .category = guy_GeneCategory_SkinColor , .sex = guy_Sex_Any   , .color = { 172, 145,  64, 255 } },
+    { .race = guy_Race_Frog, .category = guy_GeneCategory_SkinColor , .sex = guy_Sex_Any   , .color = { 167, 153, 126, 255 } },
+    { .race = guy_Race_Frog, .category = guy_GeneCategory_SkinColor , .sex = guy_Sex_Any   , .color = { 108, 109,  62, 255 } },
+    { .race = guy_Race_Frog, .category = guy_GeneCategory_SkinColor , .sex = guy_Sex_Any   , .color = { 125, 108,  74, 255 } },
+    { .race = guy_Race_Frog, .category = guy_GeneCategory_SkinColor , .sex = guy_Sex_Any   , .color = {  75, 109, 123, 255 } },
+    { .race = guy_Race_Frog, .category = guy_GeneCategory_SkinColor , .sex = guy_Sex_Any   , .color = { 228, 129,  63, 255 } },
+    { .race = guy_Race_Frog, .category = guy_GeneCategory_HairColor , .sex = guy_Sex_Any   , .color = { 204,  54,  34, 255 } },
+    { .race = guy_Race_Frog, .category = guy_GeneCategory_HairAsset , .sex = guy_Sex_Any   ,                                 },
+    { .race = guy_Race_Frog, .category = guy_GeneCategory_TailAsset , .sex = guy_Sex_Any   ,                                 },
+    { .race = guy_Race_Frog, .category = guy_GeneCategory_LimbsAsset, .sex = guy_Sex_Any   , .asset = guy_Asset_FrogLimbs1   },
+    { .race = guy_Race_Frog, .category = guy_GeneCategory_FrameAsset, .sex = guy_Sex_Any   , .asset = guy_Asset_FrogFrame1   },
+    { .race = guy_Race_Frog, .category = guy_GeneCategory_MouthAsset, .sex = guy_Sex_Any   , .asset = guy_Asset_FrogMouth1   },
+    { .race = guy_Race_Frog, .category = guy_GeneCategory_EyesAsset , .sex = guy_Sex_Any   , .asset = guy_Asset_FrogEyes1    },
+    { .race = guy_Race_Frog, .category = guy_GeneCategory_Strength  , .sex = guy_Sex_Any   , .amount = 1.0f                  },
+    { .race = guy_Race_Frog, .category = guy_GeneCategory_Metabolism, .sex = guy_Sex_Any   , .amount = 1.0f                  },
+    { .race = guy_Race_Frog, .category = guy_GeneCategory_Fecundity , .sex = guy_Sex_Any   , .amount = 2.0f                  },
+    { .race = guy_Race_Frog, .category = guy_GeneCategory_Girth     , .sex = guy_Sex_Any   , .amount = 0.8f                  },
+
+    { .race = guy_Race_Frog, .category = guy_GeneCategory_NamePrefix, .sex = guy_Sex_Any, .str = "Rib-" },
+    { .race = guy_Race_Frog, .category = guy_GeneCategory_NamePrefix, .sex = guy_Sex_Any, .str = "Rr-" },
+#define FROG_NAME_PART(part, spacer, __sex) \
+    { .race = guy_Race_Frog, .category = guy_GeneCategory_NamePrefix, .sex = (__sex), .str = (part spacer) }, \
+    { .race = guy_Race_Frog, .category = guy_GeneCategory_NameBase  , .sex = (__sex), .str = (part spacer) }, \
+    { .race = guy_Race_Frog, .category = guy_GeneCategory_NameSuffix, .sex = (__sex), .str = (part       ) },
+    FROG_NAME_PART("Ribbit",  "-", guy_Sex_Any)
+    FROG_NAME_PART("Ribbit",  "-", guy_Sex_Any)
+    FROG_NAME_PART("Croak",   "-", guy_Sex_Any)
+    FROG_NAME_PART("Croak",   "-", guy_Sex_Any)
+    FROG_NAME_PART("Gurgle",  "-", guy_Sex_Any)
+    FROG_NAME_PART("Swamp",   "-", guy_Sex_Any)
+    FROG_NAME_PART("Hop",     "-", guy_Sex_Any)
+    FROG_NAME_PART("Jump",    "-", guy_Sex_Any)
+    FROG_NAME_PART("Spring",  "-", guy_Sex_Any)
+    FROG_NAME_PART("Boing",   "-", guy_Sex_Any)
+    FROG_NAME_PART("Boing",   "-", guy_Sex_Any)
+    FROG_NAME_PART("Boing",   "-", guy_Sex_Any)
+    FROG_NAME_PART("Sproing", "-", guy_Sex_Any)
+    FROG_NAME_PART("Frog",    " ", guy_Sex_Any)
+    FROG_NAME_PART("Toad",    " ", guy_Sex_Any)
+    FROG_NAME_PART("Leg",     "-", guy_Sex_Any)
+    FROG_NAME_PART("Lily",    "-", guy_Sex_Female)
+
     { .race = guy_Race_Birb, .category = guy_GeneCategory_SkinColor , .sex = guy_Sex_Male  , .color = {  88, 120, 212, 255} },
     { .race = guy_Race_Birb, .category = guy_GeneCategory_SkinColor , .sex = guy_Sex_Male  , .color = { 128, 140, 212, 255} },
     { .race = guy_Race_Birb, .category = guy_GeneCategory_SkinColor , .sex = guy_Sex_Female, .color = { 190,  41,  51, 255} },
@@ -345,6 +392,7 @@ guy_GeneConfig guy_gene_configs[] = {
     { .race = guy_Race_Birb, .category = guy_GeneCategory_HairColor , .sex = guy_Sex_Any   , .color = {  90, 191, 101, 255} },
     { .race = guy_Race_Birb, .category = guy_GeneCategory_SkinColor , .sex = guy_Sex_Any   , .color = {  90, 191, 101, 255} },
     { .race = guy_Race_Birb, .category = guy_GeneCategory_TailAsset , .sex = guy_Sex_Any }, /* attached to frame */
+    { .race = guy_Race_Birb, .category = guy_GeneCategory_LimbsAsset, .sex = guy_Sex_Any }, /* N/A */
     { .race = guy_Race_Birb, .category = guy_GeneCategory_HairAsset , .sex = guy_Sex_Any }, /* attached to frame */
     { .race = guy_Race_Birb, .category = guy_GeneCategory_FrameAsset, .sex = guy_Sex_Any, .asset = guy_Asset_BirbFrame1 },
     { .race = guy_Race_Birb, .category = guy_GeneCategory_MouthAsset, .sex = guy_Sex_Any, .asset = guy_Asset_BirbMouth1 },
@@ -408,6 +456,7 @@ guy_GeneConfig guy_gene_configs[] = {
 
     { .race = guy_Race_Moai, .category = guy_GeneCategory_TailAsset, .sex = guy_Sex_Any },
     { .race = guy_Race_Moai, .category = guy_GeneCategory_HairAsset, .sex = guy_Sex_Any },
+    { .race = guy_Race_Moai, .category = guy_GeneCategory_LimbsAsset, .sex = guy_Sex_Any },
 
     { .race = guy_Race_Moai, .category = guy_GeneCategory_FrameAsset, .sex = guy_Sex_Any, .asset = guy_Asset_MoaiFrame1 },
     { .race = guy_Race_Moai, .category = guy_GeneCategory_FrameAsset, .sex = guy_Sex_Any, .asset = guy_Asset_MoaiFrame2 },
@@ -786,17 +835,21 @@ void guy_draw_ex(guy_DrawEx ex) {
         guy_Layer_Mouth,
         guy_Layer_Eyes,
         guy_Layer_HairFront,
+        guy_Layer_Limbs,
         guy_Layer_COUNT,
     } guy_Layer;
 
-    guy_Asset layer_assets[guy_Layer_COUNT] = {
+    guy_Asset layer_assets[] = {
         [guy_Layer_Tail     ] = ex.guy->genes[guy_GeneLoc_TailAsset ]->asset[0],
         [guy_Layer_HairBack ] = ex.guy->genes[guy_GeneLoc_HairAsset ]->asset[1],
         [guy_Layer_Frame    ] = ex.guy->genes[guy_GeneLoc_FrameAsset]->asset[0],
         [guy_Layer_Mouth    ] = ex.guy->genes[guy_GeneLoc_MouthAsset]->asset[0],
         [guy_Layer_Eyes     ] = ex.guy->genes[guy_GeneLoc_EyesAsset ]->asset[0],
         [guy_Layer_HairFront] = ex.guy->genes[guy_GeneLoc_HairAsset ]->asset[0],
+        [guy_Layer_Limbs    ] = ex.guy->genes[guy_GeneLoc_LimbsAsset]->asset[0],
     };
+
+    _Static_assert(countof(layer_assets) == guy_Layer_COUNT, "missing asset for guy layer");
 
     if (ex.size == 0) {
         ex.size = 30*guy_size(ex.guy);
@@ -834,6 +887,7 @@ void guy_draw_ex(guy_DrawEx ex) {
     guy_draw_layer(&ctx, ctx.mouth, guy_system.assets[layer_assets[guy_Layer_Mouth    ]]);
     guy_draw_layer(&ctx, ctx. eyes, guy_system.assets[layer_assets[guy_Layer_Eyes     ]]);
     guy_draw_layer(&ctx, ctx. hair, guy_system.assets[layer_assets[guy_Layer_HairFront]]);
+    guy_draw_layer(&ctx, ctx. skin, guy_system.assets[layer_assets[guy_Layer_Limbs]]);
 
     {
         float sword_size = ctx.size * 1.2 * sqrtf(sqrtf(guy_strength(ex.guy)));
