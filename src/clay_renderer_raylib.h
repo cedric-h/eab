@@ -229,12 +229,17 @@ void Clay_Raylib_Render(Clay_RenderCommandArray renderCommands, RL_Font* fonts)
                 CustomLayoutElement *customElement = (CustomLayoutElement *)config->customData;
                 if (!customElement) continue;
 
-                guy_draw(
-                    customElement,
-                    renderCommand->boundingBox.x + renderCommand->boundingBox.width/2,
-                    renderCommand->boundingBox.y + renderCommand->boundingBox.height/2,
-                    guy_DrawFlags_Name
-                );
+                float w = renderCommand->boundingBox.width/2;
+                float h = renderCommand->boundingBox.height/2;
+                float x = renderCommand->boundingBox.x + w;
+                float y = renderCommand->boundingBox.y + h + w/3;
+                guy_draw_ex((guy_DrawEx) {
+                    .guy = customElement,
+                    .pos = (f2) { x, y },
+                    .target = (f2) { x, y },
+                    .size = w,
+                    .flags = guy_DrawFlags_Name,
+                });
                 break;
             }
             default: {

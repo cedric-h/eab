@@ -547,14 +547,14 @@ void view_battle_render(void) {
             target.y = bguy->target->pos.y;
         }
 
-        guy_draw_ex(
-            bguy->guy,
-            (f2) { x, y },
-            target,
-            bguy->swing_t,
-            bguy->last_hurt.t,
-            flags
-        );
+        guy_draw_ex((guy_DrawEx) {
+            .guy = bguy->guy,
+            .pos = (f2) { x, y },
+            .target = target,
+            .swing_t = bguy->swing_t,
+            .hurt_t = bguy->last_hurt.t,
+            .flags = flags
+        });
     }
 
     ui_render(ui_create_layout());

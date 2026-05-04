@@ -635,7 +635,7 @@ guy_Guy guy_from_race(guy_Race race, guy_Sex sex) {
 static struct {
     RL_Texture body, sword;
     RL_Texture assets[guy_Asset_COUNT];
-} guy;
+} guy_system;
 
 static RL_Texture load_and_premultiply(char *path) {
     RL_Image i = RL_LoadImage(path);
@@ -652,8 +652,8 @@ void guy_system_init() {
     {
         RL_Image sword = RL_LoadImage("./resources/guy/sword.png");
         RL_ImageAlphaPremultiply(&sword);
-        guy.sword = RL_LoadTextureFromImage(sword);
-        RL_SetTextureFilter(guy.sword, TEXTURE_FILTER_BILINEAR);
+        guy_system.sword = RL_LoadTextureFromImage(sword);
+        RL_SetTextureFilter(guy_system.sword, TEXTURE_FILTER_BILINEAR);
         RL_UnloadImage(sword);
     }
 
@@ -707,13 +707,13 @@ void guy_system_init() {
     }
 
     for (int i = guy_Asset_NONE+1; i < guy_Asset_COUNT; i++)
-        guy.assets[i] = load_and_premultiply(guy_asset_paths[i]);
+        guy_system.assets[i] = load_and_premultiply(guy_asset_paths[i]);
 }
 void guy_system_free() {
-    RL_UnloadTexture(guy.body);
-    RL_UnloadTexture(guy.sword);
+    RL_UnloadTexture(guy_system.body);
+    RL_UnloadTexture(guy_system.sword);
     for (int i = guy_Asset_NONE+1; i < guy_Asset_COUNT; i++)
-        RL_UnloadTexture(guy.assets[i]);
+        RL_UnloadTexture(guy_system.assets[i]);
 }
 
 char *guy_sex_str(guy_Sex sex) {
@@ -736,17 +736,6 @@ void guy_name(guy_Guy *guy_guy, char name[GUY_NAME_LEN_MAX]) {
     );
 }
 
-void guy_draw(guy_Guy *guy_guy, float x, float y, guy_DrawFlags flags) {
-    guy_draw_ex(
-        guy_guy,
-        (f2) { x, y },
-        (f2) { x, y },
-        0,
-        0,
-        flags
-    );
-}
-
 typedef struct {
     Color hair, mouth, skin, eyes;
     float size;
@@ -757,8 +746,11 @@ static void guy_draw_layer(guy_DrawCtx *ctx, Color c, RL_Texture t) {
     /* features are oriented on a canvas x3 larger than the guy so that
      * all of the positioning information can be authored alongside the
      * object inside art tools, and rendering them is simply compositing
-     * layers. */
-    float size = 3*ctx->size;
+     * layers.
+     *
+     * layers which are larger or smaller than the expected 600.0f are
+     * scaled up or down proportionally, centered around the center of the 3x3 */
+    float size = 3*ctx->size * (t.width / 600.0f);
     RL_DrawTexturePro(
         t,
         (RL_Rectangle) { 0, 0, t.width, t.height },
@@ -774,59 +766,96 @@ static void guy_draw_layer(guy_DrawCtx *ctx, Color c, RL_Texture t) {
     );
 }
 
-void guy_draw_ex(
-    guy_Guy *guy_guy,
-    f2 pos,
-    f2 target,
-    double swing_t,
-    double hurt_t,
-    guy_DrawFlags flags
-) {
+void guy_draw(guy_Guy *guy, float x, float y, guy_DrawFlags flags) {
+    guy_draw_ex((guy_DrawEx) {
+        .guy = guy,
+        .pos = (f2) { x, y },
+        .target = (f2) { x, y },
+        .swing_t = 0,
+        .hurt_t = 0,
+        .flags = flags
+    });
+}
+
+void guy_draw_ex(guy_DrawEx ex) {
+
+    typedef enum {
+        guy_Layer_Tail,
+        guy_Layer_HairBack,
+        guy_Layer_Frame,
+        guy_Layer_Mouth,
+        guy_Layer_Eyes,
+        guy_Layer_HairFront,
+        guy_Layer_COUNT,
+    } guy_Layer;
+
+    guy_Asset layer_assets[guy_Layer_COUNT] = {
+        [guy_Layer_Tail     ] = ex.guy->genes[guy_GeneLoc_TailAsset ]->asset[0],
+        [guy_Layer_HairBack ] = ex.guy->genes[guy_GeneLoc_HairAsset ]->asset[1],
+        [guy_Layer_Frame    ] = ex.guy->genes[guy_GeneLoc_FrameAsset]->asset[0],
+        [guy_Layer_Mouth    ] = ex.guy->genes[guy_GeneLoc_MouthAsset]->asset[0],
+        [guy_Layer_Eyes     ] = ex.guy->genes[guy_GeneLoc_EyesAsset ]->asset[0],
+        [guy_Layer_HairFront] = ex.guy->genes[guy_GeneLoc_HairAsset ]->asset[0],
+    };
+
+    if (ex.size == 0) {
+        ex.size = 30*guy_size(ex.guy);
+    } else {
+        /* we need to account for how some layers may exceed 600px,
+         * so everything needs to be shrunk a bit to keep it in bounds */
+        float max_size = 1.0f;
+        for (guy_Layer i = 0; i < guy_Layer_COUNT; i++) {
+            float w = guy_system.assets[layer_assets[i]].width;
+            max_size = max(max_size, w / 600.0f);
+        }
+        ex.size /= max_size;
+    }
+
     guy_DrawCtx ctx = {
-        .size  = 30*guy_size(guy_guy),
-        .skin  = guy_color_skin(guy_guy),
-        .hair  = guy_color_hair(guy_guy),
+        .size  = ex.size,
+        .skin  = guy_color_skin(ex.guy),
+        .hair  = guy_color_hair(ex.guy),
         .eyes  = (Color) { 255, 255, 255, 255 },
         .mouth = (Color) { 255, 255, 255, 255 },
-        .pos   = pos,
+        .pos   = ex.pos,
     };
 
     RL_BeginBlendMode(BLEND_ALPHA_PREMULTIPLY);
 
-    guy_draw_layer(&ctx, ctx. hair, guy.assets[guy_guy->genes[guy_GeneLoc_TailAsset ]->asset[0]]);
-    guy_draw_layer(&ctx, ctx. hair, guy.assets[guy_guy->genes[guy_GeneLoc_HairAsset ]->asset[1]]);
-    guy_draw_layer(&ctx, ctx. skin, guy.assets[guy_guy->genes[guy_GeneLoc_FrameAsset]->asset[0]]);
-    guy_draw_layer(&ctx, ctx.mouth, guy.assets[guy_guy->genes[guy_GeneLoc_MouthAsset]->asset[0]]);
-    guy_draw_layer(&ctx, ctx. eyes, guy.assets[guy_guy->genes[guy_GeneLoc_EyesAsset ]->asset[0]]);
-    guy_draw_layer(&ctx, ctx. hair, guy.assets[guy_guy->genes[guy_GeneLoc_HairAsset ]->asset[0]]);
+    guy_draw_layer(&ctx, ctx. hair, guy_system.assets[layer_assets[guy_Layer_Tail     ]]);
+    guy_draw_layer(&ctx, ctx. hair, guy_system.assets[layer_assets[guy_Layer_HairBack ]]);
+    guy_draw_layer(&ctx, ctx. skin, guy_system.assets[layer_assets[guy_Layer_Frame    ]]);
+    guy_draw_layer(&ctx, ctx.mouth, guy_system.assets[layer_assets[guy_Layer_Mouth    ]]);
+    guy_draw_layer(&ctx, ctx. eyes, guy_system.assets[layer_assets[guy_Layer_Eyes     ]]);
+    guy_draw_layer(&ctx, ctx. hair, guy_system.assets[layer_assets[guy_Layer_HairFront]]);
 
     {
-        float sword_size = ctx.size * 1.2 * sqrtf(sqrtf(guy_strength(guy_guy)));
+        float sword_size = ctx.size * 1.2 * sqrtf(sqrtf(guy_strength(ex.guy)));
 
         /* from the origin to the pommel */
         float pommel_x = sword_size*0.2;
         float pommel_y = sword_size*0.6;
 
-        float sword_x = pos.x + ctx.size*0.7f + sword_size*0.2f + pommel_x;
-        float sword_y = pos.y + pommel_y;
-        size_t i = (size_t)(void *)guy_guy%69;
+        float sword_x = ex.pos.x + ctx.size*0.7f + sword_size*0.2f + pommel_x;
+        float sword_y = ex.pos.y + pommel_y;
+        size_t i = (size_t)(void *)ex.guy%69;
 
         float rot = sinf(GOLDEN_RATIO*i + RL_GetTime()*2) * 5;
         do {
-            if (!(flags & guy_DrawFlags_Target))
+            if (!(ex.flags & guy_DrawFlags_Target))
                 continue;
 
             float anim_speed = 1.2f;
-            float dx = pos.x - target.x;
-            float dy = pos.y - target.y;
+            float dx = ex.pos.x - ex.target.x;
+            float dy = ex.pos.y - ex.target.y;
             if ((fabsf(dx) + fabsf(dy)) == 0)
                 continue;
 
             rot = rot / 180.0f * M_PI;
             rot += atan2f(dy, dx);
             rot -= M_PI*0.75;
-            if (swing_t != 0) {
-                double t = (RL_GetTime() - swing_t) * anim_speed * 2;
+            if (ex.swing_t != 0) {
+                double t = (RL_GetTime() - ex.swing_t) * anim_speed * 2;
 
                 float rot_start = rot;
                 float rad_overshoot     = rot - M_PI*0.50;
@@ -877,11 +906,11 @@ void guy_draw_ex(
                 t -= 0.3;
             }
 
-            if (swing_t != 0) {
+            if (ex.swing_t != 0) {
                 float dl = sqrtf(dx*dx + dy*dy);
 
                 /* push sword_x towards rot */
-                double t = (RL_GetTime() - swing_t)*anim_speed*0.8;
+                double t = (RL_GetTime() - ex.swing_t)*anim_speed*0.8;
                 float fwd_travel = 35;
                 float back_travel = -8;
 
@@ -913,8 +942,8 @@ void guy_draw_ex(
         } while (false);
 
         RL_DrawTexturePro(
-            guy.sword,
-            (RL_Rectangle) { 0, 0, guy.sword.width, guy.sword.height },
+            guy_system.sword,
+            (RL_Rectangle) { 0, 0, guy_system.sword.width, guy_system.sword.height },
             (RL_Rectangle) {
                 sword_x - sword_size/2,
                 sword_y - sword_size/2,
@@ -946,37 +975,37 @@ void guy_draw_ex(
     //     RL_Texture t = *ui_icon(ui_Icon_Crown);
     // }
 
-    // if (flags & guy_DrawFlags_Hp && guy_guy->hp != guy_maxhp(guy_guy)) {
-    //     float w = 40;
+    if (ex.flags & guy_DrawFlags_Hp && ex.guy->hp != guy_maxhp(ex.guy)) {
+        float w = 40;
 
-    //     float t = (float)guy_guy->hp / (float)guy_maxhp(guy_guy);
-    //     w *= t;
+        float t = (float)ex.guy->hp / (float)guy_maxhp(ex.guy);
+        w *= t;
 
-    //     RL_Color good = { 100, 255, 100, 255 };
-    //     RL_Color mid  = { 255, 255, 100, 255 };
-    //     RL_Color bad  = { 255, 100, 100, 255 };
-    //     RL_Color clr = (t > 0.5) ?
-    //         ColorLerp(good, mid, inv_lerpf(1.0f, 0.5f, t)) :
-    //         ColorLerp( mid, bad, inv_lerpf(0.5f, 0.0f, t));
+        RL_Color good = { 100, 255, 100, 255 };
+        RL_Color mid  = { 255, 255, 100, 255 };
+        RL_Color bad  = { 255, 100, 100, 255 };
+        RL_Color clr = (t > 0.5) ?
+            ColorLerp(good, mid, inv_lerpf(1.0f, 0.5f, t)) :
+            ColorLerp( mid, bad, inv_lerpf(0.5f, 0.0f, t));
 
-    //     RL_DrawRectangle(
-    //         pos.x - w/2,
-    //         pos.y + size*0.6,
-    //         w,
-    //         5,
-    //         (RL_Color) { clr.r, clr.g, clr.b, 155 }
-    //     );
-    // }
+        RL_DrawRectangle(
+            ex.pos.x - w/2,
+            ex.pos.y + ex.size*0.8,
+            w,
+            5,
+            (RL_Color) { clr.r, clr.g, clr.b, 155 }
+        );
+    }
 
-    if (flags & guy_DrawFlags_Name) {
+    if (ex.flags & guy_DrawFlags_Name) {
         ui_Font font = ui_Font_Name;
         char name[GUY_NAME_LEN_MAX] = {0};
-        guy_name(guy_guy, name);
+        guy_name(ex.guy, name);
         float w = RL_MeasureTextEx(ui_font_rl(font), name, ui_font_size(font), 1).x;
         RL_DrawTextEx(
             ui_font_rl(font),
             name,
-            (RL_Vector2) { pos.x - w/2, pos.y + ctx.size*0.6 },
+            (RL_Vector2) { ex.pos.x - w/2, ex.pos.y + ctx.size*0.8 },
             ui_font_size(font),
             1,
             (RL_Color) { 0, 0, 0, 255 }

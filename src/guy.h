@@ -248,12 +248,13 @@ typedef enum {
 } guy_DrawFlags;
 void guy_draw(guy_Guy *guy, float x, float y, guy_DrawFlags flags);
 
-void guy_draw_ex(
-    guy_Guy *guy,
-    f2 pos,
-    f2 target,
-    double swing_t,
-    double hurt_t,
-    guy_DrawFlags flags
-);
+typedef struct {
+    guy_Guy *guy;
+    f2 pos, target;
+    float size;
+    double swing_t, hurt_t;
+    guy_DrawFlags flags;
+} guy_DrawEx;
+
+void guy_draw_ex(guy_DrawEx ex);
 #endif

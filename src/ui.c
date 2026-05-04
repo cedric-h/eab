@@ -682,16 +682,22 @@ static Clay_RenderCommandArray ui_guy_detail(void) {
                 CLAY_AUTO_ID({ .layout.sizing.width = CLAY_SIZING_GROW() });
 
                 CLAY_AUTO_ID({
-                    .layout = {
-                        .sizing = {
-                            .width = CLAY_SIZING_FIXED(45),
-                            .height = CLAY_SIZING_FIXED(45),
-                        },
-                        .padding = { 16, 16, 16, 16 },
+                    .border = {
+                        .width = CLAY_BORDER_OUTSIDE(4),
+                        .color = {0, 0, 0, 255}
                     },
-                    .custom = { .customData = guy }
-                });
-
+                    .layout.padding = { 32, 32, 32, 32 },
+                }) {
+                    CLAY_AUTO_ID({
+                        .layout = {
+                            .sizing = {
+                                .width = CLAY_SIZING_FIXED(180),
+                                .height = CLAY_SIZING_FIXED(180),
+                            },
+                        },
+                        .custom = { .customData = guy }
+                    });
+                }
 
                 CLAY_AUTO_ID({ .layout.sizing.width = CLAY_SIZING_GROW() });
             }
