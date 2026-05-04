@@ -112,27 +112,34 @@ static void gcz_race_input(guy_Race *out) {
 }
 
 static void gcz_sex_input(guy_Sex *sex_out) {
-    for (int i = 0; i < 2; i++) {
-        guy_Sex sex = i ? guy_Sex_Male : guy_Sex_Female;
-        char *sex_name = i ? "male" : "female";
+    CLAY_AUTO_ID({
+        .layout = {
+            .layoutDirection = CLAY_TOP_TO_BOTTOM,
+            .childGap = 8,
+        }
+    }) {
+        for (int i = 0; i < 2; i++) {
+            guy_Sex sex = i ? guy_Sex_Male : guy_Sex_Female;
+            char *sex_name = i ? "male" : "female";
 
-        CLAY_AUTO_ID({ .layout.padding.left = 16 }) {
-            Clay_String tmp;
-            ui_sprintf(
-                tmp,
-                "[%s] %s%s",
-                (sex == *sex_out) ? "x" : "  ",
-                sex_name,
-                Clay_Hovered() ? " <-" : ""
-            );
+            CLAY_AUTO_ID({ .layout.padding.left = 16 }) {
+                Clay_String tmp;
+                ui_sprintf(
+                    tmp,
+                    "[%s] %s%s",
+                    (sex == *sex_out) ? "x" : "  ",
+                    sex_name,
+                    Clay_Hovered() ? " <-" : ""
+                );
 
-            CLAY_TEXT(tmp, ui_font(ui_Font_Desc));
+                CLAY_TEXT(tmp, ui_font(ui_Font_Desc));
 
-            if (Clay_Hovered() && (
-                Clay_GetPointerState().state == 
-                    CLAY_POINTER_DATA_RELEASED_THIS_FRAME
-            ))
-                *sex_out = sex;
+                if (Clay_Hovered() && (
+                    Clay_GetPointerState().state == 
+                        CLAY_POINTER_DATA_RELEASED_THIS_FRAME
+                ))
+                    *sex_out = sex;
+            }
         }
     }
 }
@@ -154,30 +161,43 @@ static Clay_RenderCommandArray ui_create_layout(void) {
     }) {
 
         CLAY_TEXT(CLAY_STRING("guy tester"), ui_font(ui_Font_SubTitle));
+        CLAY_TEXT(CLAY_STRING(" "), ui_font(ui_Font_Button));
         CLAY_TEXT(CLAY_STRING("method"), ui_font(ui_Font_Desc));
 
-        for (gcz_GuySourceKind sauce = 0; sauce < gcz_GuySourceKind_COUNT; sauce++) {
-            char *sauce_name = gcz_guy_source_names[sauce];
+        CLAY_AUTO_ID({
+            .layout = {
+                .layoutDirection = CLAY_TOP_TO_BOTTOM,
+                .childGap = 8,
+            }
+        }) {
+            for (
+                gcz_GuySourceKind sauce = 0;
+                sauce < gcz_GuySourceKind_COUNT;
+                sauce++
+            ) {
+                char *sauce_name = gcz_guy_source_names[sauce];
 
-            CLAY_AUTO_ID({ .layout.padding.left = 16 }) {
-                Clay_String tmp;
-                ui_sprintf(
-                    tmp,
-                    "[%s] %s%s",
-                    (sauce == view.source.kind) ? "x" : "  ",
-                    sauce_name,
-                    Clay_Hovered() ? " <-" : ""
-                );
+                CLAY_AUTO_ID({ .layout.padding.left = 16 }) {
+                    Clay_String tmp;
+                    ui_sprintf(
+                        tmp,
+                        "[%s] %s%s",
+                        (sauce == view.source.kind) ? "x" : "  ",
+                        sauce_name,
+                        Clay_Hovered() ? " <-" : ""
+                    );
 
-                CLAY_TEXT(tmp, ui_font(ui_Font_Desc));
+                    CLAY_TEXT(tmp, ui_font(ui_Font_Desc));
 
-                if (Clay_Hovered() && (
-                    Clay_GetPointerState().state == 
-                        CLAY_POINTER_DATA_RELEASED_THIS_FRAME
-                ))
-                    view.source.kind = sauce;
+                    if (Clay_Hovered() && (
+                        Clay_GetPointerState().state == 
+                            CLAY_POINTER_DATA_RELEASED_THIS_FRAME
+                    ))
+                        view.source.kind = sauce;
+                }
             }
         }
+
         CLAY_TEXT(CLAY_STRING(" "), ui_font(ui_Font_Button));
 
         switch (view.source.kind) {
