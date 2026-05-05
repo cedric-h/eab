@@ -6,6 +6,7 @@
 
 #define guy_assets \
     x(guy_Asset_NONE, "./resources/guy2/none.png") \
+\
     x(guy_Asset_ToolHairbrush, "./resources/tool/hairbrush.png") \
     x(guy_Asset_ToolWand, "./resources/tool/wand.png") \
     x(guy_Asset_ToolSpear, "./resources/tool/spear.png") \
@@ -21,16 +22,24 @@
     x(guy_Asset_ToolSlingshot, "./resources/tool/slingshot.png") \
     x(guy_Asset_ToolClub, "./resources/tool/club.png") \
 \
+    x(guy_Asset_ToolBone, "./resources/tool/bone.png") \
+    x(guy_Asset_ToolFlail, "./resources/tool/flail.png") \
+    x(guy_Asset_ToolDagger, "./resources/tool/dagger.png") \
+    x(guy_Asset_ToolSwamp, "./resources/tool/swamp.png") \
+\
     x(guy_Asset_BatFrame1, "./resources/guy2/bat_frame1.png") \
     x(guy_Asset_BatEyes1, "./resources/guy2/bat_eyes1.png") \
     x(guy_Asset_BatMouth1, "./resources/guy2/bat_mouth1.png") \
+\
     x(guy_Asset_SpiderFrame1, "./resources/guy2/spider_frame1.png") \
     x(guy_Asset_SpiderEyes1, "./resources/guy2/spider_eyes1.png") \
     x(guy_Asset_SpiderMouth1, "./resources/guy2/spider_mouth1.png") \
+\
     x(guy_Asset_FrogFrame1, "./resources/guy2/frog_frame1.png") \
     x(guy_Asset_FrogEyes1, "./resources/guy2/frog_eyes1.png") \
     x(guy_Asset_FrogMouth1, "./resources/guy2/frog_mouth1.png") \
     x(guy_Asset_FrogLimbs1, "./resources/guy2/frog_limbs1.png") \
+\
     x(guy_Asset_MoaiFrame1, "./resources/guy2/moai_frame1.png") \
     x(guy_Asset_MoaiFrame2, "./resources/guy2/moai_frame2.png") \
     x(guy_Asset_MoaiFrame3, "./resources/guy2/moai_frame3.png") \
@@ -40,12 +49,15 @@
     x(guy_Asset_MoaiMouth1, "./resources/guy2/moai_mouth1.png") \
     x(guy_Asset_MoaiMouth2, "./resources/guy2/moai_mouth2.png") \
     x(guy_Asset_MoaiMouth3, "./resources/guy2/moai_mouth3.png") \
+\
     x(guy_Asset_BirbFrame1, "./resources/guy2/bird_frame1.png") \
     x(guy_Asset_BirbMouth1, "./resources/guy2/bird_mouth1.png") \
     x(guy_Asset_BirbEyes1, "./resources/guy2/bird_eyes1.png") \
+\
     x(guy_Asset_RaccoonFrame1, "./resources/guy2/raccoon_frame1.png") \
     x(guy_Asset_RaccoonMouth1, "./resources/guy2/raccoon_mouth1.png") \
     x(guy_Asset_RaccoonEyes1, "./resources/guy2/raccoon_eyes1.png") \
+\
     x(guy_Asset_BunnyFrame1, "./resources/guy2/bunny_frame1.png") \
     x(guy_Asset_BunnyFrame2, "./resources/guy2/bunny_frame2.png") \
     x(guy_Asset_BunnyFrame3, "./resources/guy2/bunny_frame3.png") \
@@ -55,6 +67,7 @@
     x(guy_Asset_BunnyEyes2, "./resources/guy2/bunny_eyes2.png") \
     x(guy_Asset_BunnyMouth1, "./resources/guy2/bunny_mouth1.png") \
     x(guy_Asset_BunnyTail1, "./resources/guy2/bunny_tail1.png") \
+\
     x(guy_Asset_HumanEyes1,      "./resources/guy2/human_eyes1.png") \
     x(guy_Asset_HumanEyes2,      "./resources/guy2/human_eyes2.png") \
     x(guy_Asset_HumanEyes3,      "./resources/guy2/human_eyes3.png") \
