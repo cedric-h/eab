@@ -105,8 +105,8 @@ static void ui_tally(guy_Guy *mom, guy_Guy *dad, guy_Guy *kid) {
         CLAY_AUTO_ID({
             .layout = {
                 .sizing = {
-                    .width = CLAY_SIZING_FIXED(45),
-                    .height = CLAY_SIZING_FIXED(45),
+                    .width = CLAY_SIZING_FIXED(90),
+                    .height = CLAY_SIZING_FIXED(90),
                 },
             },
             .custom = { .customData = mom }
@@ -124,8 +124,8 @@ static void ui_tally(guy_Guy *mom, guy_Guy *dad, guy_Guy *kid) {
         CLAY_AUTO_ID({
             .layout = {
                 .sizing = {
-                    .width = CLAY_SIZING_FIXED(45),
-                    .height = CLAY_SIZING_FIXED(45),
+                    .width = CLAY_SIZING_FIXED(90),
+                    .height = CLAY_SIZING_FIXED(90),
                 },
             },
             .custom = { .customData = dad }
@@ -144,8 +144,8 @@ static void ui_tally(guy_Guy *mom, guy_Guy *dad, guy_Guy *kid) {
         CLAY_AUTO_ID({
             .layout = {
                 .sizing = {
-                    .width = CLAY_SIZING_FIXED(45),
-                    .height = CLAY_SIZING_FIXED(45),
+                    .width = CLAY_SIZING_FIXED(90),
+                    .height = CLAY_SIZING_FIXED(90),
                 },
             },
             .custom = { .customData = kid }

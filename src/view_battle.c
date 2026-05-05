@@ -84,65 +84,107 @@ static battle_Guy battle_guy_init(battle_Guy g) {
 }
 
 static size_t baddies_init(size_t steps_from_root) {
-    (void *)steps_from_root;
-    return 0;
-//    float difficulty = 0.0f;
-//
-//    difficulty += steps_from_root * 4.0f;
-//    difficulty += save.run.battles_won;
-//
-//    typedef enum {
-//        GuyBlendKind_Primary,
-//        GuyBlendKind_Split,
-//    } GuyBlendKind;
-//    struct {
-//        GuyBlendKind kind;
-//        guy_Race races[3];
-//    } blend = {0};
-//
-//    blend.kind = RL_GetRandomValue(0, 1)
-//        ? GuyBlendKind_Split
-//        : GuyBlendKind_Primary;
-//    switch (save.run.biome) {
-//        case save_Biome_Plains: {
-//            blend.races[0] = guy_Race_Bunny;
-//        } break;
-//
-//        case save_Biome_Forest: {
-//            blend.races[0] = guy_Race_Bird;
-//            blend.races[1] = guy_Race_Raccoon;
-//        } break;
-//
-//        case save_Biome_DarkForest: {
-//            blend.races[0] = guy_Race_Bat;
-//            blend.races[1] = guy_Race_Spider;
-//        } break;
-//
-//        case save_Biome_Desert: {
-//            blend.races[0] = guy_Race_Moai;
-//        } break;
-//    }
-//    
-//    size_t unit_count = roundf(difficulty * randf());
-//    uint32_t race_count = 0;
-//    for (size_t i = 0; i < countof(blend.races); i++) {
-//        race_count += blend.races[i] != guy_Race_NONE;
-//    }
-//
-//    switch (blend.kind) {
-//        case GuyBlendKind_Primary: {
-//            guy_Race primary = blend.races[RL_GetRandomValue(0, race_count-1)];
-//        } break;
-//
-//        case GuyBlendKind_Split: {
-//        } break;
-//    }
-//    for (size_t i = 0; i < unit_count; i++) {
-//        guy_Sex sex = i%2 ? guy_Sex_Male : guy_Sex_Female;
-//        view.baddies[i] = guy_from_race(guy_Race_Bunny, sex);
-//    }
-//
-//    return unit_count;
+    float difficulty = 1.0f;
+
+    difficulty += steps_from_root * 4.0f;
+    difficulty += save.run.battles_won;
+
+    typedef enum {
+        GuyBlendKind_Primary,
+        GuyBlendKind_Split,
+    } GuyBlendKind;
+    struct {
+        GuyBlendKind kind;
+        guy_Race races[3];
+    } blend = {0};
+
+    blend.kind = GuyBlendKind_Primary;
+    // blend.kind = RL_GetRandomValue(0, 1)
+    //     ? GuyBlendKind_Split
+    //     : GuyBlendKind_Primary;
+    switch (save.run.biome) {
+
+        case save_Biome_Plains: {
+            blend.races[0] = guy_Race_Bunny;
+            blend.races[1] = guy_Race_Human;
+        } break;
+
+        case save_Biome_Forest: {
+            blend.races[0] = guy_Race_Birb;
+            blend.races[1] = guy_Race_Raccoon;
+        } break;
+
+        case save_Biome_DarkForest: {
+            blend.races[0] = guy_Race_Bat;
+            blend.races[1] = guy_Race_Spider;
+        } break;
+
+        case save_Biome_Desert: {
+            blend.races[0] = guy_Race_Moai;
+        } break;
+
+        case save_Biome_COUNT: return 0;
+
+    }
+    
+    size_t unit_count = gaussian_randf(difficulty, 1.0f);
+    uint32_t race_count = 0;
+    for (size_t i = 0; i < countof(blend.races); i++) {
+        race_count += blend.races[i] != guy_Race_NONE;
+    }
+
+    switch (blend.kind) {
+        case GuyBlendKind_Primary: {
+            guy_Race primary = blend.races[RL_GetRandomValue(0, race_count-1)];
+
+#define HALF_GENERATION_SIZE 10
+#define PRIMARY_COUNT (7*2) /* 70% primary, 30% other */
+#define GENERATION_SIZE (HALF_GENERATION_SIZE*2)
+            guy_Guy genepool_a[GENERATION_SIZE] = {0};
+            guy_Guy genepool_b[GENERATION_SIZE] = {0};
+            
+            for (size_t i = 0; i < GENERATION_SIZE; i++) {
+                guy_Sex sex = (i % 2) ? guy_Sex_Male : guy_Sex_Female;
+                if (i < PRIMARY_COUNT || race_count == 1)
+                    genepool_a[i] = guy_from_race(primary, sex);
+                else {
+                    guy_Race secondary = blend.races[RL_GetRandomValue(0, race_count-1)];
+                    genepool_a[i] = guy_from_race(secondary, sex);
+                }
+            }
+
+            guy_Guy *this_gen = genepool_a;
+            guy_Guy *next_gen = genepool_b;
+            for (int j = 0; j < 3; j++) {
+                for (size_t i = 0; i < GENERATION_SIZE; i++) {
+                    guy_Sex sex = (i % 2) ? guy_Sex_Male : guy_Sex_Female;
+
+                    guy_Guy mom = this_gen[RL_GetRandomValue(0, HALF_GENERATION_SIZE-1)*2 + 0];
+                    guy_Guy dad = this_gen[RL_GetRandomValue(0, HALF_GENERATION_SIZE-1)*2 + 1];
+                    next_gen[i] = guy_from_parents_ex(&mom, &dad, sex);
+                }
+
+                guy_Guy *tmp_gen = next_gen;
+                next_gen = this_gen;
+                this_gen = tmp_gen;
+            }
+
+            for (size_t i = 0; i < unit_count; i++) {
+                guy_Guy mom = this_gen[RL_GetRandomValue(0, HALF_GENERATION_SIZE-1)*2 + 0];
+                guy_Guy dad = this_gen[RL_GetRandomValue(0, HALF_GENERATION_SIZE-1)*2 + 1];
+                view.baddies[i] = guy_from_parents(&mom, &dad);
+            }
+
+#undef GENERATION_SIZE
+#undef PRIMARY_COUNT
+#undef HALF_GENERATION_SIZE
+        } break;
+
+        case GuyBlendKind_Split: {
+        } break;
+    }
+
+    return unit_count;
 }
 
 void view_battle_init(view_Transition t) {

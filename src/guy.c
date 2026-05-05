@@ -296,7 +296,7 @@ guy_GeneConfig guy_gene_configs[] = {
     { .race = guy_Race_Raccoon, .category = guy_GeneCategory_FrameAsset, .sex = guy_Sex_Any, .asset = guy_Asset_RaccoonFrame1 },
     { .race = guy_Race_Raccoon, .category = guy_GeneCategory_MouthAsset, .sex = guy_Sex_Any, .asset = guy_Asset_RaccoonMouth1 },
     { .race = guy_Race_Raccoon, .category = guy_GeneCategory_EyesAsset , .sex = guy_Sex_Any, .asset = guy_Asset_RaccoonEyes1 },
-    { .race = guy_Race_Raccoon, .category = guy_GeneCategory_ToolAsset , .sex = guy_Sex_Any, .asset = guy_Asset_ToolHairbrush },
+    { .race = guy_Race_Raccoon, .category = guy_GeneCategory_ToolAsset , .sex = guy_Sex_Any, .asset = guy_Asset_ToolSpear },
     { .race = guy_Race_Raccoon, .category = guy_GeneCategory_Strength  , .sex = guy_Sex_Any, .amount = 1.0f },
     { .race = guy_Race_Raccoon, .category = guy_GeneCategory_Metabolism, .sex = guy_Sex_Any, .amount = 1.9f },
     { .race = guy_Race_Raccoon, .category = guy_GeneCategory_Metabolism, .sex = guy_Sex_Any, .amount = 1.8f },
@@ -476,7 +476,7 @@ guy_GeneConfig guy_gene_configs[] = {
     { .race = guy_Race_Birb, .category = guy_GeneCategory_FrameAsset, .sex = guy_Sex_Any, .asset = guy_Asset_BirbFrame1 },
     { .race = guy_Race_Birb, .category = guy_GeneCategory_MouthAsset, .sex = guy_Sex_Any, .asset = guy_Asset_BirbMouth1 },
     { .race = guy_Race_Birb, .category = guy_GeneCategory_EyesAsset , .sex = guy_Sex_Any, .asset = guy_Asset_BirbEyes1 },
-    { .race = guy_Race_Birb, .category = guy_GeneCategory_ToolAsset , .sex = guy_Sex_Any, .asset = guy_Asset_ToolHairbrush },
+    { .race = guy_Race_Birb, .category = guy_GeneCategory_ToolAsset , .sex = guy_Sex_Any, .asset = guy_Asset_ToolSpear },
     { .race = guy_Race_Birb, .category = guy_GeneCategory_Strength  , .sex = guy_Sex_Male  , .amount = 0.8 },
     { .race = guy_Race_Birb, .category = guy_GeneCategory_Strength  , .sex = guy_Sex_Male  , .amount = 0.7 },
     { .race = guy_Race_Birb, .category = guy_GeneCategory_Strength  , .sex = guy_Sex_Female, .amount = 1.2 },
@@ -551,7 +551,6 @@ guy_GeneConfig guy_gene_configs[] = {
     { .race = guy_Race_Moai, .category = guy_GeneCategory_EyesAsset, .sex = guy_Sex_Any, .asset = guy_Asset_MoaiEyes1 },
     { .race = guy_Race_Moai, .category = guy_GeneCategory_EyesAsset, .sex = guy_Sex_Any, .asset = guy_Asset_MoaiEyes2 },
     { .race = guy_Race_Moai, .category = guy_GeneCategory_EyesAsset, .sex = guy_Sex_Any, .asset = guy_Asset_MoaiEyes3 },
-    { .race = guy_Race_Moai, .category = guy_GeneCategory_ToolAsset, .sex = guy_Sex_Any, .asset = guy_Asset_ToolHairbrush },
     { .race = guy_Race_Moai, .category = guy_GeneCategory_Strength, .sex = guy_Sex_Any, .amount = 1.4 },
     { .race = guy_Race_Moai, .category = guy_GeneCategory_Metabolism, .sex = guy_Sex_Any, .amount = 0.8 },
     { .race = guy_Race_Moai, .category = guy_GeneCategory_Metabolism, .sex = guy_Sex_Any, .amount = 0.9 },
@@ -1146,10 +1145,16 @@ void guy_draw_ex(guy_DrawEx ex) {
 }
 
 guy_Guy guy_from_parents(guy_Guy *mom, guy_Guy *dad) {
+    return guy_from_parents_ex(
+        mom,
+        dad,
+        (RL_GetRandomValue(0, 1) < 0.5f) ? guy_Sex_Male : guy_Sex_Female
+    );
+}
+guy_Guy guy_from_parents_ex(guy_Guy *mom, guy_Guy *dad, guy_Sex sex) {
     assert(mom->sex == guy_Sex_Female);
     assert(dad->sex == guy_Sex_Male);
 
-    guy_Sex sex = (RL_GetRandomValue(0, 1) < 0.5f) ? guy_Sex_Male : guy_Sex_Female;
     guy_Guy kid = {
         .sex = sex,
         .state = guy_GuyState_Inited,

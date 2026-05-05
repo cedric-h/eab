@@ -117,8 +117,8 @@ static Clay_RenderCommandArray ui_create_layout(void) {
                 CLAY_AUTO_ID({
                     .layout = {
                         .sizing = {
-                            .width = CLAY_SIZING_FIXED(45),
-                            .height = CLAY_SIZING_FIXED(45),
+                            .width = CLAY_SIZING_FIXED(90),
+                            .height = CLAY_SIZING_FIXED(90),
                         },
                     },
                     .custom = { .customData = view.captured[i] }

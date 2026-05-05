@@ -627,8 +627,8 @@ static void ui_closest_relatives(guy_Guy *guy) {
                 CLAY_AUTO_ID({
                     .layout = {
                         .sizing = {
-                            .width = CLAY_SIZING_FIXED(45),
-                            .height = CLAY_SIZING_FIXED(45),
+                            .width = CLAY_SIZING_FIXED(90),
+                            .height = CLAY_SIZING_FIXED(90),
                         },
                         .padding = { 16, 16, 16, 16 },
                     },

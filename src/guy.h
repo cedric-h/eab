@@ -221,7 +221,7 @@ static char *guy_race_names[] = {
     [guy_Race_Raccoon] = "Rapoonda",
     [guy_Race_Frog] = "Phrawgh",
     [guy_Race_Spider] = "Crawley",
-    [guy_Race_Bat] = "Swoopy",
+    [guy_Race_Bat] = "Bat Demon",
 };
 _Static_assert(
     countof(guy_race_names) == guy_Race_COUNT,
@@ -263,6 +263,7 @@ typedef struct {
 guy_Guy guy_from_race(guy_Race race, guy_Sex sex);
 guy_Guy guy_from_chaos(guy_Sex sex);
 guy_Guy guy_from_parents(guy_Guy *mom, guy_Guy *dad);
+guy_Guy guy_from_parents_ex(guy_Guy *mom, guy_Guy *dad, guy_Sex sex);
 guy_Guy *guy_alloc(void);
 
 /* base stats */
