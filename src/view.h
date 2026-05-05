@@ -39,7 +39,8 @@ typedef struct {
     view_TransitionKind kind;
 
     struct {
-        size_t unit_count;
+        /* how far this node is from the start */
+        size_t steps_from_root;
     } battle;
 
     struct {

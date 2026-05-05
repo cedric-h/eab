@@ -62,10 +62,13 @@ guy_GeneConfig guy_gene_configs[] = {
 
 
     /* humans unfortunately lack tails */
-    { .category = guy_GeneCategory_TailAsset, .race = guy_Race_Human, .sex = guy_Sex_Any },
+    { .category = guy_GeneCategory_TailAsset,  .race = guy_Race_Human, .sex = guy_Sex_Any },
     { .category = guy_GeneCategory_LimbsAsset, .race = guy_Race_Human, .sex = guy_Sex_Any },
-    { .category = guy_GeneCategory_FrameAsset, .race = guy_Race_Human, .sex = guy_Sex_Any, .asset = guy_Asset_HumanFrame1 },
-    // { .category = guy_GeneCategory_FrameAsset, .race = guy_Race_Human, .sex = guy_Sex_Any, .asset = guy_Asset_HumanFrame2 },
+    { .category = guy_GeneCategory_FrameAsset, .race = guy_Race_Human, .sex = guy_Sex_Any, .asset = guy_Asset_HumanFrame1   },
+    { .category = guy_GeneCategory_ToolAsset,  .race = guy_Race_Human, .sex = guy_Sex_Any, .asset = guy_Asset_ToolFork      },
+    { .category = guy_GeneCategory_ToolAsset,  .race = guy_Race_Human, .sex = guy_Sex_Any, .asset = guy_Asset_ToolStapler   },
+    { .category = guy_GeneCategory_ToolAsset,  .race = guy_Race_Human, .sex = guy_Sex_Any, .asset = guy_Asset_ToolNewspaper },
+    { .category = guy_GeneCategory_ToolAsset,  .race = guy_Race_Human, .sex = guy_Sex_Any, .asset = guy_Asset_ToolPan },
     { .category = guy_GeneCategory_MouthAsset, .race = guy_Race_Human, .sex = guy_Sex_Any, .asset = guy_Asset_HumanMouth1 },
     { .category = guy_GeneCategory_MouthAsset, .race = guy_Race_Human, .sex = guy_Sex_Any, .asset = guy_Asset_HumanMouth2 },
     { .category = guy_GeneCategory_MouthAsset, .race = guy_Race_Human, .sex = guy_Sex_Any, .asset = guy_Asset_HumanMouth3 },
@@ -121,6 +124,10 @@ guy_GeneConfig guy_gene_configs[] = {
     { .category = guy_GeneCategory_LimbsAsset, .race = guy_Race_Bunny, .sex = guy_Sex_Any, .asset = guy_Asset_NONE },
     { .category = guy_GeneCategory_TailAsset, .race = guy_Race_Bunny, .sex = guy_Sex_Any, .asset = guy_Asset_BunnyTail1 },
     { .category = guy_GeneCategory_FrameAsset, .race = guy_Race_Bunny, .sex = guy_Sex_Any, .asset = guy_Asset_BunnyFrame1 },
+    { .category = guy_GeneCategory_ToolAsset,  .race = guy_Race_Bunny, .sex = guy_Sex_Any, .asset = guy_Asset_ToolHairbrush },
+    { .category = guy_GeneCategory_ToolAsset,  .race = guy_Race_Bunny, .sex = guy_Sex_Any, .asset = guy_Asset_ToolSpear },
+    { .category = guy_GeneCategory_ToolAsset,  .race = guy_Race_Bunny, .sex = guy_Sex_Any, .asset = guy_Asset_ToolWand },
+    { .category = guy_GeneCategory_ToolAsset,  .race = guy_Race_Bunny, .sex = guy_Sex_Any, .asset = guy_Asset_ToolCarrot },
     { .category = guy_GeneCategory_FrameAsset, .race = guy_Race_Bunny, .sex = guy_Sex_Any, .asset = guy_Asset_BunnyFrame2 },
     { .category = guy_GeneCategory_FrameAsset, .race = guy_Race_Bunny, .sex = guy_Sex_Any, .asset = guy_Asset_BunnyFrame3 },
     { .category = guy_GeneCategory_FrameAsset, .race = guy_Race_Bunny, .sex = guy_Sex_Any, .asset = guy_Asset_BunnyFrame4 },
@@ -289,6 +296,7 @@ guy_GeneConfig guy_gene_configs[] = {
     { .race = guy_Race_Raccoon, .category = guy_GeneCategory_FrameAsset, .sex = guy_Sex_Any, .asset = guy_Asset_RaccoonFrame1 },
     { .race = guy_Race_Raccoon, .category = guy_GeneCategory_MouthAsset, .sex = guy_Sex_Any, .asset = guy_Asset_RaccoonMouth1 },
     { .race = guy_Race_Raccoon, .category = guy_GeneCategory_EyesAsset , .sex = guy_Sex_Any, .asset = guy_Asset_RaccoonEyes1 },
+    { .race = guy_Race_Raccoon, .category = guy_GeneCategory_ToolAsset , .sex = guy_Sex_Any, .asset = guy_Asset_ToolHairbrush },
     { .race = guy_Race_Raccoon, .category = guy_GeneCategory_Strength  , .sex = guy_Sex_Any, .amount = 1.0f },
     { .race = guy_Race_Raccoon, .category = guy_GeneCategory_Metabolism, .sex = guy_Sex_Any, .amount = 1.9f },
     { .race = guy_Race_Raccoon, .category = guy_GeneCategory_Metabolism, .sex = guy_Sex_Any, .amount = 1.8f },
@@ -347,6 +355,7 @@ guy_GeneConfig guy_gene_configs[] = {
     { .race = guy_Race_Bat, .category = guy_GeneCategory_FrameAsset, .sex = guy_Sex_Any   , .asset = guy_Asset_BatFrame1  },
     { .race = guy_Race_Bat, .category = guy_GeneCategory_MouthAsset, .sex = guy_Sex_Any   , .asset = guy_Asset_BatMouth1  },
     { .race = guy_Race_Bat, .category = guy_GeneCategory_EyesAsset , .sex = guy_Sex_Any   , .asset = guy_Asset_BatEyes1   },
+    { .race = guy_Race_Bat, .category = guy_GeneCategory_ToolAsset , .sex = guy_Sex_Any   , .asset = guy_Asset_ToolHairbrush },
     { .race = guy_Race_Bat, .category = guy_GeneCategory_Strength  , .sex = guy_Sex_Any   , .amount =  0.5f                  },
     { .race = guy_Race_Bat, .category = guy_GeneCategory_Metabolism, .sex = guy_Sex_Any   , .amount =  2.0f                  },
     { .race = guy_Race_Bat, .category = guy_GeneCategory_Fecundity , .sex = guy_Sex_Any   , .amount =  1.0f                  },
@@ -382,6 +391,7 @@ guy_GeneConfig guy_gene_configs[] = {
     { .race = guy_Race_Spider, .category = guy_GeneCategory_FrameAsset, .sex = guy_Sex_Any   , .asset = guy_Asset_SpiderFrame1  },
     { .race = guy_Race_Spider, .category = guy_GeneCategory_MouthAsset, .sex = guy_Sex_Any   , .asset = guy_Asset_SpiderMouth1  },
     { .race = guy_Race_Spider, .category = guy_GeneCategory_EyesAsset , .sex = guy_Sex_Any   , .asset = guy_Asset_SpiderEyes1   },
+    { .race = guy_Race_Spider, .category = guy_GeneCategory_ToolAsset , .sex = guy_Sex_Any   , .asset = guy_Asset_ToolHairbrush },
     { .race = guy_Race_Spider, .category = guy_GeneCategory_Strength  , .sex = guy_Sex_Any   , .amount =  0.5f                  },
     { .race = guy_Race_Spider, .category = guy_GeneCategory_Metabolism, .sex = guy_Sex_Any   , .amount =  2.0f                  },
     { .race = guy_Race_Spider, .category = guy_GeneCategory_Fecundity , .sex = guy_Sex_Any   , .amount = 10.0f                  },
@@ -419,6 +429,7 @@ guy_GeneConfig guy_gene_configs[] = {
     { .race = guy_Race_Frog, .category = guy_GeneCategory_FrameAsset, .sex = guy_Sex_Any   , .asset = guy_Asset_FrogFrame1   },
     { .race = guy_Race_Frog, .category = guy_GeneCategory_MouthAsset, .sex = guy_Sex_Any   , .asset = guy_Asset_FrogMouth1   },
     { .race = guy_Race_Frog, .category = guy_GeneCategory_EyesAsset , .sex = guy_Sex_Any   , .asset = guy_Asset_FrogEyes1    },
+    { .race = guy_Race_Frog, .category = guy_GeneCategory_ToolAsset , .sex = guy_Sex_Any   , .asset = guy_Asset_ToolHairbrush},
     { .race = guy_Race_Frog, .category = guy_GeneCategory_Strength  , .sex = guy_Sex_Any   , .amount = 1.0f                  },
     { .race = guy_Race_Frog, .category = guy_GeneCategory_Metabolism, .sex = guy_Sex_Any   , .amount = 1.0f                  },
     { .race = guy_Race_Frog, .category = guy_GeneCategory_Fecundity , .sex = guy_Sex_Any   , .amount = 2.0f                  },
@@ -464,6 +475,7 @@ guy_GeneConfig guy_gene_configs[] = {
     { .race = guy_Race_Birb, .category = guy_GeneCategory_FrameAsset, .sex = guy_Sex_Any, .asset = guy_Asset_BirbFrame1 },
     { .race = guy_Race_Birb, .category = guy_GeneCategory_MouthAsset, .sex = guy_Sex_Any, .asset = guy_Asset_BirbMouth1 },
     { .race = guy_Race_Birb, .category = guy_GeneCategory_EyesAsset , .sex = guy_Sex_Any, .asset = guy_Asset_BirbEyes1 },
+    { .race = guy_Race_Birb, .category = guy_GeneCategory_ToolAsset , .sex = guy_Sex_Any, .asset = guy_Asset_ToolHairbrush },
     { .race = guy_Race_Birb, .category = guy_GeneCategory_Strength  , .sex = guy_Sex_Male  , .amount = 0.8 },
     { .race = guy_Race_Birb, .category = guy_GeneCategory_Strength  , .sex = guy_Sex_Male  , .amount = 0.7 },
     { .race = guy_Race_Birb, .category = guy_GeneCategory_Strength  , .sex = guy_Sex_Female, .amount = 1.2 },
@@ -528,12 +540,17 @@ guy_GeneConfig guy_gene_configs[] = {
     { .race = guy_Race_Moai, .category = guy_GeneCategory_FrameAsset, .sex = guy_Sex_Any, .asset = guy_Asset_MoaiFrame1 },
     { .race = guy_Race_Moai, .category = guy_GeneCategory_FrameAsset, .sex = guy_Sex_Any, .asset = guy_Asset_MoaiFrame2 },
     { .race = guy_Race_Moai, .category = guy_GeneCategory_FrameAsset, .sex = guy_Sex_Any, .asset = guy_Asset_MoaiFrame3 },
+    { .race = guy_Race_Moai, .category = guy_GeneCategory_ToolAsset,  .sex = guy_Sex_Any, .asset = guy_Asset_ToolCactus    },
+    { .race = guy_Race_Moai, .category = guy_GeneCategory_ToolAsset,  .sex = guy_Sex_Any, .asset = guy_Asset_ToolLasso     },
+    { .race = guy_Race_Moai, .category = guy_GeneCategory_ToolAsset,  .sex = guy_Sex_Any, .asset = guy_Asset_ToolSlingshot },
+    { .race = guy_Race_Moai, .category = guy_GeneCategory_ToolAsset,  .sex = guy_Sex_Any, .asset = guy_Asset_ToolClub      },
     { .race = guy_Race_Moai, .category = guy_GeneCategory_MouthAsset, .sex = guy_Sex_Any, .asset = guy_Asset_MoaiMouth1 },
     { .race = guy_Race_Moai, .category = guy_GeneCategory_MouthAsset, .sex = guy_Sex_Any, .asset = guy_Asset_MoaiMouth2 },
     { .race = guy_Race_Moai, .category = guy_GeneCategory_MouthAsset, .sex = guy_Sex_Any, .asset = guy_Asset_MoaiMouth3 },
     { .race = guy_Race_Moai, .category = guy_GeneCategory_EyesAsset, .sex = guy_Sex_Any, .asset = guy_Asset_MoaiEyes1 },
     { .race = guy_Race_Moai, .category = guy_GeneCategory_EyesAsset, .sex = guy_Sex_Any, .asset = guy_Asset_MoaiEyes2 },
     { .race = guy_Race_Moai, .category = guy_GeneCategory_EyesAsset, .sex = guy_Sex_Any, .asset = guy_Asset_MoaiEyes3 },
+    { .race = guy_Race_Moai, .category = guy_GeneCategory_ToolAsset, .sex = guy_Sex_Any, .asset = guy_Asset_ToolHairbrush },
     { .race = guy_Race_Moai, .category = guy_GeneCategory_Strength, .sex = guy_Sex_Any, .amount = 1.4 },
     { .race = guy_Race_Moai, .category = guy_GeneCategory_Metabolism, .sex = guy_Sex_Any, .amount = 0.8 },
     { .race = guy_Race_Moai, .category = guy_GeneCategory_Metabolism, .sex = guy_Sex_Any, .amount = 0.9 },
@@ -749,12 +766,15 @@ guy_Guy guy_from_race(guy_Race race, guy_Sex sex) {
 }
 
 static struct {
-    RL_Texture body, sword;
     RL_Texture assets[guy_Asset_COUNT];
 } guy_system;
 
 static RL_Texture load_and_premultiply(char *path) {
     RL_Image i = RL_LoadImage(path);
+    if (i.data == NULL) {
+        printf("guy asset '%s' missing!\n", path);
+        assert(false);
+    }
     RL_ImageAlphaPremultiply(&i);
 
     RL_Texture t = RL_LoadTextureFromImage(i);
@@ -765,13 +785,6 @@ static RL_Texture load_and_premultiply(char *path) {
 }
 
 void guy_system_init() {
-    {
-        RL_Image sword = RL_LoadImage("./resources/guy/sword.png");
-        RL_ImageAlphaPremultiply(&sword);
-        guy_system.sword = RL_LoadTextureFromImage(sword);
-        RL_SetTextureFilter(guy_system.sword, TEXTURE_FILTER_BILINEAR);
-        RL_UnloadImage(sword);
-    }
 
     /* throw error on missing gene */
     for (int i = 0; i < 2; i++) {
@@ -826,8 +839,6 @@ void guy_system_init() {
         guy_system.assets[i] = load_and_premultiply(guy_asset_paths[i]);
 }
 void guy_system_free() {
-    RL_UnloadTexture(guy_system.body);
-    RL_UnloadTexture(guy_system.sword);
     for (int i = guy_Asset_NONE+1; i < guy_Asset_COUNT; i++)
         RL_UnloadTexture(guy_system.assets[i]);
 }
@@ -906,6 +917,7 @@ void guy_draw_ex(guy_DrawEx ex) {
         guy_Layer_COUNT,
     } guy_Layer;
 
+    RL_Texture tool = guy_system.assets[ex.guy->genes[guy_GeneLoc_ToolAsset]->asset[0]];
     guy_Asset layer_assets[] = {
         [guy_Layer_Tail     ] = ex.guy->genes[guy_GeneLoc_TailAsset ]->asset[0],
         [guy_Layer_HairBack ] = ex.guy->genes[guy_GeneLoc_HairAsset ]->asset[1],
@@ -1069,8 +1081,8 @@ void guy_draw_ex(guy_DrawEx ex) {
         } while (false);
 
         RL_DrawTexturePro(
-            guy_system.sword,
-            (RL_Rectangle) { 0, 0, guy_system.sword.width, guy_system.sword.height },
+            tool,
+            (RL_Rectangle) { 0, 0, tool.width, tool.height },
             (RL_Rectangle) {
                 sword_x - sword_size/2,
                 sword_y - sword_size/2,
@@ -1082,7 +1094,7 @@ void guy_draw_ex(guy_DrawEx ex) {
                 pommel_y,
             },
             rot,
-            RL_BLACK
+            (RL_Color) { 255, 255, 255, 255 }
         );
     }
 

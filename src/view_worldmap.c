@@ -17,25 +17,6 @@
 #define map_FREE_CAMERA false
 
 typedef enum {
-    map_Biome_Plains,
-    map_Biome_Forest,
-    map_Biome_DarkForest,
-    map_Biome_Desert,
-    map_Biome_COUNT,
-} map_Biome;
-
-static Color map_biome_color[] = {
-    [map_Biome_Plains    ] = { 104, 148, 122, 255 },
-    [map_Biome_Forest    ] = {  80, 109,  92, 255 },
-    [map_Biome_DarkForest] = {  55,  67,  60, 255 },
-    [map_Biome_Desert    ] = { 229, 196, 163, 255 },
-};
-_Static_assert(
-    countof(map_biome_color) == map_Biome_COUNT,
-    "missing biome color"
-);
-
-typedef enum {
     map_StopStage_NONE,
     map_StopStage_New,
     map_StopStage_Visited,
@@ -54,7 +35,7 @@ struct Stop {
     Stop *parent;
 
     uint16_t steps_from_root;
-    map_Biome biome;
+    save_Biome biome;
 
     map_StopKind kind;
     float x, y;
@@ -89,7 +70,7 @@ static struct {
     struct {
         size_t texture_count;
         RL_Texture textures[map_MAX_ASSETS_PER_BIOME];
-    } biome_art[map_Biome_COUNT];
+    } biome_art[save_Biome_COUNT];
 
     RL_Sound sound_scope_out;
 
@@ -151,8 +132,8 @@ void view_worldmap_init(view_Transition t) {
 static void map_biome_art_init(void) {
     struct {
         char *paths[map_MAX_ASSETS_PER_BIOME];
-    } assets_for_biome[map_Biome_COUNT] = {
-        [map_Biome_DarkForest] = {
+    } assets_for_biome[save_Biome_COUNT] = {
+        [save_Biome_DarkForest] = {
             "darkforest_env1.png",
             "darkforest_env2.png",
             "darkforest_env3.png",
@@ -160,13 +141,13 @@ static void map_biome_art_init(void) {
             "darkforest_env5.png",
             "darkforest_env6.png",
         },
-        [map_Biome_Desert] = {
+        [save_Biome_Desert] = {
             "desert_env1.png",
             "desert_env2.png",
             "desert_env3.png",
             "desert_env4.png",
         },
-        [map_Biome_Forest] = {
+        [save_Biome_Forest] = {
             "forest_env1.png",
             "forest_env2.png",
             "forest_env3.png",
@@ -175,7 +156,7 @@ static void map_biome_art_init(void) {
             "forest_env6.png",
             "forest_env7.png",
         },
-        [map_Biome_Plains] = {
+        [save_Biome_Plains] = {
             "forest_env1.png",
             "forest_env2.png",
             "forest_env3.png",
@@ -186,7 +167,7 @@ static void map_biome_art_init(void) {
         },
     };
 
-    for (map_Biome biome = 0; biome < map_Biome_COUNT; biome++) {
+    for (save_Biome biome = 0; biome < save_Biome_COUNT; biome++) {
         for (int i = 0; i < map_MAX_ASSETS_PER_BIOME; i++) {
             char *asset = assets_for_biome[biome].paths[i];
             if (asset == NULL) continue;
@@ -207,7 +188,7 @@ static void map_biome_art_init(void) {
 }
 
 void view_worldmap_free(void) {
-    for (map_Biome biome = 0; biome < map_Biome_COUNT; biome++) {
+    for (save_Biome biome = 0; biome < save_Biome_COUNT; biome++) {
         for (
             size_t i = 0;
             i < view.biome_art[biome].texture_count;
@@ -248,9 +229,10 @@ static void map_stops_set_current(Stop *stop) {
     stops.current->stage = map_StopStage_Visited;
     stops.previous = stops.current;
     stops.current = stop;
+    save.run.biome = stop->biome;
 }
 
-static Stop *map_stops_init_arm(Stop *base, map_Biome biome, int length, float angle);
+static Stop *map_stops_init_arm(Stop *base, save_Biome biome, int length, float angle);
 static void map_stops_init(void) {
     stops.next = stops.all;
 
@@ -258,7 +240,7 @@ static void map_stops_init(void) {
     *start = (Stop) {
         .stage = map_StopStage_Visited,
         .kind = map_StopKind_NONE,
-        .biome = map_Biome_Plains,
+        .biome = save_Biome_Plains,
         .steps_from_root = 0,
         .x = 0,
         .y = 0,
@@ -268,9 +250,9 @@ static void map_stops_init(void) {
     stops.previous = start;
     stops.current = start;
 
-    int arm_count = map_Biome_COUNT;
+    int arm_count = save_Biome_COUNT;
     for (int i = 1; i < arm_count; i++) {
-        map_Biome biome = i;
+        save_Biome biome = i;
         float jitter = 0;// 0.1 * (0.5f - randf());
 
         float t0 = (((float)i - 0.45f)/(float)(arm_count - 1));
@@ -361,7 +343,7 @@ static void map_stops_layout(void) {
     }
 }
 
-static Stop *map_stops_init_arm(Stop *base, map_Biome biome, int length, float angle) {
+static Stop *map_stops_init_arm(Stop *base, save_Biome biome, int length, float angle) {
     Stop *last = base;
     for (int i = 0; i < length; i++) {
         Stop *next = stops.next++;
@@ -379,7 +361,7 @@ static Stop *map_stops_init_arm(Stop *base, map_Biome biome, int length, float a
         };
 
         next->biome = (next->steps_from_root < 3)
-            ? map_Biome_Plains
+            ? save_Biome_Plains
             : biome;
         map_stops_assign_assets(next);
 
@@ -505,14 +487,14 @@ void view_worldmap_render(void) {
 
     RL_ClearBackground((RL_Color) { 97, 131, 161, 255 });
 
-    map_Biome biome_render_order[map_Biome_COUNT] = {
-        map_Biome_Desert,
-        map_Biome_DarkForest,
-        map_Biome_Forest,
-        map_Biome_Plains,
+    save_Biome biome_render_order[save_Biome_COUNT] = {
+        save_Biome_Desert,
+        save_Biome_DarkForest,
+        save_Biome_Forest,
+        save_Biome_Plains,
     };
-    for (int i = 0; i < map_Biome_COUNT; i++) {
-        map_Biome b = biome_render_order[i];
+    for (int i = 0; i < save_Biome_COUNT; i++) {
+        save_Biome b = biome_render_order[i];
 
         for (size_t i = 0; i < countof(stops.all); i++) {
             Stop *stop = stops.all + i;
@@ -524,10 +506,10 @@ void view_worldmap_render(void) {
                 stop->y,
                 140.0f,
                 (RL_Color) {
-                    map_biome_color[stop->biome].r,
-                    map_biome_color[stop->biome].g,
-                    map_biome_color[stop->biome].b,
-                    map_biome_color[stop->biome].a,
+                    save_biome_color[stop->biome].r,
+                    save_biome_color[stop->biome].g,
+                    save_biome_color[stop->biome].b,
+                    save_biome_color[stop->biome].a,
                 }
             );
         }
@@ -670,7 +652,7 @@ void view_worldmap_render(void) {
                             RL_PlaySound(ui_sound(ui_Sound_BattleEnter));
                         if (RL_IsMouseButtonReleased(0)) {
                             map_stops_set_current(stop);
-                            view.next_view.battle.unit_count = 4 * stop->steps_from_root;
+                            view.next_view.battle.steps_from_root = stop->steps_from_root;
 #if !map_SKIP_BATTLES
                             view.next_view.kind = view_TransitionKind_StartBattle;
 #endif

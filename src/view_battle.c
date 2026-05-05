@@ -83,6 +83,68 @@ static battle_Guy battle_guy_init(battle_Guy g) {
     return g;
 }
 
+static size_t baddies_init(size_t steps_from_root) {
+    (void *)steps_from_root;
+    return 0;
+//    float difficulty = 0.0f;
+//
+//    difficulty += steps_from_root * 4.0f;
+//    difficulty += save.run.battles_won;
+//
+//    typedef enum {
+//        GuyBlendKind_Primary,
+//        GuyBlendKind_Split,
+//    } GuyBlendKind;
+//    struct {
+//        GuyBlendKind kind;
+//        guy_Race races[3];
+//    } blend = {0};
+//
+//    blend.kind = RL_GetRandomValue(0, 1)
+//        ? GuyBlendKind_Split
+//        : GuyBlendKind_Primary;
+//    switch (save.run.biome) {
+//        case save_Biome_Plains: {
+//            blend.races[0] = guy_Race_Bunny;
+//        } break;
+//
+//        case save_Biome_Forest: {
+//            blend.races[0] = guy_Race_Bird;
+//            blend.races[1] = guy_Race_Raccoon;
+//        } break;
+//
+//        case save_Biome_DarkForest: {
+//            blend.races[0] = guy_Race_Bat;
+//            blend.races[1] = guy_Race_Spider;
+//        } break;
+//
+//        case save_Biome_Desert: {
+//            blend.races[0] = guy_Race_Moai;
+//        } break;
+//    }
+//    
+//    size_t unit_count = roundf(difficulty * randf());
+//    uint32_t race_count = 0;
+//    for (size_t i = 0; i < countof(blend.races); i++) {
+//        race_count += blend.races[i] != guy_Race_NONE;
+//    }
+//
+//    switch (blend.kind) {
+//        case GuyBlendKind_Primary: {
+//            guy_Race primary = blend.races[RL_GetRandomValue(0, race_count-1)];
+//        } break;
+//
+//        case GuyBlendKind_Split: {
+//        } break;
+//    }
+//    for (size_t i = 0; i < unit_count; i++) {
+//        guy_Sex sex = i%2 ? guy_Sex_Male : guy_Sex_Female;
+//        view.baddies[i] = guy_from_race(guy_Race_Bunny, sex);
+//    }
+//
+//    return unit_count;
+}
+
 void view_battle_init(view_Transition t) {
     memset(&view, 0, sizeof(view));
 
@@ -94,24 +156,18 @@ void view_battle_init(view_Transition t) {
     size_t guy_i = 0;
 
     /* breed up some baddies */
+    size_t unit_count = baddies_init(t.battle.steps_from_root);
+    for (size_t i = 0; i < unit_count; i++) {
+        if (!view.baddies[i].state) break;
 
-    {
-        // guy_Guy mom = guy_from_race(guy_Race_Bunny, guy_Sex_Female);
-        // guy_Guy dad = guy_from_race(guy_Race_Bunny, guy_Sex_Male);
-        for (size_t i = 0; i < t.battle.unit_count; i++) {
-            // view.baddies[i] = guy_from_parents(&mom, &dad);
-            guy_Sex sex = i%2 ? guy_Sex_Male : guy_Sex_Female;
-            view.baddies[i] = guy_from_race(guy_Race_Bunny, sex);
-
-            float x = lerp(w*0.1, w*0.9, (float)i / (float)(t.battle.unit_count - 1));
-            float y = RL_GetRandomValue(h*0.1, h*0.3);
-            view.guys[guy_i++] = battle_guy_init((battle_Guy) {
-                .phase = battle_GuyPhase_Approaching,
-                .team = battle_Team_Baddie,
-                .guy = view.baddies + i,
-                .pos = { x, y },
-            });
-        }
+        float x = lerp(w*0.1, w*0.9, (float)i / (float)(unit_count - 1));
+        float y = RL_GetRandomValue(h*0.1, h*0.3);
+        view.guys[guy_i++] = battle_guy_init((battle_Guy) {
+            .phase = battle_GuyPhase_Approaching,
+            .team = battle_Team_Baddie,
+            .guy = view.baddies + i,
+            .pos = { x, y },
+        });
     }
 
     size_t guy_count = 0;

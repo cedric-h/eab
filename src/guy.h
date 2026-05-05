@@ -6,6 +6,21 @@
 
 #define guy_assets \
     x(guy_Asset_NONE, "./resources/guy2/none.png") \
+    x(guy_Asset_ToolHairbrush, "./resources/tool/hairbrush.png") \
+    x(guy_Asset_ToolWand, "./resources/tool/wand.png") \
+    x(guy_Asset_ToolSpear, "./resources/tool/spear.png") \
+    x(guy_Asset_ToolCarrot, "./resources/tool/carrot.png") \
+\
+    x(guy_Asset_ToolStapler, "./resources/tool/stapler.png") \
+    x(guy_Asset_ToolNewspaper, "./resources/tool/newspaper.png") \
+    x(guy_Asset_ToolFork, "./resources/tool/fork.png") \
+    x(guy_Asset_ToolPan, "./resources/tool/pan.png") \
+\
+    x(guy_Asset_ToolCactus, "./resources/tool/cactus.png") \
+    x(guy_Asset_ToolLasso, "./resources/tool/lasso.png") \
+    x(guy_Asset_ToolSlingshot, "./resources/tool/slingshot.png") \
+    x(guy_Asset_ToolClub, "./resources/tool/club.png") \
+\
     x(guy_Asset_BatFrame1, "./resources/guy2/bat_frame1.png") \
     x(guy_Asset_BatEyes1, "./resources/guy2/bat_eyes1.png") \
     x(guy_Asset_BatMouth1, "./resources/guy2/bat_mouth1.png") \
@@ -79,6 +94,7 @@ typedef enum {
     guy_GeneCategory_MouthAsset,
     guy_GeneCategory_EyesAsset,
     guy_GeneCategory_LimbsAsset,
+    guy_GeneCategory_ToolAsset,
 
     guy_GeneCategory_Girth,
     guy_GeneCategory_Strength,
@@ -110,7 +126,8 @@ typedef enum {
     x(guy_GeneLoc_FrameAsset, "frame", guy_GeneCategory_FrameAsset) \
     x(guy_GeneLoc_MouthAsset, "mouth", guy_GeneCategory_MouthAsset) \
     x(guy_GeneLoc_EyesAsset,  "eyes" , guy_GeneCategory_EyesAsset ) \
-    x(guy_GeneLoc_LimbsAsset, "limbs", guy_GeneCategory_LimbsAsset ) \
+    x(guy_GeneLoc_LimbsAsset, "limbs", guy_GeneCategory_LimbsAsset) \
+    x(guy_GeneLoc_ToolAsset,  "tool",  guy_GeneCategory_ToolAsset ) \
 \
     x(guy_GeneLoc_Strength1, "strength 1", guy_GeneCategory_Strength) \
     x(guy_GeneLoc_Strength2, "strength 2", guy_GeneCategory_Strength) \
@@ -163,6 +180,7 @@ static guy_GeneCategory guy_asset_gene_categories[] = {
     guy_GeneCategory_MouthAsset,
     guy_GeneCategory_EyesAsset,
     guy_GeneCategory_LimbsAsset,
+    guy_GeneCategory_ToolAsset,
 };
 
 #undef guy_gene_locs

@@ -5,6 +5,25 @@
 #include "ui.h"
 
 typedef enum {
+    save_Biome_Plains,
+    save_Biome_Forest,
+    save_Biome_DarkForest,
+    save_Biome_Desert,
+    save_Biome_COUNT,
+} save_Biome;
+
+static Color save_biome_color[] = {
+    [save_Biome_Plains    ] = { 104, 148, 122, 255 },
+    [save_Biome_Forest    ] = {  80, 109,  92, 255 },
+    [save_Biome_DarkForest] = {  55,  67,  60, 255 },
+    [save_Biome_Desert    ] = { 229, 196, 163, 255 },
+};
+_Static_assert(
+    countof(save_biome_color) == save_Biome_COUNT,
+    "missing biome color"
+);
+
+typedef enum {
     save_Furniture_NONE,
     save_Furniture_Tikitorch,
     save_Furniture_PocketCamp,
@@ -40,6 +59,8 @@ typedef struct {
         float food;
         uint32_t coin;
         save_Furniture furniture[10];
+
+        save_Biome biome;
     } run;
 
 } save_Save;
