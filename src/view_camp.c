@@ -36,8 +36,10 @@ typedef struct {
 
 static struct {
     size_t guys_in_orgy_circle_male;
-    float guys_in_orgy_circle_hunger_female;
-    uint32_t guys_in_orgy_circle_childcount_female;
+    float guys_in_orgy_circle_cost_to_breed;
+    float guys_in_orgy_circle_childcount_female;
+
+    f2 mouse_down_pos;
 
     view_TransitionKind to_go_back;
     view_Transition next_view;
@@ -78,6 +80,22 @@ static float camp_get_item_size(camp_Item *item) {
         case camp_ItemKind_Guy:
             return 26*guy_size(item->guy);
     }
+}
+
+static bool camp_release_to_inspect(void) {
+    
+    float dist = sqrtf(
+        (RL_GetMousePosition().x - view.mouse_down_pos.x)*
+            (RL_GetMousePosition().x - view.mouse_down_pos.x) +
+        (RL_GetMousePosition().y - view.mouse_down_pos.y)*
+            (RL_GetMousePosition().y - view.mouse_down_pos.y)
+    );
+
+    return
+        (dist < 5.0f) &&
+        (view.held_item_idx > -1) &&
+        (keep.items[view.held_item_idx].kind == camp_ItemKind_Guy) &&
+        ((RL_GetTime() - view.held_item_t) < 0.5);
 }
 
 static camp_Item camp_make_item(camp_ItemKind kind) {
@@ -191,7 +209,7 @@ view_Transition view_camp_update(uint64_t _) {
 
     /* push things in/out of the orgy circle */
     view.guys_in_orgy_circle_male = 0;
-    view.guys_in_orgy_circle_hunger_female = 0;
+    view.guys_in_orgy_circle_cost_to_breed = 0;
     view.guys_in_orgy_circle_childcount_female = 0;
     for (size_t i = 0; i < countof(keep.items); i++) {
         camp_Item *item = keep.items + i;
@@ -204,11 +222,9 @@ view_Transition view_camp_update(uint64_t _) {
             if (item->kind == camp_ItemKind_Guy) {
                 view.guys_in_orgy_circle_male   += item->guy->sex == guy_Sex_Male;
                 if (item->guy->sex == guy_Sex_Female) {
-                    view.guys_in_orgy_circle_hunger_female += guy_hunger(
-                        item->guy
-                    );
-                    view.guys_in_orgy_circle_childcount_female +=
-                        guy_fecundity(item->guy);
+                    float fec = guy_fecundity(item->guy);
+                    view.guys_in_orgy_circle_cost_to_breed += guy_girth(item->guy) * fec;
+                    view.guys_in_orgy_circle_childcount_female += fec;
                 }
             }
         }
@@ -278,7 +294,12 @@ static Clay_RenderCommandArray ui_create_layout(void);
 void view_camp_render(void) {
     RL_BeginDrawing();
 
-    RL_ClearBackground(RL_WHITE);
+    RL_ClearBackground((RL_Color) {
+        .r = save_biome_color[save.run.biome].r,
+        .g = save_biome_color[save.run.biome].g,
+        .b = save_biome_color[save.run.biome].b,
+        .a = save_biome_color[save.run.biome].a,
+    });
 
     /* held things go to mouse */
     if (view.held_item_idx != -1) {
@@ -398,6 +419,8 @@ void view_camp_render(void) {
 
             eab_mouse_cursor = MOUSE_CURSOR_POINTING_HAND;
             if (RL_IsMouseButtonPressed(0)) {
+                view.mouse_down_pos.x = RL_GetMousePosition().x;
+                view.mouse_down_pos.y = RL_GetMousePosition().y;
                 view.held_item_idx = i;
                 view.held_item_t = RL_GetTime();
             }
@@ -483,7 +506,7 @@ void view_camp_render(void) {
         snprintf(
             est_output,
             sizeof(est_output),
-            "est. output = %d",
+            "est. output = %.1f",
             view.guys_in_orgy_circle_childcount_female
         );
         RL_DrawTextEx(
@@ -514,10 +537,7 @@ void view_camp_render(void) {
             RL_PlaySound(view.stew[
                 RL_GetRandomValue(0, countof(view.stew) - 1)
             ]);
-        } else if (
-                (keep.items[view.held_item_idx].kind == camp_ItemKind_Guy) &&
-                ((RL_GetTime() - view.held_item_t) < 0.1)
-        ) {
+        } else if (camp_release_to_inspect()) {
             ui_guy_show_detail_page(
                 keep.items[view.held_item_idx].guy
             );
@@ -576,6 +596,46 @@ ui_Click ui_small_button_with_cost(
     return ret;
 }
 
+static void ui_stat_icon(ui_Icon icon, uint32_t size) {
+    CLAY_AUTO_ID({
+        .layout = {
+            .sizing = {
+                .height = CLAY_SIZING_FIXED(size),
+                .width = CLAY_SIZING_FIXED(size),
+            },
+        },
+        .image = { .imageData = ui_icon(icon) }
+    });
+}
+
+static void ui_stat_tally(ui_Icon icon, float amount) {
+
+    CLAY_AUTO_ID({
+        .layout.childGap = 8,
+        .layout.childAlignment = { .y = CLAY_ALIGN_Y_CENTER },
+    }) {
+        ui_stat_icon(icon, 32);
+
+        Clay_String tmp;
+        ui_sprintf(tmp, "%.2f", amount);
+        CLAY_TEXT(tmp, ui_font(ui_Font_Cost));
+    }
+}
+
+static void ui_hp_tally(guy_Guy *guy) {
+
+    CLAY_AUTO_ID({
+        .layout.childGap = 8,
+        .layout.childAlignment = { .y = CLAY_ALIGN_Y_CENTER },
+    }) {
+        ui_stat_icon(ui_Icon_Heal, 32);
+
+        Clay_String tmp;
+        ui_sprintf(tmp, "%d/%d", guy->hp, guy_maxhp(guy));
+        CLAY_TEXT(tmp, ui_font(ui_Font_Cost));
+    }
+}
+
 
 static Clay_RenderCommandArray ui_create_layout(void) {
     Clay_BeginLayout();
@@ -628,84 +688,123 @@ static Clay_RenderCommandArray ui_create_layout(void) {
             .layout = { .sizing = { .height = CLAY_SIZING_GROW() } }
         });
 
-        CLAY_AUTO_ID({
-            .layout = {
-                .sizing = { .width = CLAY_SIZING_GROW() },
-                .layoutDirection = CLAY_TOP_TO_BOTTOM
-            },
-        }) {
-            float heal_cost = 0;
-            float bed_cost = view.guys_in_orgy_circle_hunger_female*2 * (view.guys_in_orgy_circle_male > 0);
-            for (size_t i = 0; i < countof(save.run.guys); i++) {
-                guy_Guy *g = save.run.guys + i;
-                if (g->state == guy_GuyState_NONE)
-                    continue;
+        if ((view.held_item_idx > -1) &&
+            (keep.items[view.held_item_idx].kind == camp_ItemKind_Guy)
+        ) {
 
-                float heal_needed = (float)(guy_maxhp(g) - g->hp) / 100.0f;
-                heal_cost += heal_needed * guy_hunger(g);
+            if (camp_release_to_inspect()) CLAY_AUTO_ID({
+                .layout.sizing.width = CLAY_SIZING_GROW(),
+                .layout.childAlignment.x = CLAY_ALIGN_X_CENTER,
+                .layout.childGap = 2,
+            }) {
+                ui_stat_icon(ui_Icon_Scroll, 28);
+                CLAY_TEXT(CLAY_STRING("release to inspect"), ui_font(ui_Font_Cost));
+                ui_stat_icon(ui_Icon_Scroll, 28);
             }
 
+            guy_Guy *guy = keep.items[view.held_item_idx].guy;
             CLAY_AUTO_ID({
-                .layout = { .sizing = { .width = CLAY_SIZING_GROW() } },
+                .layout.sizing.width = CLAY_SIZING_GROW(),
+                .layout.padding.bottom = 20,
             }) {
-                switch (ui_small_button_with_cost(
-                        ui_icon(ui_Icon_Bed),
-                        (bed_cost == 0) || (save.run.food < bed_cost),
-                        bed_cost
-                    )) {
-                    case ui_Click_Pressed: {
-                        RL_PlaySound(ui_sound(ui_Sound_Click));
-                    } break;
-                    case ui_Click_Released: {
-                        save.run.food -= bed_cost;
-                        view.next_view = to_fornications();
+                CLAY_AUTO_ID({
+                    .layout.layoutDirection = CLAY_TOP_TO_BOTTOM,
+                    .layout.childGap = 16,
+                }) {
+                    ui_stat_tally(ui_Icon_Strength, guy_strength(guy));
+                    ui_hp_tally(guy);
+                }
 
-                    } break;
-                    default: break;
+                CLAY_AUTO_ID({ .layout.sizing.width = CLAY_SIZING_GROW() });
+
+                CLAY_AUTO_ID({
+                    .layout.layoutDirection = CLAY_TOP_TO_BOTTOM,
+                    .layout.childGap = 16,
+                }) {
+                    ui_stat_tally(ui_Icon_Fecundity, guy_fecundity(guy) );
+                    ui_stat_tally(ui_Icon_Speed,     guy_metabolism(guy));
+                }
+            }
+        } else {
+            CLAY_AUTO_ID({
+                .layout = {
+                    .sizing = { .width = CLAY_SIZING_GROW() },
+                    .layoutDirection = CLAY_TOP_TO_BOTTOM
+                },
+            }) {
+                float heal_cost = 0;
+                float bed_cost = view.guys_in_orgy_circle_cost_to_breed * (view.guys_in_orgy_circle_male > 0);
+                for (size_t i = 0; i < countof(save.run.guys); i++) {
+                    guy_Guy *g = save.run.guys + i;
+                    if (g->state == guy_GuyState_NONE)
+                        continue;
+
+                    float heal_needed = (float)(guy_maxhp(g) - g->hp) / 100.0f;
+                    heal_cost += heal_needed * guy_hunger(g);
                 }
 
                 CLAY_AUTO_ID({
-                    .layout = { .sizing = { .width = CLAY_SIZING_GROW() } }
-                });
+                    .layout = { .sizing = { .width = CLAY_SIZING_GROW() } },
+                }) {
+                    switch (ui_small_button_with_cost(
+                            ui_icon(ui_Icon_Bed),
+                            (bed_cost == 0) || (save.run.food < bed_cost),
+                            bed_cost
+                        )) {
+                        case ui_Click_Pressed: {
+                            RL_PlaySound(ui_sound(ui_Sound_Click));
+                        } break;
+                        case ui_Click_Released: {
+                            save.run.food -= bed_cost;
+                            view.next_view = to_fornications();
 
-                switch (ui_small_button_with_cost(
-                        ui_icon(ui_Icon_Heal),
-                        (heal_cost == 0) || (save.run.food < heal_cost),
-                        heal_cost
+                        } break;
+                        default: break;
+                    }
+
+                    CLAY_AUTO_ID({
+                        .layout = { .sizing = { .width = CLAY_SIZING_GROW() } }
+                    });
+
+                    switch (ui_small_button_with_cost(
+                            ui_icon(ui_Icon_Heal),
+                            (heal_cost == 0) || (save.run.food < heal_cost),
+                            heal_cost
+                        )) {
+                        case ui_Click_Pressed: {
+                            RL_PlaySound(ui_sound(ui_Sound_Click));
+                        } break;
+                        case ui_Click_Released: {
+                            save.run.food -= heal_cost;
+
+                            for (size_t i = 0; i < countof(save.run.guys); i++) {
+                                guy_Guy *g = save.run.guys + i;
+                                if (g->state == guy_GuyState_NONE)
+                                    continue;
+                                g->hp = guy_maxhp(g);
+                            }
+                        } break;
+                        default: break;
+                    }
+
+                    CLAY_AUTO_ID({
+                        .layout = { .sizing = { .width = CLAY_SIZING_GROW() } }
+                    });
+
+                    switch (ui_small_button(
+                        ui_icon(ui_Icon_BackToMap),
+                        false
                     )) {
-                    case ui_Click_Pressed: {
-                        RL_PlaySound(ui_sound(ui_Sound_Click));
-                    } break;
-                    case ui_Click_Released: {
-                        save.run.food -= heal_cost;
-
-                        for (size_t i = 0; i < countof(save.run.guys); i++) {
-                            guy_Guy *g = save.run.guys + i;
-                            if (g->state == guy_GuyState_NONE)
-                                continue;
-                            g->hp = guy_maxhp(g);
-                        }
-                    } break;
-                    default: break;
-                }
-
-                CLAY_AUTO_ID({
-                    .layout = { .sizing = { .width = CLAY_SIZING_GROW() } }
-                });
-
-                switch (ui_small_button(
-                    ui_icon(ui_Icon_BackToMap),
-                    false
-                )) {
-                    case ui_Click_Pressed: {
-                        RL_PlaySound(ui_sound(ui_Sound_CampLeave));
-                    } break;
-                    case ui_Click_Released: {
-                        view.next_view = (view_Transition) {
-                            .kind = view.to_go_back
-                        };
-                    } break;
-                    default: break;
+                        case ui_Click_Pressed: {
+                            RL_PlaySound(ui_sound(ui_Sound_CampLeave));
+                        } break;
+                        case ui_Click_Released: {
+                            view.next_view = (view_Transition) {
+                                .kind = view.to_go_back
+                            };
+                        } break;
+                        default: break;
+                    }
                 }
             }
         }

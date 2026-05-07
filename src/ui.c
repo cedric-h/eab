@@ -47,6 +47,10 @@ char *ui_icon_paths[] = {
 	[ui_Icon_Market   ] = "resources/icon/market.png",
 	[ui_Icon_Hole     ] = "resources/icon/hole.png",
 	[ui_Icon_Telescope] = "resources/icon/telescope.png",
+	[ui_Icon_Girth    ] = "resources/icon/girth.png",
+	[ui_Icon_Speed    ] = "resources/icon/speed.png",
+	[ui_Icon_Strength ] = "resources/icon/strength.png",
+	[ui_Icon_Fecundity] = "resources/icon/fecundity.png",
 };
 _Static_assert(countof(ui_icon_paths) == ui_Icon_COUNT, "missing icon path");
 
@@ -79,6 +83,12 @@ static struct {
 
     struct {
         bool active, show_stats;
+        enum {
+            ui_DetailTab_Overview,
+            ui_DetailTab_Race,
+            ui_DetailTab_Genes,
+            ui_DetailTab_Relatives,
+        } tab;
         guy_GeneConfig *gene_hovered;
         guy_Guy *guy;
     } guy_detail;
@@ -187,6 +197,12 @@ void ui_init(void) {
             ui.icons[i],
             TEXTURE_FILTER_BILINEAR
         );
+#ifndef NDEBUG
+        if (ui.icons[i].width == 0 && ui.icons[i].height == 0) {
+            printf("%s missing!", ui_icon_paths[i]);
+            assert(false);
+        }
+#endif
     }
 
     for (int i = 0; i < ui_Sound_COUNT; i++)
@@ -382,8 +398,8 @@ ui_Click ui_small_button_ex(ui_SmallButton_Config cfg) {
 
     Clay_Color enabled_black = 
         (disabled)
-            ? (Clay_Color) { 120, 120, 120, 255}
-            : (Clay_Color) {   0,   0,   0, 255}
+            ? (Clay_Color) { 120, 120, 120, 120 }
+            : (Clay_Color) {   0,   0,   0, 255 }
         ;
 
     CLAY(CLAY_IDI("ui_small_button", icon->id), {
@@ -604,26 +620,18 @@ static void ui_closest_relatives(guy_Guy *guy) {
     }
 
     CLAY_AUTO_ID({
-        .layout.childGap = 48,
-        .layout.padding.left = 32,
+        .layout.layoutDirection = CLAY_TOP_TO_BOTTOM,
+        .layout.sizing.width = CLAY_SIZING_GROW(),
+        .layout.childAlignment.x = CLAY_ALIGN_X_CENTER,
     }) {
         for (size_t i = 0; i < countof(closest); i++) {
             if (closest[i].guy == NULL)
                 continue;
 
             CLAY_AUTO_ID({
-                .layout.layoutDirection = CLAY_TOP_TO_BOTTOM,
-                .layout.childAlignment.x = CLAY_ALIGN_X_CENTER,
-                .layout.childGap = 8,
+                .layout.childAlignment.y = CLAY_ALIGN_Y_CENTER,
+                .layout.childGap = 16,
             }) {
-                uint32_t count = closest[i].shared_genes;
-                float p = 100 * (
-                    (float)count / (float)(guy_GeneLoc_COUNT-1)
-                );
-                Clay_String tmp;
-                ui_sprintf(tmp, "%.1f%%", p);
-                CLAY_TEXT(tmp, ui_font(ui_Font_Desc));
-
                 CLAY_AUTO_ID({
                     .layout = {
                         .sizing = {
@@ -634,6 +642,15 @@ static void ui_closest_relatives(guy_Guy *guy) {
                     },
                     .custom = { .customData = closest[i].guy }
                 });
+
+                uint32_t count = closest[i].shared_genes;
+                float p = 100 * (
+                    (float)count / (float)(guy_GeneLoc_COUNT-1)
+                );
+                Clay_String tmp;
+                ui_sprintf(tmp, "%.1f%% DNA", p);
+                CLAY_TEXT(tmp, ui_font(ui_Font_Cost));
+
             }
         }
     }
@@ -675,7 +692,6 @@ static Clay_RenderCommandArray ui_guy_detail(void) {
             ui_sprintf(tmp, "%s", name);
             CLAY_TEXT(tmp, ui_font(ui_Font_Button));
 
-
             CLAY_AUTO_ID({
                 .layout.sizing.width = CLAY_SIZING_GROW(),
             }) {
@@ -702,136 +718,141 @@ static Clay_RenderCommandArray ui_guy_detail(void) {
                 CLAY_AUTO_ID({ .layout.sizing.width = CLAY_SIZING_GROW() });
             }
 
-            ui_sprintf(tmp, "hp: %d/%d", guy->hp, guy_maxhp(guy));
-            CLAY_TEXT(tmp, ui_font(ui_Font_Desc));
+            switch (ui.guy_detail.tab) {
+                case ui_DetailTab_Overview: {
 
-            ui_sprintf(tmp, "sex: %s", guy_sex_str(guy->sex));
-            CLAY_TEXT(tmp, ui_font(ui_Font_Desc));
+                    switch (ui_big_button(
+                        CLAY_STRING("RACE"),
+                        ui_icon(ui_Icon_Telescope)
+                    )) {
+                        case ui_Click_Pressed: RL_PlaySound(ui_sound(ui_Sound_Click)); break;
+                        case ui_Click_Released: {
+                            ui.guy_detail.tab = ui_DetailTab_Race;
+                        } break;
+                        default: break;
+                    }
 
-            ui_race_summary(guy);
+                    switch (ui_big_button(
+                        CLAY_STRING("GENES"),
+                        ui_icon(ui_Icon_Soup)
+                    )) {
+                        case ui_Click_Pressed: RL_PlaySound(ui_sound(ui_Sound_Click)); break;
+                        case ui_Click_Released: {
+                            ui.guy_detail.tab = ui_DetailTab_Genes;
+                        } break;
+                        default: break;
+                    }
 
-            CLAY_AUTO_ID({
-                .border = {
-                    .width = CLAY_BORDER_OUTSIDE(4),
-                    .color = {0, 0, 0, 255}
-                },
-                .backgroundColor = Clay_Hovered()
-                    ? (Clay_Color) { 128, 128, 128, 128 }
-                    : (Clay_Color) { 255, 255, 255, 255 },
-                .cornerRadius = CLAY_CORNER_RADIUS(6),
-                .layout = {
-                    .padding = { 16, 16, 8, 8 },
-                }
-            }) {
-                if (Clay_Hovered()) {
-                    if (Clay_GetPointerState().state == 
-                            CLAY_POINTER_DATA_RELEASED_THIS_FRAME
-                        )
-                        ui.guy_detail.show_stats ^= 1;
-                }
+                    switch (ui_big_button(
+                        CLAY_STRING("RELATED"),
+                        ui_icon(ui_Icon_Fecundity)
+                    )) {
+                        case ui_Click_Pressed: RL_PlaySound(ui_sound(ui_Sound_Click)); break;
+                        case ui_Click_Released: {
+                            ui.guy_detail.tab = ui_DetailTab_Relatives;
+                        } break;
+                        default: break;
+                    }
 
-                CLAY_TEXT(
-                    (ui.guy_detail.show_stats)
-                        ? CLAY_STRING("SHOW STATS  v")
-                        : CLAY_STRING("SHOW STATS  >"),
-                    ui_font(ui_Font_Desc)
-                );
-            }
+                } break;
 
-            if (ui.guy_detail.show_stats) CLAY_AUTO_ID({
-                .layout = {
-                    .layoutDirection = CLAY_TOP_TO_BOTTOM,
-                    .sizing = {
-                        .width = CLAY_SIZING_GROW(0),
-                        .height = CLAY_SIZING_GROW(0)
-                    },
-                    .padding = { 4, 4, 4, 4 },
-                    .childGap = 4,
-                },
-                .clip = {
-                    .horizontal = true,
-                    .vertical = true,
-                    .childOffset = Clay_GetScrollOffset()
-                },
-            }) {
+                case ui_DetailTab_Race: {
+                    ui_race_summary(guy);
+                } break;
 
-                ui_gene_tally_color(
-                    guy,
-                    "hair",
-                    guy_color_hair(guy),
-                    guy_GeneCategory_HairColor
-                );
+                case ui_DetailTab_Genes: {
+                    CLAY_AUTO_ID({
+                        .layout = {
+                            .layoutDirection = CLAY_TOP_TO_BOTTOM,
+                            .sizing = {
+                                .width = CLAY_SIZING_GROW(0),
+                                .height = CLAY_SIZING_GROW(0)
+                            },
+                            .padding = { 4, 4, 4, 4 },
+                            .childGap = 4,
+                        },
+                        .clip = {
+                            .horizontal = true,
+                            .vertical = true,
+                            .childOffset = Clay_GetScrollOffset()
+                        },
+                    }) {
 
-                ui_gene_tally_color(
-                    guy,
-                    "skin",
-                    guy_color_skin(guy),
-                    guy_GeneCategory_SkinColor
-                );
+                        ui_gene_tally_color(
+                            guy,
+                            "hair",
+                            guy_color_hair(guy),
+                            guy_GeneCategory_HairColor
+                        );
 
-                ui_gene_tally(
-                    guy,
-                    "kids per night",
-                    guy_fecundity(guy),
-                    guy_GeneCategory_Fecundity
-                );
+                        ui_gene_tally_color(
+                            guy,
+                            "skin",
+                            guy_color_skin(guy),
+                            guy_GeneCategory_SkinColor
+                        );
 
-                ui_gene_tally(
-                    guy,
-                    "metabolism",
-                    guy_metabolism(guy),
-                    guy_GeneCategory_Metabolism
-                );
+                        ui_gene_tally(
+                            guy,
+                            "kids per night",
+                            guy_fecundity(guy),
+                            guy_GeneCategory_Fecundity
+                        );
 
-                ui_gene_tally(
-                    guy,
-                    "girth",
-                    guy_girth(guy),
-                    guy_GeneCategory_Girth
-                );
+                        ui_gene_tally(
+                            guy,
+                            "metabolism",
+                            guy_metabolism(guy),
+                            guy_GeneCategory_Metabolism
+                        );
 
-                ui_gene_tally(
-                    guy,
-                    "strength",
-                    guy_strength(guy),
-                    guy_GeneCategory_Strength
-                );
-            }
+                        ui_gene_tally(
+                            guy,
+                            "girth",
+                            guy_girth(guy),
+                            guy_GeneCategory_Girth
+                        );
+
+                        ui_gene_tally(
+                            guy,
+                            "strength",
+                            guy_strength(guy),
+                            guy_GeneCategory_Strength
+                        );
+                    }
             
-            if (ui.guy_detail.gene_hovered) {
-                guy_GeneConfig *gene = ui.guy_detail.gene_hovered;
-                size_t gene_number = gene - &guy_gene_configs[0];
-                ui_sprintf(
-                    tmp,
-                    "%s gene #%ld (sex: %s)",
-                    guy_race_names[gene->race],
-                    gene_number,
-                    guy_sex_str(gene->sex)
-                );
-                CLAY_TEXT(tmp, ui_font(ui_Font_Desc));
-            } else {
-                CLAY_TEXT(
-                    CLAY_STRING("HOVER OVER GENE"),
-                    ui_font(ui_Font_Desc)
-                );
+                    if (ui.guy_detail.gene_hovered) {
+                        guy_GeneConfig *gene = ui.guy_detail.gene_hovered;
+                        size_t gene_number = gene - &guy_gene_configs[0];
+                        ui_sprintf(
+                            tmp,
+                            "%s gene #%ld (sex: %s)",
+                            guy_race_names[gene->race],
+                            gene_number,
+                            guy_sex_str(gene->sex)
+                        );
+                        CLAY_TEXT(tmp, ui_font(ui_Font_Desc));
+                    } else {
+                        CLAY_TEXT(
+                            CLAY_STRING("HOVER OVER GENE"),
+                            ui_font(ui_Font_Desc)
+                        );
+                    }
+
+                } break;
+
+                case ui_DetailTab_Relatives: {
+                    CLAY_TEXT(
+                        CLAY_STRING("closest relatives:"),
+                        ui_font(ui_Font_Desc)
+                    );
+                    ui_closest_relatives(guy);
+                } break;
             }
 
-            CLAY_TEXT(
-                CLAY_STRING("closest relatives:"),
-                ui_font(ui_Font_Desc)
-            );
-            ui_closest_relatives(guy);
         }
 
-        CLAY_AUTO_ID({
-            .layout = {
-                .sizing = {
-                    .width = CLAY_SIZING_FIXED(20),
-                    .height = CLAY_SIZING_GROW(),
-                },
-            },
-        }) {
-        }
+        CLAY_AUTO_ID({ .layout.sizing.height = CLAY_SIZING_GROW() });
 
         switch (ui_big_button(
             CLAY_STRING("BACK"),
@@ -839,7 +860,10 @@ static Clay_RenderCommandArray ui_guy_detail(void) {
         )) {
             case ui_Click_Pressed: RL_PlaySound(ui_sound(ui_Sound_Click)); break;
             case ui_Click_Released: {
-                ui.guy_detail.active = false;
+                if (ui.guy_detail.tab == ui_DetailTab_Overview)
+                    ui.guy_detail.active = false;
+                else
+                    ui.guy_detail.tab = ui_DetailTab_Overview;
             } break;
             default: break;
         }

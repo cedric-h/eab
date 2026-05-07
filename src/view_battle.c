@@ -67,13 +67,16 @@ static struct {
     double outcome_t;
     bool outcome_can_leave;
 
+    uint32_t original_baddie_count;
+    float difficulty;
+
     view_Transition next_view;
     guy_Guy baddies[BADDIE_MAX_COUNT];
 
     battle_Guy guys[COMBATANT_MAX_COUNT];
     struct { bool active; f2 pos; float size; } graves[COMBATANT_MAX_COUNT];
 
-    float food;
+    float food, coin;
 
     RL_Sound sound_hit, sound_dead;
 } view;
@@ -84,10 +87,12 @@ static battle_Guy battle_guy_init(battle_Guy g) {
 }
 
 static size_t baddies_init(size_t steps_from_root) {
-    float difficulty = 1.0f;
+    float difficulty = -0.5f;
 
-    difficulty += steps_from_root * 4.0f;
-    difficulty += save.run.battles_won;
+    difficulty += steps_from_root * 2.0f;
+    difficulty += save.run.battles_won * 0.5f;
+    difficulty += gaussian_randf(0.0f, (steps_from_root > 2)*1.0f);
+    view.difficulty = difficulty;
 
     typedef enum {
         GuyBlendKind_Primary,
@@ -127,7 +132,7 @@ static size_t baddies_init(size_t steps_from_root) {
 
     }
     
-    size_t unit_count = gaussian_randf(difficulty, 1.0f);
+    size_t unit_count = 0;
     uint32_t race_count = 0;
     for (size_t i = 0; i < countof(blend.races); i++) {
         race_count += blend.races[i] != guy_Race_NONE;
@@ -169,10 +174,22 @@ static size_t baddies_init(size_t steps_from_root) {
                 this_gen = tmp_gen;
             }
 
-            for (size_t i = 0; i < unit_count; i++) {
+            float guy_juice = difficulty;
+            while (guy_juice > 0) {
                 guy_Guy mom = this_gen[RL_GetRandomValue(0, HALF_GENERATION_SIZE-1)*2 + 0];
                 guy_Guy dad = this_gen[RL_GetRandomValue(0, HALF_GENERATION_SIZE-1)*2 + 1];
-                view.baddies[i] = guy_from_parents(&mom, &dad);
+                guy_Guy guy = guy_from_parents(&mom, &dad);
+                float guy_difficulty = 
+                    guy_strength(&guy) *
+                    guy_metabolism(&guy) *
+                    guy_girth(&guy);
+
+                if (guy_difficulty < 1.0f)
+                    guy_difficulty = sqrtf(guy_difficulty);
+
+                guy_juice -= guy_difficulty;
+
+                view.baddies[unit_count++] = guy;
             }
 
 #undef GENERATION_SIZE
@@ -199,6 +216,7 @@ void view_battle_init(view_Transition t) {
 
     /* breed up some baddies */
     size_t unit_count = baddies_init(t.battle.steps_from_root);
+    view.original_baddie_count = unit_count;
     for (size_t i = 0; i < unit_count; i++) {
         if (!view.baddies[i].state) break;
 
@@ -259,7 +277,11 @@ view_Transition view_battle_update(uint64_t update) {
             }
         }
 
-        if (baddie_count <= 2 && baddie_count < player_count) {
+        /* baddie surrender logic */
+        if (baddie_count < view.original_baddie_count &&
+            baddie_count <= 2 &&
+            baddie_count < player_count
+        ) {
             view.outcome = battle_Outcome_Victory;
             view.outcome_t = RL_GetTime();
 
@@ -609,7 +631,12 @@ view_Transition view_battle_update(uint64_t update) {
 static Clay_RenderCommandArray ui_create_layout(void);
 void view_battle_render(void) {
     RL_BeginDrawing();
-    RL_ClearBackground(RL_WHITE);
+    RL_ClearBackground((RL_Color) {
+        .r = save_biome_color[save.run.biome].r,
+        .g = save_biome_color[save.run.biome].g,
+        .b = save_biome_color[save.run.biome].b,
+        .a = save_biome_color[save.run.biome].a,
+    });
 
     for (size_t i = 0; i < countof(view.graves); i++) {
         if (!view.graves[i].active) continue;
@@ -684,19 +711,42 @@ static Clay_RenderCommandArray ui_create_layout(void) {
                 .layout = { .sizing = { .width = CLAY_SIZING_GROW() } },
             });
 
-            CLAY_AUTO_ID({
-                .layout = {
-                    .sizing = {
-                        .height = CLAY_SIZING_FIXED(32),
-                        .width = CLAY_SIZING_FIXED(32),
-                    },
-                },
-                .image = { .imageData = ui_icon(ui_Icon_Food) }
-            });
-
             Clay_String tmp;
-            ui_sprintf(tmp, "x%.1f", save.run.food);
-            CLAY_TEXT(tmp, ui_font(ui_Font_Cost));
+
+            CLAY_AUTO_ID({
+                .layout.layoutDirection = CLAY_TOP_TO_BOTTOM,
+                .layout.childGap = 12,
+            }) {
+                CLAY_AUTO_ID({}) {
+                    CLAY_AUTO_ID({
+                        .layout = {
+                            .sizing = {
+                                .height = CLAY_SIZING_FIXED(32),
+                                .width = CLAY_SIZING_FIXED(32),
+                            },
+                        },
+                        .image = { .imageData = ui_icon(ui_Icon_Food) }
+                    });
+
+                    ui_sprintf(tmp, "x%.1f", save.run.food);
+                    CLAY_TEXT(tmp, ui_font(ui_Font_Cost));
+                }
+
+                CLAY_AUTO_ID({}) {
+                    CLAY_AUTO_ID({
+                        .layout = {
+                            .sizing = {
+                                .height = CLAY_SIZING_FIXED(32),
+                                .width = CLAY_SIZING_FIXED(32),
+                            },
+                        },
+                        .image = { .imageData = ui_icon(ui_Icon_Fleur) }
+                    });
+
+                    ui_sprintf(tmp, "x%d", save.run.coin);
+                    CLAY_TEXT(tmp, ui_font(ui_Font_Cost));
+                }
+            }
         }
 
         CLAY_AUTO_ID({
@@ -736,6 +786,31 @@ static Clay_RenderCommandArray ui_create_layout(void) {
                 )) {
                     view.outcome_can_leave = true;
                     RL_PlaySound(ui_sound(ui_Sound_BattleVictory));
+
+                    uint32_t new_coin = gaussian_rand(
+                        view.difficulty,
+                        (view.difficulty < 5) ? 1 : 3
+                    );
+                    new_coin = max(1, new_coin);
+                    save.run.coin += new_coin;
+                    view.coin += new_coin;
+
+                    for (uint32_t i = 0; i < new_coin; i++) {
+                        ui_FlyingIcon fi = {
+                            .start.x =  RL_GetScreenWidth()*0.40,
+                            .start.y = RL_GetScreenHeight()*0.90,
+                            .end.x   =  RL_GetScreenWidth()*0.80,
+                            .end.y   = RL_GetScreenHeight()*0.10,
+                            .start_t = RL_GetTime(),
+                            .icon = ui_Icon_Fleur,
+                            .size = 10,
+                        };
+                        ui_flying_icon_jitter(&fi, 10);
+                        ui_flying_icon_end_t_from_speed(&fi, 0.004f);
+                        fi.end_t += i*0.1;
+                        ui_flying_icon(fi);
+                    }
+
                 }
 
                 switch (ui_big_button(
@@ -752,7 +827,7 @@ static Clay_RenderCommandArray ui_create_layout(void) {
                         view.next_view = (view_Transition) {
                             .kind = view_TransitionKind_BattleVictory,
                             .battle_victory = {
-                                .coin = 0,
+                                .coin = view.coin,
                                 .food = view.food,
                             }
                         };

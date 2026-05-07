@@ -112,14 +112,9 @@ static void ui_tally(guy_Guy *mom, guy_Guy *dad, guy_Guy *kid) {
             .custom = { .customData = mom }
         });
 
-        CLAY_AUTO_ID({
-            .layout = { .sizing = { .width = CLAY_SIZING_FIXED(25) } }
-        });
-
+        // CLAY_AUTO_ID({ .layout = { .sizing = { .width = CLAY_SIZING_FIXED(25) } } });
         CLAY_TEXT(CLAY_STRING("+"), ui_font(ui_Font_Button));
-        CLAY_AUTO_ID({
-            .layout = { .sizing = { .width = CLAY_SIZING_FIXED(25) } }
-        });
+        // CLAY_AUTO_ID({ .layout = { .sizing = { .width = CLAY_SIZING_FIXED(25) } } });
 
         CLAY_AUTO_ID({
             .layout = {
@@ -131,15 +126,9 @@ static void ui_tally(guy_Guy *mom, guy_Guy *dad, guy_Guy *kid) {
             .custom = { .customData = dad }
         });
 
-        CLAY_AUTO_ID({
-            .layout = { .sizing = { .width = CLAY_SIZING_FIXED(25) } }
-        });
-
+        // CLAY_AUTO_ID({ .layout = { .sizing = { .width = CLAY_SIZING_FIXED(25) } } });
         CLAY_TEXT(CLAY_STRING("="), ui_font(ui_Font_Button));
-
-        CLAY_AUTO_ID({
-            .layout = { .sizing = { .width = CLAY_SIZING_FIXED(25) } }
-        });
+        // CLAY_AUTO_ID({ .layout = { .sizing = { .width = CLAY_SIZING_FIXED(25) } } });
 
         CLAY_AUTO_ID({
             .layout = {
@@ -151,10 +140,7 @@ static void ui_tally(guy_Guy *mom, guy_Guy *dad, guy_Guy *kid) {
             .custom = { .customData = kid }
         });
 
-        CLAY_AUTO_ID({
-            .layout = { .sizing = { .width = CLAY_SIZING_FIXED(25) } }
-        });
-
+        // CLAY_AUTO_ID({ .layout = { .sizing = { .width = CLAY_SIZING_FIXED(25) } } });
         CLAY_TEXT(CLAY_STRING("!"), ui_font(ui_Font_Button));
     }
 }

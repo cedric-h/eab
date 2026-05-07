@@ -8,6 +8,7 @@
 #include <math.h>
 #include <string.h>
 #include <float.h>
+#include <assert.h>
 
 #define countof(arr) ( sizeof(arr) / sizeof((arr)[0]) )
 #define max(a, b) (((a) > (b)) ? (a) : (b))

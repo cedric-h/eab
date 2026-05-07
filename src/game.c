@@ -55,7 +55,7 @@ start:
                 save.run.coin = 0;
                 save.run.food = 10;
 
-                save.run.furniture[3] = save_Furniture_Tikitorch;
+                // save.run.furniture[0] = save_Furniture_Telescope;
 
                 for (int i = 0; i < 3; i++) {
                     guy_Race race = guy_Race_Human;
@@ -125,15 +125,15 @@ int main(void) {
 
     guy_system_init();
     ui_init();
-    game.view = View_Title;
-    save.run.coin = 185;
+    game.view = View_GuyCustomizer;
+    // save.run.coin = 185;
     // save.run.furniture[0] = save_Furniture_Bed;
-    // {
-    //     guy_Guy mom = guy_from_race(guy_Race_Human, guy_Sex_Female);
-    //     guy_Guy dad = guy_from_race(guy_Race_Human, guy_Sex_Male);
-    //     for (int i = 0; i < 6; i++)
-    //         save.run.guys[i] = guy_from_parents(&mom, &dad);
-    // }
+    {
+        guy_Guy mom = guy_from_race(guy_Race_Moai, guy_Sex_Female);
+        guy_Guy dad = guy_from_race(guy_Race_Moai, guy_Sex_Male);
+        for (int i = 0; i < 6; i++)
+            save.run.guys[i] = guy_from_parents(&mom, &dad);
+    }
     view_handlers[game.view].init((view_Transition) {0});
 
 #if defined(PLATFORM_WEB)

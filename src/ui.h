@@ -42,6 +42,10 @@ typedef enum {
     ui_Icon_Market,
     ui_Icon_Hole,
     ui_Icon_Telescope,
+    ui_Icon_Girth,
+    ui_Icon_Speed,
+    ui_Icon_Strength,
+    ui_Icon_Fecundity,
     ui_Icon_COUNT,
 } ui_Icon;
 

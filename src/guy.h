@@ -49,6 +49,8 @@
     x(guy_Asset_MoaiMouth1, "./resources/guy2/moai_mouth1.png") \
     x(guy_Asset_MoaiMouth2, "./resources/guy2/moai_mouth2.png") \
     x(guy_Asset_MoaiMouth3, "./resources/guy2/moai_mouth3.png") \
+    x(guy_Asset_MoaiBow1, "./resources/guy2/moai_bow1.png") \
+    x(guy_Asset_MoaiBow2, "./resources/guy2/moai_bow2.png") \
 \
     x(guy_Asset_BirbFrame1, "./resources/guy2/bird_frame1.png") \
     x(guy_Asset_BirbMouth1, "./resources/guy2/bird_mouth1.png") \
@@ -67,6 +69,9 @@
     x(guy_Asset_BunnyEyes2, "./resources/guy2/bunny_eyes2.png") \
     x(guy_Asset_BunnyMouth1, "./resources/guy2/bunny_mouth1.png") \
     x(guy_Asset_BunnyTail1, "./resources/guy2/bunny_tail1.png") \
+    x(guy_Asset_BunnyHair1, "./resources/guy2/bunny_hair1.png") \
+    x(guy_Asset_BunnyBow1Male, "./resources/guy2/bunny_bow1_male.png") \
+    x(guy_Asset_BunnyBow1Female, "./resources/guy2/bunny_bow1_female.png") \
 \
     x(guy_Asset_HumanEyes1,      "./resources/guy2/human_eyes1.png") \
     x(guy_Asset_HumanEyes2,      "./resources/guy2/human_eyes2.png") \
@@ -107,6 +112,7 @@ typedef enum {
     guy_GeneCategory_MouthAsset,
     guy_GeneCategory_EyesAsset,
     guy_GeneCategory_LimbsAsset,
+    guy_GeneCategory_BowAsset,
     guy_GeneCategory_ToolAsset,
 
     guy_GeneCategory_Girth,
@@ -140,6 +146,7 @@ typedef enum {
     x(guy_GeneLoc_MouthAsset, "mouth", guy_GeneCategory_MouthAsset) \
     x(guy_GeneLoc_EyesAsset,  "eyes" , guy_GeneCategory_EyesAsset ) \
     x(guy_GeneLoc_LimbsAsset, "limbs", guy_GeneCategory_LimbsAsset) \
+    x(guy_GeneLoc_BowAsset,   "bow",   guy_GeneCategory_BowAsset) \
     x(guy_GeneLoc_ToolAsset,  "tool",  guy_GeneCategory_ToolAsset ) \
 \
     x(guy_GeneLoc_Strength1, "strength 1", guy_GeneCategory_Strength) \
@@ -193,6 +200,7 @@ static guy_GeneCategory guy_asset_gene_categories[] = {
     guy_GeneCategory_MouthAsset,
     guy_GeneCategory_EyesAsset,
     guy_GeneCategory_LimbsAsset,
+    guy_GeneCategory_BowAsset,
     guy_GeneCategory_ToolAsset,
 };
 

@@ -262,6 +262,7 @@ static void map_stops_init(void) {
         Stop *end = map_stops_init_arm(
             start,
             biome,
+            /* note: ensuring bed placement assumes this is 1 or 2 */
             RL_GetRandomValue(1, 2),
             lerp_rads(angle0, angle1, 0.5)
         );
@@ -298,11 +299,24 @@ static void map_stops_init(void) {
                 );
             }
         }
+
+        /* ensuring bed placement:
+         * at the beginning, there are 3 battle choices;
+         * after any of these first three battles, there has to be a bed */
+        Stop *arm_start = (end->parent == start) ? end : end->parent;
+        for (size_t i = 0; i < countof(stops.all); i++) {
+            Stop *s = stops.all + i;
+            if (s->parent == arm_start) {
+                s->kind = map_StopKind_Rest;
+                break;
+            }
+        }
     }
 }
 
 static void map_stops_layout(void) {
 
+    /* pull towards parents */
     for (size_t stop_i = 0; stop_i < countof(stops.all); stop_i++) {
         Stop *i = stops.all + stop_i;
         Stop *p = i->parent;
@@ -312,7 +326,11 @@ static void map_stops_layout(void) {
         float dx = p->x - i->x;
         float dy = p->y - i->y;
         float dist = sqrtf(dx*dx + dy*dy);
-        float stretch = dist - 100;
+
+        float optimal_dist = 100.0f;
+        if (i->parent == stops.start) optimal_dist = 50.0f;
+
+        float stretch = dist - optimal_dist;
         if (stretch > 0) {
             p->x -= (dx/dist) * stretch/2 * 0.1;
             p->y -= (dy/dist) * stretch/2 * 0.1;
@@ -321,6 +339,7 @@ static void map_stops_layout(void) {
         }
     }
 
+    /* push away from each other */
     for (size_t stop_i = 0; stop_i < countof(stops.all); stop_i++) {
         Stop *i = stops.all + stop_i;
         if (!i->stage) continue;
