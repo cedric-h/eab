@@ -571,8 +571,10 @@ static void ui_race_summary(guy_Guy *guy) {
 
     CLAY_AUTO_ID({
         .layout.layoutDirection = CLAY_TOP_TO_BOTTOM,
+        .layout.childGap = 8,
     }) {
-        bool first = true;
+        CLAY_TEXT(CLAY_STRING("RACE:"), ui_font(ui_Font_Cost));
+
         for (size_t i = 0; i < countof(entries); i++) {
             uint32_t count = entries[i].count;
             if (count == 0) continue;
@@ -584,13 +586,8 @@ static void ui_race_summary(guy_Guy *guy) {
             );
 
             Clay_String tmp;
-            if (first)
-                ui_sprintf(tmp, "race: %.1f%% %s", f, race_name);
-            else
-                ui_sprintf(tmp, "%.1f%% %s", f, race_name);
+            ui_sprintf(tmp, "%.1f%% %s", f, race_name);
             CLAY_TEXT(tmp, ui_font(ui_Font_Desc));
-
-            first = false;
         }
     }
 }
@@ -645,7 +642,7 @@ static void ui_closest_relatives(guy_Guy *guy) {
 
                 uint32_t count = closest[i].shared_genes;
                 float p = 100 * (
-                    (float)count / (float)(guy_GeneLoc_COUNT-1)
+                    (float)count / (float)guy_GeneLoc_COUNT
                 );
                 Clay_String tmp;
                 ui_sprintf(tmp, "%.1f%% DNA", p);
@@ -690,7 +687,11 @@ static Clay_RenderCommandArray ui_guy_detail(void) {
 
             Clay_String tmp;
             ui_sprintf(tmp, "%s", name);
-            CLAY_TEXT(tmp, ui_font(ui_Font_Button));
+            CLAY_AUTO_ID({
+                .clip.horizontal = true,
+            }) {
+                CLAY_TEXT(tmp, ui_font(ui_Font_Button));
+            }
 
             CLAY_AUTO_ID({
                 .layout.sizing.width = CLAY_SIZING_GROW(),

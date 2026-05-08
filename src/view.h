@@ -38,6 +38,8 @@ typedef enum {
 typedef struct {
     view_TransitionKind kind;
 
+    uint32_t update;
+
     struct {
         /* how far this node is from the start */
         size_t steps_from_root;

@@ -60,7 +60,7 @@ static struct {
 
 #define map_MAX_ASSETS_PER_BIOME 10
 static struct {
-    double ts_telescope_out_anim_start, ts_telescope_out_anim_done;
+    double ts_telescope_out_anim_start;
     bool telescope_active;
     double ts_enter_anim_start, ts_enter_anim_done;
     double ts_move_anim_start, ts_move_anim_done;
@@ -917,8 +917,11 @@ static Clay_RenderCommandArray ui_create_layout(void) {
                     } break;
 
                     case ui_Click_Released: {
-                        view.ts_telescope_out_anim_start = RL_GetTime();
-                        view.telescope_active ^= 1;
+                        double done = view.ts_telescope_out_anim_start + 1.0f;
+                        if (done < RL_GetTime()) {
+                            view.ts_telescope_out_anim_start = RL_GetTime();
+                            view.telescope_active ^= 1;
+                        }
                     } break;
 
                     case ui_Click_NONE: break;

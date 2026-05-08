@@ -38,6 +38,7 @@ void frame(void) {
 
 start:
     transition = view_handlers[game.view].update(game.update_count);
+    transition.update = game.update_count;
     if (transition.kind != view_TransitionKind_NONE) {
         view_handlers[game.view].free();
 
@@ -125,16 +126,17 @@ int main(void) {
 
     guy_system_init();
     ui_init();
-    game.view = View_GuyCustomizer;
+    game.view = View_Title;
     // save.run.coin = 185;
     // save.run.furniture[0] = save_Furniture_Bed;
-    {
-        guy_Guy mom = guy_from_race(guy_Race_Moai, guy_Sex_Female);
-        guy_Guy dad = guy_from_race(guy_Race_Moai, guy_Sex_Male);
-        for (int i = 0; i < 6; i++)
-            save.run.guys[i] = guy_from_parents(&mom, &dad);
-    }
-    view_handlers[game.view].init((view_Transition) {0});
+    // {
+    //     guy_Guy mom = guy_from_race(guy_Race_Moai, guy_Sex_Female);
+    //     guy_Guy dad = guy_from_race(guy_Race_Moai, guy_Sex_Male);
+    //     for (int i = 0; i < 30; i++)
+    //         save.run.guys[i] = guy_from_parents(&mom, &dad);
+    // }
+    // save.run.biome = save_Biome_Desert;
+    view_handlers[game.view].init((view_Transition) { .battle.steps_from_root = 15 });
 
 #if defined(PLATFORM_WEB)
     emscripten_set_main_loop(frame, 60, 1);

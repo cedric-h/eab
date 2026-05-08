@@ -25,11 +25,11 @@ _Static_assert(
 
 typedef enum {
     save_Furniture_NONE,
-    save_Furniture_Tikitorch,
+    // save_Furniture_Tikitorch,
     save_Furniture_PocketCamp,
     save_Furniture_Crown,
     save_Furniture_Telescope,
-    save_Furniture_CrusaderScrolls,
+    // save_Furniture_CrusaderScrolls,
     save_Furniture_COUNT,
 } save_Furniture;
 

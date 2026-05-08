@@ -209,7 +209,7 @@ view_Transition view_camp_update(uint64_t _) {
 
     /* push things in/out of the orgy circle */
     view.guys_in_orgy_circle_male = 0;
-    view.guys_in_orgy_circle_cost_to_breed = 0;
+    view.guys_in_orgy_circle_cost_to_breed = 1;
     view.guys_in_orgy_circle_childcount_female = 0;
     for (size_t i = 0; i < countof(keep.items); i++) {
         camp_Item *item = keep.items + i;
@@ -715,7 +715,16 @@ static Clay_RenderCommandArray ui_create_layout(void) {
                     ui_hp_tally(guy);
                 }
 
-                CLAY_AUTO_ID({ .layout.sizing.width = CLAY_SIZING_GROW() });
+                CLAY_AUTO_ID({
+                    .layout.sizing.width = CLAY_SIZING_GROW(),
+                    .layout.sizing.height = CLAY_SIZING_GROW(),
+                    .layout.childAlignment.x = CLAY_ALIGN_X_CENTER,
+                    .layout.childAlignment.y = CLAY_ALIGN_Y_CENTER,
+                }) {
+                    Clay_String tmp;
+                    ui_sprintf(tmp, "%s", guy_sex_str(guy->sex));
+                    CLAY_TEXT(tmp, ui_font(ui_Font_Cost));
+                }
 
                 CLAY_AUTO_ID({
                     .layout.layoutDirection = CLAY_TOP_TO_BOTTOM,
@@ -733,7 +742,9 @@ static Clay_RenderCommandArray ui_create_layout(void) {
                 },
             }) {
                 float heal_cost = 0;
-                float bed_cost = view.guys_in_orgy_circle_cost_to_breed * (view.guys_in_orgy_circle_male > 0);
+                float bed_cost = view.guys_in_orgy_circle_cost_to_breed *
+                    (view.guys_in_orgy_circle_male > 0) *
+                    (view.guys_in_orgy_circle_childcount_female > 0);
                 for (size_t i = 0; i < countof(save.run.guys); i++) {
                     guy_Guy *g = save.run.guys + i;
                     if (g->state == guy_GuyState_NONE)

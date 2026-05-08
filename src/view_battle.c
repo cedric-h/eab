@@ -72,6 +72,7 @@ static struct {
 
     view_Transition next_view;
     guy_Guy baddies[BADDIE_MAX_COUNT];
+    uint64_t last_hit_update;
 
     battle_Guy guys[COMBATANT_MAX_COUNT];
     struct { bool active; f2 pos; float size; } graves[COMBATANT_MAX_COUNT];
@@ -206,6 +207,8 @@ static size_t baddies_init(size_t steps_from_root) {
 
 void view_battle_init(view_Transition t) {
     memset(&view, 0, sizeof(view));
+
+    view.last_hit_update = t.update;
 
     view.sound_hit  = RL_LoadSound("./resources/audio/hit.wav");
     view.sound_dead = RL_LoadSound("./resources/audio/dead.wav");
@@ -361,7 +364,8 @@ view_Transition view_battle_update(uint64_t update) {
                 target_score += 2*(target->target == bguy);
 
                 /* prioritize staying locked on to current target */
-                target_score += 4*(target == bguy->target);
+                if ((update - view.last_hit_update) < 200)
+                    target_score += 4*(target == bguy->target);
 
                 if (target_score > current_target_score) {
                     current_target_score = target_score;
@@ -480,6 +484,8 @@ view_Transition view_battle_update(uint64_t update) {
 
                             if (!(vdlen < (attacking_dist+15) && vdlen > 0))
                                 continue;
+
+                            view.last_hit_update = update;
 
                             float dmg = guy_damage(bguy->guy);
                             victim->phase = battle_GuyPhase_Hurting;

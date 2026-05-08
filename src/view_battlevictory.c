@@ -102,8 +102,6 @@ static Clay_RenderCommandArray ui_create_layout(void) {
         CLAY_AUTO_ID({
             .layout = {
                 .layoutDirection = CLAY_TOP_TO_BOTTOM,
-                .padding = { 32, 32, 32, 32 },
-                .childGap = 32,
             },
         }) {
             CLAY_TEXT(

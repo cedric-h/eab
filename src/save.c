@@ -15,15 +15,15 @@ int save_count_furniture(save_Furniture furniture) {
 }
 
 save_FurnitureConfig save_furniture_configs[] = {
-    [save_Furniture_Tikitorch] = {
-        .icon = ui_Icon_Fire,
-        .cost = 30,
-        .max_count = 1,
-        .desc = STRING(
-            "Inspire guys to\n"
-            "explode in battle"
-        )
-    },
+    // [save_Furniture_Tikitorch] = {
+    //     .icon = ui_Icon_Fire,
+    //     .cost = 30,
+    //     .max_count = 1,
+    //     .desc = STRING(
+    //         "Inspire guys to\n"
+    //         "explode in battle"
+    //     )
+    // },
     [save_Furniture_PocketCamp] = {
         .icon = ui_Icon_Bed,
         .cost = 20,
@@ -32,16 +32,16 @@ save_FurnitureConfig save_furniture_configs[] = {
             "Camp on any tile"
         )
     },
-    [save_Furniture_CrusaderScrolls] = {
-        .icon = ui_Icon_Scroll,
-        .cost = 25,
-        .max_count = 999,
-        .desc = STRING(
-            "if all share ancestor:\n"
-            "+30% damage\n"
-            "otherwise, -30% damage"
-        )
-    },
+    // [save_Furniture_CrusaderScrolls] = {
+    //     .icon = ui_Icon_Scroll,
+    //     .cost = 25,
+    //     .max_count = 999,
+    //     .desc = STRING(
+    //         "if all share ancestor:\n"
+    //         "+30% damage\n"
+    //         "otherwise, -30% damage"
+    //     )
+    // },
     [save_Furniture_Crown] = {
         .icon = ui_Icon_Crown,
         .cost = 35,

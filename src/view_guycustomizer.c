@@ -230,6 +230,8 @@ static Clay_RenderCommandArray ui_create_layout(void) {
 
         }
 
+        CLAY_AUTO_ID({ .layout.sizing.height = CLAY_SIZING_GROW() });
+
         CLAY_AUTO_ID({
             .border = {
                 .width = CLAY_BORDER_OUTSIDE(4),
